@@ -739,9 +739,9 @@ export default function Dashboard({ user, onLogout }) {
       return;
     }
 
-    const nameError = validateAlamat(offlineOrder.customer_name);
+    const nameError = validateNama(offlineOrder.customer_name);
     if (nameError) {
-      setErrorMsg('Nama customer tidak valid (2-100 karakter, tidak boleh ada simbol khusus)');
+      setErrorMsg(nameError);
       return;
     }
 
@@ -789,21 +789,29 @@ export default function Dashboard({ user, onLogout }) {
         console.warn('⚠️ Customer tidak berhasil di-save, lanjut dengan order');
       }
 
-      // Generate order number
-      const orderNumResult = await safeApiCall(
-        () => generateOrderNumber(),
-        { context: 'Generate nomor pesanan' }
-      );
+      // Generate order number (call directly, no wrapper)
+      const orderNumResult = await generateOrderNumber();
       if (!orderNumResult.success) throw new Error('Gagal membuat nomor pesanan');
+      const orderNumber = orderNumResult.orderNumber;
+
+      console.log('✅ Generated order number:', orderNumber);
 
       // Calculate totals
       const subtotal = offlineOrder.items.reduce((sum, i) => sum + (i.quantity * i.price), 0);
       const total = subtotal + offlineOrder.shipping_cost;
 
+      console.log('📋 Creating order with:', {
+        order_number: orderNumber,
+        total_produk: subtotal,
+        total_bayar: total,
+        alamat: offlineOrder.customer_address,
+        nomor_wa: offlineOrder.customer_phone
+      });
+
       // Create order (use null for userId for offline orders)
       const createOrderResult = await safeApiCall(
         () => createOrder(null, {
-          order_number: orderNumResult.orderNumber,
+          order_number: orderNumber,
           metode_bayar: offlineOrder.payment_method,
           total_produk: subtotal,
           total_bayar: total,
