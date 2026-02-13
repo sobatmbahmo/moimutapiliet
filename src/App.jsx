@@ -105,6 +105,18 @@ function App() {
         })) || [];
         
         setProducts(mappedData);
+
+        // ✅ Auto-open product modal if ?product=ID in URL (affiliate share link)
+        const params = new URLSearchParams(window.location.search);
+        const productId = params.get('product');
+        if (productId) {
+          const targetProduct = mappedData.find(p => p.id === productId);
+          if (targetProduct) {
+            setTimeout(() => {
+              setModalState({ isOpen: true, mode: 'detail', product: targetProduct });
+            }, 500); // Delay slightly to ensure UI is ready
+          }
+        }
       } catch (error) {
         console.error('Error loading products:', error);
       } finally {
