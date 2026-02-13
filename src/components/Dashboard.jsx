@@ -14,7 +14,7 @@ import {
 import { getAffiliatorDashboardSummary, validateWithdrawalRequest, getTopAffiliators } from '../lib/affiliateLogic';
 import { getAffiliatorBindings } from '../lib/bindingLogic';
 import { generateOrderNumber, calculateOrderTotal, formatOrderForWA } from '../lib/orderUtils';
-import { sendOrderConfirmation, sendInvoice, sendResiNotification, sendInvoiceNotification } from '../lib/fonntePush';
+import { sendOrderConfirmation, sendInvoice, sendResiNotification, sendInvoiceNotification, sendAffiliatorApprovalNotification } from '../lib/fonntePush';
 import { validateOngkir, validateResi, validateNomorWA, validateAlamat, validateNama } from '../lib/validation';
 import { handleError, safeApiCall, withTimeout } from '../lib/errorHandler';
 
@@ -529,9 +529,39 @@ export default function Dashboard({ user, onLogout }) {
 
     try {
       setLoading(true);
+      
+      // 1. Get full affiliator data before updating
+      const { data: affiliatorData, error: fetchError } = await supabase
+        .from('affiliators')
+        .select('*')
+        .eq('id', affiliatorId)
+        .single();
+
+      if (fetchError || !affiliatorData) {
+        setErrorMsg('Error: Tidak bisa mengambil data mitra');
+        setLoading(false);
+        return;
+      }
+
+      // 2. Update status to active
       const result = await updateAffiliator(affiliatorId, { status: 'active' });
       if (result.success) {
-        setSuccessMsg(`✅ Mitra ${affiliatorName} berhasil diaktifkan!`);
+        // 3. Send WhatsApp approval notification
+        try {
+          await sendAffiliatorApprovalNotification(
+            affiliatorData.nomor_wa,
+            affiliatorData.nama,
+            affiliatorData.email,
+            affiliatorData.bank_name || 'N/A',
+            affiliatorData.account_number || 'N/A'
+          );
+          setSuccessMsg(`✅ Mitra ${affiliatorName} diaktifkan & notifikasi WhatsApp terkirim!`);
+        } catch (notificationError) {
+          console.error('Notification send error:', notificationError);
+          // Still show success even if notification fails
+          setSuccessMsg(`✅ Mitra ${affiliatorName} berhasil diaktifkan! (Notifikasi gagal terkirim)`);
+        }
+        
         loadInitialData();
       } else {
         setErrorMsg('Error: ' + result.error);

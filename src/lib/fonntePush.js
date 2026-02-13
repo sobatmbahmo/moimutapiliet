@@ -364,6 +364,43 @@ export const sendNewOrderAlertToAdmin = async (
 };
 
 /**
+ * Send affiliator registration approval notification
+ * Sent when admin approves new affiliator registration
+ */
+export const sendAffiliatorApprovalNotification = async (
+  phoneNumber,
+  affiliatorName,
+  email,
+  bankName,
+  accountNumber
+) => {
+  const message = `
+*Pendaftaran Anda Disetujui! 🎉*
+
+Halo ${affiliatorName},
+
+Selamat! Pendaftaran Anda sebagai Mitra telah *disetujui oleh admin*.
+
+*DATA AKUN ANDA:*
+Nama: ${affiliatorName}
+Email: ${email}
+Bank: ${bankName}
+No. Rekening: ${accountNumber}
+
+*LANGKAH SELANJUTNYA:*
+1. Login ke dashboard dengan email & password Anda
+2. Lengkapi profil TikTok Anda (jika ada)
+3. Mulai membagikan produk dan dapatkan komisi! 💰
+
+Butuh bantuan? Hubungi tim support kami.
+
+Terima kasih telah bergabung! 🙏
+`.trim();
+
+  return sendFonntMessage(phoneNumber, message);
+};
+
+/**
  * Test Fonnte connection
  */
 export const testFontneConnection = async (phoneNumber = '6289xxx1234') => {
