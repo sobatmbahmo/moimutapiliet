@@ -170,7 +170,14 @@ export default function Dashboard({ user, onLogout }) {
           .order('nama', { ascending: true });
         setAffiliators(affiliatorsData || []);
       } else if (isAffiliator) {
-        // Affiliator: load their dashboard summary
+        // Affiliator: Load products for all to display
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('*')
+          .order('sort_order', { ascending: true });
+        setProducts(productsData || []);
+
+        // Load their dashboard summary
         const summaryResult = await getAffiliatorDashboardSummary(user.id);
         if (summaryResult.success) {
           setSummary(summaryResult.summary);
