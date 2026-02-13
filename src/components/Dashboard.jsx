@@ -756,12 +756,15 @@ export default function Dashboard({ user, onLogout }) {
       return;
     }
 
-    if (offlineOrder.customer_address.trim()) {
-      const addressError = validateAlamat(offlineOrder.customer_address);
-      if (addressError) {
-        setErrorMsg('Alamat tidak valid (5-500 karakter)');
-        return;
-      }
+    if (!offlineOrder.customer_address.trim()) {
+      setErrorMsg('Alamat customer harus diisi');
+      return;
+    }
+
+    const addressError = validateAlamat(offlineOrder.customer_address);
+    if (addressError) {
+      setErrorMsg(addressError);
+      return;
     }
 
     if (offlineOrder.items.length === 0 || offlineOrder.items.some(i => !i.product_id)) {
