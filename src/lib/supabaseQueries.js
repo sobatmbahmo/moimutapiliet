@@ -178,7 +178,7 @@ export const getAffiliatorByEmail = async (email) => {
   }
 };
 
-export const createAffiliator = async (nama, nomor_wa, email, password_hash, akun_tiktok = []) => {
+export const createAffiliator = async (nama, nomor_wa, email, password_hash, akun_tiktok = [], nomor_rekening = '', nama_bank = '') => {
   try {
     const { data: newAffiliator, error } = await supabase
       .from('affiliators')
@@ -188,6 +188,8 @@ export const createAffiliator = async (nama, nomor_wa, email, password_hash, aku
         email,
         password_hash,
         akun_tiktok,
+        nomor_rekening,
+        nama_bank,
         status: 'pending'
       })
       .select()

@@ -30,6 +30,8 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
   const [nama, setNama] = useState('');
   const [nomorWA, setNomorWA] = useState('');
   const [pin, setPin] = useState('');
+  const [nomorRekening, setNomorRekening] = useState('');
+  const [namaBank, setNamaBank] = useState('');
 
   // Reset form saat modal dibuka
   useEffect(() => {
@@ -48,6 +50,8 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
     setNama('');
     setNomorWA('');
     setPin('');
+    setNomorRekening('');
+    setNamaBank('');
     setErrorMessage('');
     setSuccessMessage('');
     setShowPassword(false);
@@ -265,6 +269,20 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
         return;
       }
 
+      // 6. Validate nomor rekening
+      if (!nomorRekening || nomorRekening.trim().length === 0) {
+        setErrorMessage('Nomor rekening harus diisi');
+        setAuthLoading(false);
+        return;
+      }
+
+      // 7. Validate nama bank
+      if (!namaBank || namaBank.trim().length === 0) {
+        setErrorMessage('Nama bank harus diisi');
+        setAuthLoading(false);
+        return;
+      }
+
       // Check if email already exists
       const { data: existing, error: checkError } = await supabase
         .from('affiliators')
@@ -284,7 +302,9 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
         sanitizeInput(nomorWA.trim()),
         email.toLowerCase(),
         password, // In production, use proper bcrypt
-        [] // akun_tiktok - empty for now
+        [], // akun_tiktok - empty for now
+        sanitizeInput(nomorRekening.trim()),
+        sanitizeInput(namaBank.trim())
       );
 
       if (!result.success) {
@@ -516,6 +536,36 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
                 />
                 <Phone size={16} className="absolute left-3.5 top-4 text-gray-500" />
               </div>
+            </div>
+          )}
+
+          {/* Nomor Rekening (Register only) */}
+          {currentMode === 'register' && (
+            <div>
+              <label className="text-[10px] font-bold text-[#D4AF37] uppercase ml-1 tracking-wider">Nomor Rekening</label>
+              <input 
+                type="text" 
+                placeholder="1234567890" 
+                value={nomorRekening}
+                onChange={(e) => setNomorRekening(e.target.value)}
+                className="w-full mt-1 bg-black/40 border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:border-[#D4AF37] focus:outline-none transition"
+                required
+              />
+            </div>
+          )}
+
+          {/* Nama Bank (Register only) */}
+          {currentMode === 'register' && (
+            <div>
+              <label className="text-[10px] font-bold text-[#D4AF37] uppercase ml-1 tracking-wider">Nama Bank</label>
+              <input 
+                type="text" 
+                placeholder="BRI / BNI / Mandiri / dll" 
+                value={namaBank}
+                onChange={(e) => setNamaBank(e.target.value)}
+                className="w-full mt-1 bg-black/40 border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:border-[#D4AF37] focus:outline-none transition"
+                required
+              />
             </div>
           )}
 
