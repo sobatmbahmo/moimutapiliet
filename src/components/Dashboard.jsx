@@ -9,7 +9,7 @@ import {
   getUserOrders, createOrder, addOrderItems, updateOrderStatus, deleteOrder,
   createWithdrawal, getAffiliatorWithdrawals,
   getAffiliatorByEmail, updateAffiliator, updateProduct, deleteAffiliator, reorderProduct,
-  searchCustomers, upsertCustomer
+  searchCustomers, upsertCustomer, setAffiliatorProductLink, getAffiliatorProductLink
 } from '../lib/supabaseQueries';
 import { getAffiliatorDashboardSummary, validateWithdrawalRequest, getTopAffiliators } from '../lib/affiliateLogic';
 import { getAffiliatorBindings } from '../lib/bindingLogic';
@@ -136,6 +136,13 @@ export default function Dashboard({ user, onLogout }) {
     akun_tiktok: '',
     bank_name: '',
     account_number: ''
+  });
+
+  // Edit Product Link Modal (for Affiliator)
+  const [showEditProductLinkModal, setShowEditProductLinkModal] = useState(false);
+  const [editingProductForLink, setEditingProductForLink] = useState(null);
+  const [productLinkForm, setProductLinkForm] = useState({
+    tiktok_shop: ''
   });
 
   // ======================
@@ -510,6 +517,47 @@ export default function Dashboard({ user, onLogout }) {
       if (result.success) {
         setSuccessMsg(`✅ Mitra ${affiliatorName} berhasil diaktifkan!`);
         loadInitialData();
+      } else {
+        setErrorMsg('Error: ' + result.error);
+      }
+    } catch (err) {
+      setErrorMsg('Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle Edit Product Link (for Affiliator)
+  const handleEditProductLink = async (product) => {
+    setEditingProductForLink(product);
+    const result = await getAffiliatorProductLink(user.id, product.id);
+    if (result.success && result.link) {
+      setProductLinkForm({
+        tiktok_shop: result.link.tiktok_link || ''
+      });
+    } else {
+      setProductLinkForm({ tiktok_shop: '' });
+    }
+    setShowEditProductLinkModal(true);
+  };
+
+  const handleSaveProductLink = async () => {
+    if (!productLinkForm.tiktok_shop.trim()) {
+      setErrorMsg('Link TikTok tidak boleh kosong');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const result = await setAffiliatorProductLink(
+        user.id,
+        editingProductForLink.id,
+        productLinkForm.tiktok_shop
+      );
+      if (result.success) {
+        setSuccessMsg(`✅ Link TikTok untuk ${editingProductForLink.name} berhasil disimpan!`);
+        setShowEditProductLinkModal(false);
+        setProductLinkForm({ tiktok_shop: '' });
       } else {
         setErrorMsg('Error: ' + result.error);
       }
@@ -2139,6 +2187,14 @@ export default function Dashboard({ user, onLogout }) {
                               </p>
                             )}
                           </div>
+                          
+                          {/* Edit Button */}
+                          <button
+                            onClick={() => handleEditProductLink(p)}
+                            className="px-3 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded hover:bg-[#D4AF37]/40 transition h-fit"
+                          >
+                            <Edit size={14} className="inline mr-1" /> Edit Link
+                          </button>
                         </div>
                       </div>
                     ))}
@@ -2284,6 +2340,56 @@ export default function Dashboard({ user, onLogout }) {
                   </button>
                   <button
                     onClick={() => setShowWithdrawalForm(false)}
+                    className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30"
+                  >
+                    Batal
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Edit Product Link Modal */}
+          {showEditProductLinkModal && editingProductForLink && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
+              <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-md p-6 space-y-4">
+                <h2 className="text-2xl font-bold text-white">Edit Link TikTok Affiliate</h2>
+                <p className="text-sm text-gray-400">{editingProductForLink.name}</p>
+
+                <div className="space-y-2">
+                  <label className="text-[#D4AF37] font-bold text-sm">Link TikTok Shop Affiliate <span className="text-red-400">*</span></label>
+                  <input
+                    type="url"
+                    placeholder="https://vt.tiktok.com/..."
+                    value={productLinkForm.tiktok_shop}
+                    onChange={(e) => setProductLinkForm({ ...productLinkForm, tiktok_shop: e.target.value })}
+                    className="w-full px-4 py-2 bg-black/40 border border-white/20 rounded text-white text-sm focus:border-[#D4AF37]"
+                  />
+                  <p className="text-xs text-gray-400 mt-1">
+                    Paste link TikTok Shop affiliate Anda di sini agar komisi tetap masuk ke akun Anda.
+                  </p>
+                </div>
+
+                {errorMsg && (
+                  <div className="p-2 bg-red-500/10 border border-red-500/30 rounded text-red-300 text-xs">
+                    {errorMsg}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleSaveProductLink}
+                    disabled={loading}
+                    className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition disabled:opacity-50"
+                  >
+                    {loading ? 'Menyimpan...' : '💾 Simpan Link'}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowEditProductLinkModal(false);
+                      setProductLinkForm({ tiktok_shop: '' });
+                      setErrorMsg('');
+                    }}
                     className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30"
                   >
                     Batal
