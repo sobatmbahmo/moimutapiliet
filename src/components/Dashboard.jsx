@@ -808,26 +808,25 @@ export default function Dashboard({ user, onLogout }) {
         nomor_wa: offlineOrder.customer_phone
       });
 
-      // Create order (use null for userId for offline orders)
-      const createOrderResult = await safeApiCall(
-        () => createOrder(null, {
-          order_number: orderNumber,
-          metode_bayar: offlineOrder.payment_method,
-          total_produk: subtotal,
-          total_bayar: total,
-          alamat: offlineOrder.customer_address,
-          nomor_wa: offlineOrder.customer_phone,
-          nama_pembeli: offlineOrder.customer_name,
-          catatan: offlineOrder.notes,
-          is_offline: true,
-          payment_due_date: null,
-          shipping_cost: offlineOrder.shipping_cost,
-          courier_name: offlineOrder.courier_name
-        }),
-        { context: 'Membuat pesanan baru' }
-      );
+      // Create order (use null for userId for offline orders) - Call directly without safeApiCall wrapper
+      const createOrderResult = await createOrder(null, {
+        order_number: orderNumber,
+        metode_bayar: offlineOrder.payment_method,
+        total_produk: subtotal,
+        total_bayar: total,
+        alamat: offlineOrder.customer_address,
+        nomor_wa: offlineOrder.customer_phone,
+        nama_pembeli: offlineOrder.customer_name,
+        catatan: offlineOrder.notes,
+        is_offline: true,
+        payment_due_date: null,
+        shipping_cost: offlineOrder.shipping_cost,
+        courier_name: offlineOrder.courier_name
+      });
 
       if (!createOrderResult.success) throw new Error(createOrderResult.error);
+
+      console.log('✅ Order created with ID:', createOrderResult.order.id);
 
       // Add order items
       const itemsToAdd = offlineOrder.items.map(item => ({
