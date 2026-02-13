@@ -67,7 +67,7 @@ export default function Header({
                   <div><span className="block font-bold">Login Affiliator</span><span className="text-[10px] text-gray-400">Masuk mitra terdaftar</span></div>
                 </button>
                 <div className="border-t border-white/10 my-1"></div>
-                <button onClick={onRegisterClick} className="w-full text-left px-3 py-3 rounded-lg hover:bg-white/10 text-white text-sm font-medium flex items-center gap-3 transition group">
+                <button onClick={() => onRegisterClick('Affiliator')} className="w-full text-left px-3 py-3 rounded-lg hover:bg-white/10 text-white text-sm font-medium flex items-center gap-3 transition group">
                   <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 group-hover:bg-green-500 group-hover:text-white transition"><User size={16}/></div>
                    <div><span className="block font-bold">Daftar Affiliator</span><span className="text-[10px] text-gray-400">Gabung Kemitraan Baru</span></div>
                 </button>
