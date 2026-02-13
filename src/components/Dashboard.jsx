@@ -15,7 +15,7 @@ import { getAffiliatorDashboardSummary, validateWithdrawalRequest, getTopAffilia
 import { getAffiliatorBindings } from '../lib/bindingLogic';
 import { generateOrderNumber, calculateOrderTotal, formatOrderForWA } from '../lib/orderUtils';
 import { sendOrderConfirmation, sendInvoice, sendResiNotification, sendInvoiceNotification } from '../lib/fonntePush';
-import { validateOngkir, validateResi, validateNomorWA, validateAlamat } from '../lib/validation';
+import { validateOngkir, validateResi, validateNomorWA, validateAlamat, validateNama } from '../lib/validation';
 import { handleError, safeApiCall, withTimeout } from '../lib/errorHandler';
 
 const formatRupiah = (number) => {
