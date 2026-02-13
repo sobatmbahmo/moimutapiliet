@@ -466,7 +466,7 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
             <div className="relative">
               <input 
                 type={showPassword ? 'text' : 'password'} 
-                placeholder={currentMode === 'register' ? 'Min 6 karakter' : '••••••'} 
+                placeholder={currentMode === 'register' ? 'a-z, 0-9 (min 6 karakter)' : '••••••'} 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full mt-1 bg-black/40 border border-white/20 rounded-xl pl-10 pr-10 py-3 text-white text-sm focus:border-[#D4AF37] focus:outline-none transition"

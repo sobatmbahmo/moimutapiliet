@@ -90,24 +90,13 @@ export const validatePassword = (password) => {
     return 'Password harus diisi';
   }
 
-  if (password.length < 8) {
-    return 'Password minimal 8 karakter';
+  if (password.length < 6) {
+    return 'Password minimal 6 karakter';
   }
 
-  if (!/[A-Z]/.test(password)) {
-    return 'Password harus mengandung minimal 1 huruf BESAR';
-  }
-
-  if (!/[a-z]/.test(password)) {
-    return 'Password harus mengandung minimal 1 huruf kecil';
-  }
-
-  if (!/[0-9]/.test(password)) {
-    return 'Password harus mengandung minimal 1 angka';
-  }
-
-  if (!/[!@#$%^&*\-_=+\[\]{};:'",.<>?/\\|`~]/.test(password)) {
-    return 'Password harus mengandung minimal 1 karakter spesial (!@#$%^&*)';
+  // Only allow lowercase letters (a-z) and numbers (0-9)
+  if (!/^[a-z0-9]+$/.test(password)) {
+    return 'Password hanya boleh menggunakan huruf kecil (a-z) dan angka (0-9)';
   }
 
   return null;
