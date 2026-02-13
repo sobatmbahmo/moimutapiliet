@@ -55,22 +55,6 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
   };
 
   // ======================
-  // VALIDATION
-  // ======================
-  const validateEmail = (email) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
-  const validatePassword = (pwd) => {
-    return pwd.length >= 6;
-  };
-
-  const validatePin = (pinValue) => {
-    return /^\d{4,6}$/.test(pinValue);
-  };
-
-  // ======================
   // ADMIN LOGIN
   // ======================
   const handleAdminLogin = async (e) => {
@@ -282,7 +266,7 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
       }
 
       // 6. Validate PIN
-      if (!validatePin(pin)) {
+      if (!/^\d{4,6}$/.test(pin)) {
         setErrorMessage('PIN harus 4-6 angka');
         setAuthLoading(false);
         return;
@@ -302,13 +286,13 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
       }
 
       // Create new affiliator (with sanitized inputs)
-      const result = await createAffiliator({
-        nama: sanitizeInput(nama.trim()),
-        email: email.toLowerCase(),
-        password_hash: password, // In production, use proper bcrypt
-        nomor_wa: sanitizeInput(nomorWA.trim()),
-        status: 'pending' // Require admin approval
-      });
+      const result = await createAffiliator(
+        sanitizeInput(nama.trim()),
+        sanitizeInput(nomorWA.trim()),
+        email.toLowerCase(),
+        password, // In production, use proper bcrypt
+        [] // akun_tiktok - empty for now
+      );
 
       if (!result.success) {
         setErrorMessage('Pendaftaran gagal: ' + (result.error || 'Unknown error'));
