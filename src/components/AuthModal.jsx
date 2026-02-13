@@ -30,8 +30,8 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
   const [nama, setNama] = useState('');
   const [nomorWA, setNomorWA] = useState('');
   const [pin, setPin] = useState('');
-  const [nomorRekening, setNomorRekening] = useState('');
-  const [namaBank, setNamaBank] = useState('');
+  const [accountNumber, setAccountNumber] = useState('');
+  const [bankName, setBankName] = useState('');
 
   // Reset form saat modal dibuka
   useEffect(() => {
@@ -50,8 +50,8 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
     setNama('');
     setNomorWA('');
     setPin('');
-    setNomorRekening('');
-    setNamaBank('');
+    setAccountNumber('');
+    setBankName('');
     setErrorMessage('');
     setSuccessMessage('');
     setShowPassword(false);
@@ -270,14 +270,14 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
       }
 
       // 6. Validate nomor rekening
-      if (!nomorRekening || nomorRekening.trim().length === 0) {
+      if (!accountNumber || accountNumber.trim().length === 0) {
         setErrorMessage('Nomor rekening harus diisi');
         setAuthLoading(false);
         return;
       }
 
       // 7. Validate nama bank
-      if (!namaBank || namaBank.trim().length === 0) {
+      if (!bankName || bankName.trim().length === 0) {
         setErrorMessage('Nama bank harus diisi');
         setAuthLoading(false);
         return;
@@ -303,8 +303,8 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
         email.toLowerCase(),
         password, // In production, use proper bcrypt
         [], // akun_tiktok - empty for now
-        sanitizeInput(nomorRekening.trim()),
-        sanitizeInput(namaBank.trim())
+        sanitizeInput(accountNumber.trim()),
+        sanitizeInput(bankName.trim())
       );
 
       if (!result.success) {
@@ -546,8 +546,8 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
               <input 
                 type="text" 
                 placeholder="1234567890" 
-                value={nomorRekening}
-                onChange={(e) => setNomorRekening(e.target.value)}
+                value={accountNumber}
+                onChange={(e) => setAccountNumber(e.target.value)}
                 className="w-full mt-1 bg-black/40 border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:border-[#D4AF37] focus:outline-none transition"
                 required
               />
@@ -561,8 +561,8 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
               <input 
                 type="text" 
                 placeholder="BRI / BNI / Mandiri / dll" 
-                value={namaBank}
-                onChange={(e) => setNamaBank(e.target.value)}
+                value={bankName}
+                onChange={(e) => setBankName(e.target.value)}
                 className="w-full mt-1 bg-black/40 border border-white/20 rounded-xl px-4 py-3 text-white text-sm focus:border-[#D4AF37] focus:outline-none transition"
                 required
               />
