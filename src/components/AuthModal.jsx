@@ -93,6 +93,8 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
         return;
       }
 
+      console.log('🔐 [LOGIN] Attempting admin login with email:', email.toLowerCase());
+
       // Get admin from database
       const { data: admin, error } = await supabase
         .from('admins')
@@ -101,42 +103,55 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
         .single();
 
       if (error) {
-        console.error('Supabase error:', error);
+        console.error('🔐 [ERROR] Supabase query error:', error);
         setErrorMessage('Email atau password salah');
         setAuthLoading(false);
         return;
       }
 
       if (!admin) {
-        console.warn('Admin tidak ditemukan di database untuk email:', email.toLowerCase());
+        console.warn('🔐 [ERROR] Admin tidak ditemukan:', email.toLowerCase());
         setErrorMessage('Email atau password salah');
         setAuthLoading(false);
         return;
       }
 
-      // Simple password comparison (in production, use proper hashing verification)
+      console.log('🔐 [FOUND] Admin data:', { id: admin.id, nama: admin.nama, email: admin.email, role: admin.role });
+
+      // Check if required fields exist
+      if (!admin.nama || !admin.password_hash) {
+        console.error('🔐 [ERROR] Admin data incomplete - missing nama or password_hash');
+        setErrorMessage('Data admin tidak lengkap. Hubungi admin system.');
+        setAuthLoading(false);
+        return;
+      }
+
+      // Simple password comparison (in production, use proper bcrypt verification)
       if (admin.password_hash !== password) {
-        console.warn('Password mismatch');
+        console.warn('🔐 [ERROR] Password mismatch for:', email);
         setErrorMessage('Email atau password salah');
         setAuthLoading(false);
         return;
       }
+
+      console.log('🔐 [SUCCESS] Password match! Logging in admin:', admin.nama);
 
       // Login success
       onLoginSuccess({
         id: admin.id,
         nama: admin.nama,
         email: admin.email,
-        role: 'admin',
+        role: admin.role || 'admin',
         type: 'admin'
       });
       
-      setSuccessMessage('Login berhasil! Selamat datang Admin.');
+      setSuccessMessage(`Login berhasil! Selamat datang, ${admin.nama}.`);
       setTimeout(() => {
         resetForm();
         onClose();
       }, 1000);
     } catch (err) {
+      console.error('🔐 [EXCEPTION] Login error:', err);
       setErrorMessage('Terjadi kesalahan sistem: ' + err.message);
     } finally {
       setAuthLoading(false);
