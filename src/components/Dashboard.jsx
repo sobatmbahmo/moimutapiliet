@@ -145,6 +145,10 @@ export default function Dashboard({ user, onLogout }) {
     tiktok_shop: ''
   });
 
+  // Share Product Link Modal (for Affiliator)
+  const [showShareProductModal, setShowShareProductModal] = useState(false);
+  const [sharingProduct, setSharingProduct] = useState(null);
+
   // ======================
   // LOAD DATA
   // ======================
@@ -566,6 +570,31 @@ export default function Dashboard({ user, onLogout }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Handle Share Product Link (for Affiliator)
+  const handleShareProduct = (product) => {
+    setSharingProduct(product);
+    setShowShareProductModal(true);
+  };
+
+  const generateAffiliatorLink = (product) => {
+    const baseUrl = window.location.origin;
+    return `${baseUrl}?ref=${user.id}&product=${product.id}`;
+  };
+
+  const copyLinkToClipboard = (product) => {
+    const link = generateAffiliatorLink(product);
+    navigator.clipboard.writeText(link);
+    setSuccessMsg('✅ Link tersalin ke clipboard!');
+    setTimeout(() => setSuccessMsg(''), 2000);
+  };
+
+  const shareToWhatsApp = (product) => {
+    const link = generateAffiliatorLink(product);
+    const message = `🛍️ Halo! Saya punya produk bagus untuk Anda: ${product.name}\n💰 Harga: Rp${product.price.toLocaleString('id-ID')}\n🔗 Klik di sini: ${link}`;
+    const encodedMessage = encodeURIComponent(message);
+    window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
   const handleDeleteOrder = async (orderId, orderNumber) => {
@@ -2188,13 +2217,21 @@ export default function Dashboard({ user, onLogout }) {
                             )}
                           </div>
                           
-                          {/* Edit Button */}
-                          <button
-                            onClick={() => handleEditProductLink(p)}
-                            className="px-3 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded hover:bg-[#D4AF37]/40 transition h-fit"
-                          >
-                            <Edit size={14} className="inline mr-1" /> Edit Link
-                          </button>
+                          {/* Action Buttons */}
+                          <div className="flex flex-col gap-2 h-fit">
+                            <button
+                              onClick={() => handleEditProductLink(p)}
+                              className="px-3 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded hover:bg-[#D4AF37]/40 transition"
+                            >
+                              <Edit size={14} className="inline mr-1" /> Edit Link
+                            </button>
+                            <button
+                              onClick={() => handleShareProduct(p)}
+                              className="px-3 py-2 bg-green-500/20 text-green-300 text-xs font-bold rounded hover:bg-green-500/40 transition"
+                            >
+                              <Share2 size={14} className="inline mr-1" /> Share
+                            </button>
+                          </div>
                         </div>
                       </div>
                     ))}
@@ -2395,6 +2432,63 @@ export default function Dashboard({ user, onLogout }) {
                     Batal
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Share Product Modal */}
+          {showShareProductModal && sharingProduct && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
+              <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-md p-6 space-y-4">
+                <h2 className="text-2xl font-bold text-white">🔗 Share Produk</h2>
+                <p className="text-sm text-gray-400">{sharingProduct.name}</p>
+
+                {/* Affiliate Link */}
+                <div className="space-y-2 bg-black/30 border border-white/10 rounded-lg p-4">
+                  <label className="text-[#D4AF37] font-bold text-sm">Link Affiliasi Anda:</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={generateAffiliatorLink(sharingProduct)}
+                      className="flex-1 px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-xs"
+                    />
+                    <button
+                      onClick={() => copyLinkToClipboard(sharingProduct)}
+                      className="px-3 py-2 bg-[#D4AF37] text-black font-bold rounded hover:bg-[#F4D03F] transition"
+                      title="Salin ke clipboard"
+                    >
+                      <Copy size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Share Methods */}
+                <div className="space-y-2 pt-2">
+                  <p className="text-sm text-gray-400 font-bold">Bagikan ke:</p>
+                  <button
+                    onClick={() => shareToWhatsApp(sharingProduct)}
+                    className="w-full px-4 py-3 bg-green-500/20 text-green-300 font-bold rounded-lg hover:bg-green-500/30 transition flex items-center justify-center gap-2"
+                  >
+                    💬 WhatsApp
+                  </button>
+                </div>
+
+                {/* Info */}
+                <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded text-blue-300 text-xs">
+                  <p>💡 <strong>Tips:</strong> Setiap orang yang klik link ini akan masuk sebagai customer Anda, dan Anda akan mendapat komisi dari pesanan mereka!</p>
+                </div>
+
+                {/* Close Button */}
+                <button
+                  onClick={() => {
+                    setShowShareProductModal(false);
+                    setSharingProduct(null);
+                  }}
+                  className="w-full px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30 transition"
+                >
+                  Tutup
+                </button>
               </div>
             </div>
           )}
