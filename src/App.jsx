@@ -74,7 +74,8 @@ function App() {
     setIsMenuOpen(false);
   };
 
-  const openRegisterModal = () => {
+  const openRegisterModal = (roleType = 'Affiliator') => {
+    setLoginRole(roleType);
     setAuthMode('register'); 
     setShowAuthModal(true); 
     setIsMenuOpen(false);
