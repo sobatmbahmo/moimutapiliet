@@ -1,0 +1,195 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Kustomisasi Latar Belakang Custom */
+body {
+  /* 1. Gambar Latar Belakang Pilihan Anda (Pinterest) */
+  background-image: url('https://i.pinimg.com/736x/2c/8f/46/2c8f466c4d7fc48e6158ca2f5c6ab194.jpg');
+  
+  /* 2. Pengaturan agar gambar pas di layar */
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed; /* Agar gambar diam saat di-scroll */
+
+  color: #f0fdf4; 
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  position: relative; 
+}
+
+/* 3. Overlay Gelap (Agar tulisan putih & emas tetap terbaca jelas) */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  /* Gradasi hijau kehitaman transparan di atas gambar */
+  background: linear-gradient(to bottom, rgba(2, 44, 34, 0.6), rgba(0, 0, 0, 0.85));
+  z-index: -1; 
+  pointer-events: none;
+}
+
+/* Scrollbar Custom (Agar tidak mengganggu pemandangan) */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent; 
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2); 
+  border-radius: 10px;
+  border: 2px solid transparent; 
+  background-clip: content-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4); 
+}
+
+/* Print Styles for Shipping Label on 10x15cm Thermal Paper */
+@media print {
+  body {
+    background: white !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  
+  .fixed {
+    position: static !important;
+  }
+  
+  /* Hide non-print elements */
+  button, [role="button"], .sticky, .no-print, svg:not(.inline) {
+    display: none !important;
+  }
+  
+  /* Print container */
+  .print-container {
+    position: static !important;
+    max-height: none !important;
+    overflow: visible !important;
+  }
+  
+  /* Label and packing sections */
+  .label-section {
+    page-break-after: avoid;
+    min-height: auto !important;
+  }
+  
+  .packing-section {
+    page-break-inside: avoid;
+  }
+  
+  /* Print container styles */
+  div[class*="bg-black"], div[class*="bg-white"] {
+    background-color: white !important;
+    color: black !important;
+    border-color: black !important;
+  }
+  
+  /* Ensure text is visible and flexible */
+  p, h1, h2, h3, span {
+    color: black !important;
+    line-height: 1 !important;
+  }
+  
+  /* Flexible text sizing for print - scale dengan content */
+  .text-xs {
+    font-size: 0.75rem !important;
+  }
+  
+  .text-sm {
+    font-size: 0.875rem !important;
+  }
+  
+  .text-base {
+    font-size: 1rem !important;
+  }
+  
+  .text-lg {
+    font-size: 1.125rem !important;
+  }
+  
+  .text-xl {
+    font-size: 1.25rem !important;
+  }
+  
+  .text-2xl {
+    font-size: 1.5rem !important;
+  }
+  
+  .text-3xl {
+    font-size: 1.875rem !important;
+  }
+  
+  .text-4xl {
+    font-size: 2rem !important;
+  }
+  
+  .text-5xl {
+    font-size: 2.25rem !important;
+  }
+  
+  /* Page setup - A5 Landscape */
+  @page {
+    size: A5 landscape;
+    margin: 0.15cm;
+  }
+  
+  /* Grid preservation */
+  .grid {
+    display: grid !important;
+  }
+  
+  .grid-cols-2 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+  
+  /* Compress spacing for many items to fit on one page */
+  .packing-section {
+    padding: 0.1cm !important;
+  }
+  
+  /* Color preservation for backgrounds */
+  [class*="bg-gray"] {
+    background-color: #f3f4f6 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  [class*="bg-yellow"] {
+    background-color: #fef08a !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  /* Prevent page breaks */
+  div[class*="border-2"],
+  div[class*="border-4"],
+  .label-section,
+  .packing-section {
+    page-break-inside: avoid;
+  }
+  
+  /* Minimal spacing for compact items */
+  [class*="gap-4"] {
+    gap: 0.1rem !important;
+  }
+  
+  [class*="gap-3"] {
+    gap: 0.08rem !important;
+  }
+  
+  [class*="gap-2"] {
+    gap: 0.05rem !important;
+  }
+  
+  /* Flexible spacing */
+  [class*="space-y"] {
+    --space-y-reverse: 0 !important;
+  }
+}
