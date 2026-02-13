@@ -686,12 +686,17 @@ export const updateWithdrawalStatus = async (withdrawalId, status, additionalDat
 // ===== AFFILIATOR PRODUCT LINKS =====
 export const setAffiliatorProductLink = async (affiliatorId, productId, tiktokLink) => {
   try {
-    const { data: existingLink } = await supabase
+    const { data: existingLink, error: checkError } = await supabase
       .from('affiliator_product_links')
-      .select('*')
+      .select('id')
       .eq('affiliator_id', affiliatorId)
       .eq('product_id', productId)
-      .single();
+      .maybeSingle();
+
+    if (checkError && checkError.code !== 'PGRST116') {
+      console.error('Error checking existing link:', checkError);
+      return { success: false, error: checkError.message };
+    }
 
     if (existingLink) {
       // Update existing link
@@ -737,17 +742,19 @@ export const getAffiliatorProductLink = async (affiliatorId, productId) => {
   try {
     const { data: link, error } = await supabase
       .from('affiliator_product_links')
-      .select('*')
+      .select('tiktok_shop_link')
       .eq('affiliator_id', affiliatorId)
       .eq('product_id', productId)
-      .single();
+      .maybeSingle();
 
     if (error && error.code !== 'PGRST116') {
+      console.error('Error fetching link:', error);
       return { success: false, error: error.message };
     }
 
     return { success: true, link: link || null };
   } catch (error) {
+    console.error('Error in getAffiliatorProductLink:', error);
     return { success: false, error: error.message };
   }
 };
