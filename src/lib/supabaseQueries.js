@@ -698,7 +698,7 @@ export const setAffiliatorProductLink = async (affiliatorId, productId, tiktokLi
       const { data: updated, error } = await supabase
         .from('affiliator_product_links')
         .update({
-          tiktok_link: tiktokLink,
+          tiktok_shop_link: tiktokLink,
           updated_at: new Date().toISOString()
         })
         .eq('id', existingLink.id)
@@ -718,7 +718,7 @@ export const setAffiliatorProductLink = async (affiliatorId, productId, tiktokLi
       .insert({
         affiliator_id: affiliatorId,
         product_id: productId,
-        tiktok_link: tiktokLink
+        tiktok_shop_link: tiktokLink
       })
       .select()
       .single();
