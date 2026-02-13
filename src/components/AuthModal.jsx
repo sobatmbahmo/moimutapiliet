@@ -265,13 +265,6 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
         return;
       }
 
-      // 6. Validate PIN
-      if (!/^\d{4,6}$/.test(pin)) {
-        setErrorMessage('PIN harus 4-6 angka');
-        setAuthLoading(false);
-        return;
-      }
-
       // Check if email already exists
       const { data: existing, error: checkError } = await supabase
         .from('affiliators')
