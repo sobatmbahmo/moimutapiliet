@@ -2054,18 +2054,18 @@ export default function Dashboard({ user, onLogout }) {
           )}
 
           {/* Tabs */}
-          <div className="flex gap-2 border-b border-white/10">
-            {['overview', 'customers', 'withdrawals'].map(tab => (
+          <div className="flex gap-2 border-b border-white/10 overflow-x-auto">
+            {['overview', 'products', 'customers', 'withdrawals'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 font-bold transition ${
+                className={`px-4 py-2 font-bold transition whitespace-nowrap ${
                   activeTab === tab 
                     ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]' 
                     : 'text-gray-400 hover:text-white'
                 }`}
               >
-                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+                {tab === 'products' ? 'Produk' : tab.charAt(0).toUpperCase() + tab.slice(1)}
               </button>
             ))}
           </div>
@@ -2093,6 +2093,63 @@ export default function Dashboard({ user, onLogout }) {
                     <Copy size={16} />
                   </button>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {activeTab === 'products' && (
+            <div className="space-y-4">
+              <h3 className="font-bold text-[#D4AF37] mb-4">🛍️ Produk untuk Affiliasi TikTokShop</h3>
+              {products.length === 0 ? (
+                <div className="text-center py-8 bg-black/30 rounded-lg border border-white/10">
+                  <p className="text-gray-400">Belum ada produk tersedia</p>
+                </div>
+              ) : (
+                <div className="grid gap-4">
+                  {products
+                    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
+                    .map(p => (
+                      <div key={p.id} className="bg-black/30 border border-white/10 rounded-lg p-4 hover:border-[#D4AF37]/30 transition">
+                        <div className="flex gap-4">
+                          {/* Product Image */}
+                          {p.image_url && (
+                            <div className="w-24 h-24 flex-shrink-0">
+                              <img src={p.image_url} alt={p.name} className="w-full h-full object-cover rounded-lg" />
+                            </div>
+                          )}
+                          
+                          {/* Product Info */}
+                          <div className="flex-1">
+                            <p className="font-bold text-white text-lg mb-1">{p.name}</p>
+                            <p className="text-[#D4AF37] font-bold text-lg mb-2">{formatRupiah(p.price)}</p>
+                            <p className="text-xs text-gray-400">Kode: {p.product_code || 'N/A'}</p>
+                            {p.afiliasi_tiktok && (
+                              <p className="text-xs text-green-300 mt-1">
+                                🔗 TikTokShop Link: 
+                                <a href={p.afiliasi_tiktok} target="_blank" rel="noopener noreferrer" className="text-[#D4AF37] hover:underline ml-1">
+                                  Buka
+                                </a>
+                              </p>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                </div>
+              )}
+              
+              {/* Edit TikTok Account Info */}
+              <div className="mt-6 bg-black/30 border border-[#D4AF37]/30 rounded-lg p-4">
+                <h4 className="font-bold text-[#D4AF37] mb-3">📱 Manajemen Akun TikTok</h4>
+                <p className="text-sm text-gray-400 mb-3">
+                  Perbarui akun TikTok Anda untuk hasil affiliate yang lebih baik.
+                </p>
+                <button
+                  onClick={() => handleEditAffiliator(user)}
+                  className="w-full px-4 py-2 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition"
+                >
+                  Edit Profil Mitra
+                </button>
               </div>
             </div>
           )}
