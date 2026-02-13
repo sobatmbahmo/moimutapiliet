@@ -155,6 +155,12 @@ export default function Dashboard({ user, onLogout }) {
   const [bulkEditForm, setBulkEditForm] = useState({});
   const [bulkLinkInput, setBulkLinkInput] = useState(''); // Single link to apply to all
 
+  // Bulk Edit TikTok Links (for Admin) - edit default_link on products table
+  const [selectedAdminProducts, setSelectedAdminProducts] = useState([]);
+  const [showAdminBulkEditModal, setShowAdminBulkEditModal] = useState(false);
+  const [adminBulkEditForm, setAdminBulkEditForm] = useState({});
+  const [adminBulkLinkInput, setAdminBulkLinkInput] = useState('');
+
   // ======================
   // LOAD DATA
   // ======================
@@ -678,6 +684,86 @@ export default function Dashboard({ user, onLogout }) {
       setTimeout(() => setSuccessMsg(''), 3000);
     } catch (error) {
       console.error('Error saving bulk links:', error);
+      setErrorMsg('Terjadi kesalahan saat menyimpan');
+    }
+  };
+
+  // Admin Bulk Edit TikTok Links (edit default_link in products table)
+  const toggleAdminProductSelection = (productId) => {
+    setSelectedAdminProducts(prev =>
+      prev.includes(productId)
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const handleAdminBulkEditOpen = () => {
+    const initialForm = {};
+    selectedAdminProducts.forEach(productId => {
+      initialForm[productId] = '';
+    });
+    setAdminBulkEditForm(initialForm);
+    setAdminBulkLinkInput('');
+    setShowAdminBulkEditModal(true);
+  };
+
+  const applyAdminLinkToAll = () => {
+    if (!adminBulkLinkInput.trim()) {
+      setErrorMsg('Masukkan link terlebih dahulu');
+      return;
+    }
+    
+    const updatedForm = { ...adminBulkEditForm };
+    selectedAdminProducts.forEach(productId => {
+      updatedForm[productId] = adminBulkLinkInput.trim();
+    });
+    setAdminBulkEditForm(updatedForm);
+    setSuccessMsg('✅ Link diterapkan ke semua produk!');
+    setTimeout(() => setSuccessMsg(''), 2000);
+  };
+
+  const handleAdminBulkEditSave = async () => {
+    try {
+      setErrorMsg('');
+      let saveCount = 0;
+
+      for (const productId of selectedAdminProducts) {
+        const tiktokLink = adminBulkEditForm[productId]?.trim();
+        
+        if (tiktokLink) {
+          const { error } = await supabase
+            .from('products')
+            .update({ default_link: tiktokLink })
+            .eq('id', productId);
+
+          if (error) {
+            setErrorMsg(`Gagal menyimpan link untuk satu produk`);
+            return;
+          }
+          saveCount++;
+        }
+      }
+
+      if (saveCount > 0) {
+        setSuccessMsg(`✅ ${saveCount} link default TikTok berhasil diperbarui!`);
+        setShowAdminBulkEditModal(false);
+        setSelectedAdminProducts([]);
+        setAdminBulkEditForm({});
+        setAdminBulkLinkInput('');
+        
+        // Reload products
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('*')
+          .order('sort_order', { ascending: true });
+        setProducts(productsData || []);
+      } else {
+        setErrorMsg('Tidak ada link yang diisi');
+      }
+
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error) {
+      console.error('Error saving admin bulk links:', error);
       setErrorMsg('Terjadi kesalahan saat menyimpan');
     }
   };
@@ -2753,7 +2839,21 @@ export default function Dashboard({ user, onLogout }) {
         {/* Products Tab */}
         {activeTab === 'products' && (
           <div className="space-y-4">
-            <h3 className="text-lg font-bold text-white">Daftar Produk ({products.length})</h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-bold text-white">Daftar Produk ({products.length})</h3>
+              {selectedAdminProducts.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-400">{selectedAdminProducts.length} dipilih</span>
+                  <button
+                    onClick={handleAdminBulkEditOpen}
+                    className="px-4 py-2 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition flex items-center gap-2"
+                  >
+                    <Edit size={16} /> Edit Batch ({selectedAdminProducts.length})
+                  </button>
+                </div>
+              )}
+            </div>
+            
             {loading ? (
               <p className="text-gray-400">Loading...</p>
             ) : products.length === 0 ? (
@@ -2767,7 +2867,24 @@ export default function Dashboard({ user, onLogout }) {
                   .map(p => {
                     const hasVariants = p.name && p.name.toLowerCase().includes('paket komplit');
                     return (
-                      <div key={p.id} className="bg-black/30 border border-white/10 rounded-lg p-4 hover:border-[#D4AF37]/50 transition flex gap-4">
+                      <div 
+                        key={p.id} 
+                        className={`bg-black/30 border rounded-lg p-4 transition flex gap-4 ${
+                          selectedAdminProducts.includes(p.id)
+                            ? 'border-[#D4AF37] bg-[#D4AF37]/10'
+                            : 'border-white/10 hover:border-[#D4AF37]/50'
+                        }`}
+                      >
+                        {/* Checkbox */}
+                        <div className="flex items-start pt-1">
+                          <input
+                            type="checkbox"
+                            checked={selectedAdminProducts.includes(p.id)}
+                            onChange={() => toggleAdminProductSelection(p.id)}
+                            className="w-5 h-5 cursor-pointer"
+                          />
+                        </div>
+
                         {/* Left: Product Image (1:1 Square) */}
                         {p.image_url && (
                           <div className="w-32 h-32 flex-shrink-0">
@@ -3247,6 +3364,89 @@ export default function Dashboard({ user, onLogout }) {
                     Batal
                   </button>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: ADMIN BULK EDIT TikTok LINKS */}
+        {showAdminBulkEditModal && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 overflow-y-auto">
+            <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-2xl p-6 space-y-4 my-8">
+              <h2 className="text-2xl font-bold text-white">📝 Edit Batch - Link TikTok Default</h2>
+              <p className="text-sm text-gray-400">Edit link TikTok Shop default untuk {selectedAdminProducts.length} produk yang dipilih</p>
+
+              {/* Apply to All Section */}
+              <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 space-y-3">
+                <label className="text-green-300 font-bold text-sm">🚀 Terapkan Link yang Sama ke Semua Produk</label>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    placeholder="https://vt.tiktok.com/..."
+                    value={adminBulkLinkInput}
+                    onChange={(e) => setAdminBulkLinkInput(e.target.value)}
+                    className="flex-1 px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm focus:border-green-500"
+                  />
+                  <button
+                    onClick={applyAdminLinkToAll}
+                    disabled={!adminBulkLinkInput.trim()}
+                    className="px-4 py-2 bg-green-500 text-white font-bold rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                  >
+                    Apply
+                  </button>
+                </div>
+              </div>
+
+              {/* Product List with Link Inputs */}
+              <div>
+                <label className="text-[#D4AF37] font-bold text-sm mb-3 block">⬇️ Edit Manual per Produk (opsional)</label>
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {selectedAdminProducts.map((productId) => {
+                    const product = products.find(p => p.id === productId);
+                    if (!product) return null;
+
+                    return (
+                      <div key={productId} className="bg-black/30 border border-white/10 rounded-lg p-3">
+                        <p className="text-white font-bold text-sm mb-2">{product.name}</p>
+                        <input
+                          type="url"
+                          placeholder="https://vt.tiktok.com/..."
+                          value={adminBulkEditForm[productId] || ''}
+                          onChange={(e) => setAdminBulkEditForm({
+                            ...adminBulkEditForm,
+                            [productId]: e.target.value
+                          })}
+                          className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm focus:border-[#D4AF37]"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  onClick={handleAdminBulkEditSave}
+                  className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition"
+                >
+                  ✅ Simpan {selectedAdminProducts.length} Link
+                </button>
+                <button
+                  onClick={() => {
+                    setShowAdminBulkEditModal(false);
+                    setAdminBulkEditForm({});
+                    setAdminBulkLinkInput('');
+                  }}
+                  className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30 transition"
+                >
+                  Batal
+                </button>
+              </div>
+
+              {/* Info */}
+              <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded text-blue-300 text-xs">
+                <p>💡 <strong>Tips:</strong> Gunakan "Apply" untuk mengisi semua otomatis, atau edit manual untuk produk tertentu</p>
               </div>
             </div>
           </div>
