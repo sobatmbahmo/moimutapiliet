@@ -149,6 +149,11 @@ export default function Dashboard({ user, onLogout }) {
   const [showShareProductModal, setShowShareProductModal] = useState(false);
   const [sharingProduct, setSharingProduct] = useState(null);
 
+  // Bulk Edit TikTok Links (for Affiliator)
+  const [selectedProducts, setSelectedProducts] = useState([]);
+  const [showBulkEditModal, setShowBulkEditModal] = useState(false);
+  const [bulkEditForm, setBulkEditForm] = useState({});
+
   // ======================
   // LOAD DATA
   // ======================
@@ -595,6 +600,67 @@ export default function Dashboard({ user, onLogout }) {
     const message = `🛍️ Halo! Saya punya produk bagus untuk Anda: ${product.name}\n💰 Harga: Rp${product.price.toLocaleString('id-ID')}\n🔗 Klik di sini: ${link}`;
     const encodedMessage = encodeURIComponent(message);
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
+  };
+
+  // Bulk Edit TikTok Links for Affiliator
+  const toggleProductSelection = (productId) => {
+    setSelectedProducts(prev =>
+      prev.includes(productId)
+        ? prev.filter(id => id !== productId)
+        : [...prev, productId]
+    );
+  };
+
+  const handleBulkEditOpen = () => {
+    const initialForm = {};
+    selectedProducts.forEach(productId => {
+      const product = products.find(p => p.id === productId);
+      initialForm[productId] = '';
+    });
+    setBulkEditForm(initialForm);
+    setShowBulkEditModal(true);
+  };
+
+  const handleBulkEditSave = async () => {
+    try {
+      setErrorMsg('');
+      let saveCount = 0;
+
+      for (const productId of selectedProducts) {
+        const tiktokLink = bulkEditForm[productId]?.trim();
+        
+        if (tiktokLink) {
+          const result = await setAffiliatorProductLink(user.id, productId, tiktokLink);
+          if (result.success) {
+            saveCount++;
+          } else {
+            setErrorMsg(`Gagal menyimpan link untuk satu produk`);
+            return;
+          }
+        }
+      }
+
+      if (saveCount > 0) {
+        setSuccessMsg(`✅ ${saveCount} link TikTok berhasil disimpan!`);
+        setShowBulkEditModal(false);
+        setSelectedProducts([]);
+        setBulkEditForm({});
+        
+        // Reload products to refresh links
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('*')
+          .order('sort_order', { ascending: true });
+        setProducts(productsData || []);
+      } else {
+        setErrorMsg('Tidak ada link yang diisi');
+      }
+
+      setTimeout(() => setSuccessMsg(''), 3000);
+    } catch (error) {
+      console.error('Error saving bulk links:', error);
+      setErrorMsg('Terjadi kesalahan saat menyimpan');
+    }
   };
 
   const handleDeleteOrder = async (orderId, orderNumber) => {
@@ -2183,7 +2249,21 @@ export default function Dashboard({ user, onLogout }) {
 
           {activeTab === 'products' && (
             <div className="space-y-4">
-              <h3 className="font-bold text-[#D4AF37] mb-4">🛍️ Produk untuk Affiliasi TikTokShop</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-[#D4AF37] mb-4">🛍️ Produk untuk Affiliasi TikTokShop</h3>
+                {selectedProducts.length > 0 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-400">{selectedProducts.length} dipilih</span>
+                    <button
+                      onClick={handleBulkEditOpen}
+                      className="px-4 py-2 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition flex items-center gap-2"
+                    >
+                      <Edit size={16} /> Edit Batch ({selectedProducts.length})
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {products.length === 0 ? (
                 <div className="text-center py-8 bg-black/30 rounded-lg border border-white/10">
                   <p className="text-gray-400">Belum ada produk tersedia</p>
@@ -2193,8 +2273,25 @@ export default function Dashboard({ user, onLogout }) {
                   {products
                     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
                     .map(p => (
-                      <div key={p.id} className="bg-black/30 border border-white/10 rounded-lg p-4 hover:border-[#D4AF37]/30 transition">
+                      <div 
+                        key={p.id} 
+                        className={`bg-black/30 border rounded-lg p-4 transition ${
+                          selectedProducts.includes(p.id)
+                            ? 'border-[#D4AF37] bg-[#D4AF37]/10'
+                            : 'border-white/10 hover:border-[#D4AF37]/30'
+                        }`}
+                      >
                         <div className="flex gap-4">
+                          {/* Checkbox */}
+                          <div className="flex items-start pt-1">
+                            <input
+                              type="checkbox"
+                              checked={selectedProducts.includes(p.id)}
+                              onChange={() => toggleProductSelection(p.id)}
+                              className="w-5 h-5 cursor-pointer"
+                            />
+                          </div>
+
                           {/* Product Image */}
                           {p.image_url && (
                             <div className="w-24 h-24 flex-shrink-0">
@@ -2489,6 +2586,64 @@ export default function Dashboard({ user, onLogout }) {
                 >
                   Tutup
                 </button>
+              </div>
+            </div>
+          )}
+
+          {/* Bulk Edit TikTok Links Modal */}
+          {showBulkEditModal && (
+            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 overflow-y-auto">
+              <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-2xl p-6 space-y-4 my-8">
+                <h2 className="text-2xl font-bold text-white">📝 Edit Batch - Link TikTok Affiliate</h2>
+                <p className="text-sm text-gray-400">Masukkan link TikTok Shop Affiliate untuk {selectedProducts.length} produk yang dipilih</p>
+
+                {/* Product List with Link Inputs */}
+                <div className="space-y-3 max-h-96 overflow-y-auto">
+                  {selectedProducts.map((productId) => {
+                    const product = products.find(p => p.id === productId);
+                    if (!product) return null;
+
+                    return (
+                      <div key={productId} className="bg-black/30 border border-white/10 rounded-lg p-3">
+                        <p className="text-white font-bold text-sm mb-2">{product.name}</p>
+                        <input
+                          type="url"
+                          placeholder="https://vt.tiktok.com/..."
+                          value={bulkEditForm[productId] || ''}
+                          onChange={(e) => setBulkEditForm({
+                            ...bulkEditForm,
+                            [productId]: e.target.value
+                          })}
+                          className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm focus:border-[#D4AF37]"
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-4">
+                  <button
+                    onClick={handleBulkEditSave}
+                    className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition"
+                  >
+                    ✅ Simpan {selectedProducts.length} Link
+                  </button>
+                  <button
+                    onClick={() => {
+                      setShowBulkEditModal(false);
+                      setBulkEditForm({});
+                    }}
+                    className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30 transition"
+                  >
+                    Batal
+                  </button>
+                </div>
+
+                {/* Info */}
+                <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded text-blue-300 text-xs">
+                  <p>💡 <strong>Tips:</strong> Anda bisa mengisi sebagian link saja, link yang dikosongkan tidak akan disimpan</p>
+                </div>
               </div>
             </div>
           )}
