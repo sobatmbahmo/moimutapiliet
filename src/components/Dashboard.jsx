@@ -153,6 +153,7 @@ export default function Dashboard({ user, onLogout }) {
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const [bulkEditForm, setBulkEditForm] = useState({});
+  const [bulkLinkInput, setBulkLinkInput] = useState(''); // Single link to apply to all
 
   // ======================
   // LOAD DATA
@@ -618,7 +619,24 @@ export default function Dashboard({ user, onLogout }) {
       initialForm[productId] = '';
     });
     setBulkEditForm(initialForm);
+    setBulkLinkInput(''); // Reset bulk input
     setShowBulkEditModal(true);
+  };
+
+  // Apply same link to all selected products
+  const applyLinkToAll = () => {
+    if (!bulkLinkInput.trim()) {
+      setErrorMsg('Masukkan link terlebih dahulu');
+      return;
+    }
+    
+    const updatedForm = { ...bulkEditForm };
+    selectedProducts.forEach(productId => {
+      updatedForm[productId] = bulkLinkInput.trim();
+    });
+    setBulkEditForm(updatedForm);
+    setSuccessMsg('✅ Link diterapkan ke semua produk!');
+    setTimeout(() => setSuccessMsg(''), 2000);
   };
 
   const handleBulkEditSave = async () => {
@@ -645,6 +663,7 @@ export default function Dashboard({ user, onLogout }) {
         setShowBulkEditModal(false);
         setSelectedProducts([]);
         setBulkEditForm({});
+        setBulkLinkInput('');
         
         // Reload products to refresh links
         const { data: productsData } = await supabase
@@ -2597,28 +2616,52 @@ export default function Dashboard({ user, onLogout }) {
                 <h2 className="text-2xl font-bold text-white">📝 Edit Batch - Link TikTok Affiliate</h2>
                 <p className="text-sm text-gray-400">Masukkan link TikTok Shop Affiliate untuk {selectedProducts.length} produk yang dipilih</p>
 
-                {/* Product List with Link Inputs */}
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {selectedProducts.map((productId) => {
-                    const product = products.find(p => p.id === productId);
-                    if (!product) return null;
+                {/* Apply to All Section */}
+                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 space-y-3">
+                  <label className="text-green-300 font-bold text-sm">🚀 Terapkan Link yang Sama ke Semua Produk</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="url"
+                      placeholder="https://vt.tiktok.com/..."
+                      value={bulkLinkInput}
+                      onChange={(e) => setBulkLinkInput(e.target.value)}
+                      className="flex-1 px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm focus:border-green-500"
+                    />
+                    <button
+                      onClick={applyLinkToAll}
+                      disabled={!bulkLinkInput.trim()}
+                      className="px-4 py-2 bg-green-500 text-white font-bold rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
 
-                    return (
-                      <div key={productId} className="bg-black/30 border border-white/10 rounded-lg p-3">
-                        <p className="text-white font-bold text-sm mb-2">{product.name}</p>
-                        <input
-                          type="url"
-                          placeholder="https://vt.tiktok.com/..."
-                          value={bulkEditForm[productId] || ''}
-                          onChange={(e) => setBulkEditForm({
-                            ...bulkEditForm,
-                            [productId]: e.target.value
-                          })}
-                          className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm focus:border-[#D4AF37]"
-                        />
-                      </div>
-                    );
-                  })}
+                {/* Product List with Link Inputs */}
+                <div>
+                  <label className="text-[#D4AF37] font-bold text-sm mb-3 block">⬇️ Edit Manual per Produk (opsional)</label>
+                  <div className="space-y-3 max-h-96 overflow-y-auto">
+                    {selectedProducts.map((productId) => {
+                      const product = products.find(p => p.id === productId);
+                      if (!product) return null;
+
+                      return (
+                        <div key={productId} className="bg-black/30 border border-white/10 rounded-lg p-3">
+                          <p className="text-white font-bold text-sm mb-2">{product.name}</p>
+                          <input
+                            type="url"
+                            placeholder="https://vt.tiktok.com/..."
+                            value={bulkEditForm[productId] || ''}
+                            onChange={(e) => setBulkEditForm({
+                              ...bulkEditForm,
+                              [productId]: e.target.value
+                            })}
+                            className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm focus:border-[#D4AF37]"
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* Action Buttons */}
@@ -2633,6 +2676,7 @@ export default function Dashboard({ user, onLogout }) {
                     onClick={() => {
                       setShowBulkEditModal(false);
                       setBulkEditForm({});
+                      setBulkLinkInput('');
                     }}
                     className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30 transition"
                   >
@@ -2642,7 +2686,7 @@ export default function Dashboard({ user, onLogout }) {
 
                 {/* Info */}
                 <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded text-blue-300 text-xs">
-                  <p>💡 <strong>Tips:</strong> Anda bisa mengisi sebagian link saja, link yang dikosongkan tidak akan disimpan</p>
+                  <p>💡 <strong>Tips:</strong> Gunakan "Apply" untuk mengisi semua otomatis, atau edit manual untuk produk tertentu</p>
                 </div>
               </div>
             </div>
