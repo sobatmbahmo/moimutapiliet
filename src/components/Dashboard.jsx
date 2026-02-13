@@ -490,6 +490,29 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
+  const handleApproveAffiliator = async (affiliatorId, affiliatorName) => {
+    const confirmed = window.confirm(
+      `✅ Setujui aktivasi mitra: ${affiliatorName}?\n\nMitra akan dapat memulai program komisi.`
+    );
+
+    if (!confirmed) return;
+
+    try {
+      setLoading(true);
+      const result = await updateAffiliator(affiliatorId, { status: 'active' });
+      if (result.success) {
+        setSuccessMsg(`✅ Mitra ${affiliatorName} berhasil diaktifkan!`);
+        loadInitialData();
+      } else {
+        setErrorMsg('Error: ' + result.error);
+      }
+    } catch (err) {
+      setErrorMsg('Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleDeleteOrder = async (orderId, orderNumber) => {
     // Confirmation dialog
     const confirmed = window.confirm(
@@ -2367,15 +2390,23 @@ export default function Dashboard({ user, onLogout }) {
                       <div className="text-right">
                         <p className="text-[#D4AF37] font-bold text-lg">{formatRupiah(a.current_balance || 0)}</p>
                         <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${
-                          a.status === 'active' ? 'bg-green-500/20 text-green-300' : 'bg-gray-500/20 text-gray-300'
+                          a.status === 'active' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'
                         }`}>
-                          {a.status}
+                          {a.status === 'active' ? '✅ AKTIF' : '⏳ PENDING'}
                         </span>
                       </div>
                     </div>
 
                     {/* Action Buttons */}
                     <div className="flex gap-2">
+                      {a.status === 'pending' && (
+                        <button
+                          onClick={() => handleApproveAffiliator(a.id, a.nama)}
+                          className="flex-1 px-3 py-2 bg-green-500/20 text-green-300 text-xs font-bold rounded hover:bg-green-500/40 transition"
+                        >
+                          <Check size={14} className="inline mr-1" /> Setujui
+                        </button>
+                      )}
                       <button
                         onClick={() => handleEditAffiliator(a)}
                         className="flex-1 px-3 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded hover:bg-[#D4AF37]/40 transition"
