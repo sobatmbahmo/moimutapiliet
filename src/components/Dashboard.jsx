@@ -69,6 +69,27 @@ export default function Dashboard({ user, onLogout }) {
   const [selectedOrderForResiNotif, setSelectedOrderForResiNotif] = useState(null);
   const [resiNotifNumber, setResiNotifNumber] = useState('');
 
+  // Handler untuk kirim ulang notifikasi ke affiliator
+  const handleResendAffiliatorNotification = async (affiliator) => {
+    setLoading(true);
+    try {
+      let password = affiliator.password_hash || 'Password Anda (hubungi admin jika lupa)';
+      if (affiliator.plain_password) password = affiliator.plain_password;
+      await sendAffiliatorApprovalNotification(
+        affiliator.nomor_wa,
+        affiliator.nama,
+        affiliator.email,
+        affiliator.bank_name || 'N/A',
+        affiliator.account_number || 'N/A',
+        password
+      );
+      setSuccessMsg(`Notifikasi berhasil dikirim ulang ke ${affiliator.nama}`);
+    } catch (err) {
+      setErrorMsg('Gagal mengirim ulang notifikasi: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
   // Couriers that require bill order
   const couriersWithBill = ['J&T', 'WAHANA', 'ID Express', 'Indah Cargo'];
 
@@ -914,7 +935,9 @@ export default function Dashboard({ user, onLogout }) {
     try {
       setLoading(true);
       const shippingAmount = parseInt(shippingCost);
-      const newTotal = (selectedOrder.total_produk || 0) + shippingAmount;
+      // Hitung ulang total_produk dari order_items (harga bisa diedit)
+      const updatedTotalProduk = selectedOrder.order_items.reduce((sum, i) => sum + (i.qty * i.harga_satuan), 0);
+      const newTotal = updatedTotalProduk + shippingAmount;
 
       // Format resi with courier bill if provided
       let resiData = couriername;
@@ -922,15 +945,24 @@ export default function Dashboard({ user, onLogout }) {
         resiData = `${couriername}-${billOrder}`;
       }
 
-      // Update order dengan ongkir, kurirnya, dan status baru
+      // Update order_items harga_satuan (diskon per order)
+      for (const item of selectedOrder.order_items) {
+        await supabase
+          .from('order_items')
+          .update({ harga_satuan: item.harga_satuan })
+          .eq('id', item.id);
+      }
+
+      // Update order utama
       const { data, error } = await supabase
         .from('orders')
         .update({
           shipping_cost: shippingAmount,
           courier_name: couriername,
+          total_produk: updatedTotalProduk,
           total_bayar: newTotal,
           resi: resiData,
-          status: 'WAITING_PAYMENT', // Status baru: menunggu pembayaran
+          status: 'WAITING_PAYMENT',
           updated_at: new Date().toISOString()
         })
         .eq('id', selectedOrder.id)
@@ -947,7 +979,7 @@ export default function Dashboard({ user, onLogout }) {
             selectedOrder.users.nomor_wa,
             selectedOrder.order_number,
             selectedOrder.users.nama,
-            selectedOrder.total_produk,
+            updatedTotalProduk,
             shippingAmount,
             baseUrl,
             couriername
@@ -956,7 +988,7 @@ export default function Dashboard({ user, onLogout }) {
         );
       }
 
-      setSuccessMsg('✅ Ongkir berhasil disimpan! Invoice sudah dikirim ke customer via WhatsApp.');
+      setSuccessMsg('✅ Ongkir & harga produk berhasil disimpan! Invoice sudah dikirim ke customer via WhatsApp.');
       setShowShippingModal(false);
       setShippingCost('');
       setBillOrder('');
@@ -2110,10 +2142,25 @@ export default function Dashboard({ user, onLogout }) {
             <p className="font-bold text-white">{selectedOrder.order_number}</p>
             <p className="text-sm text-gray-400">{selectedOrder.users?.nama || selectedOrder.nama_pembeli} • {selectedOrder.users?.nomor_wa || selectedOrder.nomor_wa}</p>
             <div className="mt-3 pt-3 border-t border-white/20">
-              {selectedOrder.order_items?.map((item) => (
-                <p key={item.id} className="text-sm text-gray-300">
-                  {item.products?.name} × {item.qty} = {formatRupiah(item.qty * item.harga_satuan)}
-                </p>
+              {selectedOrder.order_items?.map((item, idx) => (
+                <div key={item.id} className="flex items-center gap-2 mb-2">
+                  <span className="flex-1 text-sm text-gray-300">{item.products?.name} × {item.qty}</span>
+                  <input
+                    type="number"
+                    className="w-24 px-2 py-1 bg-black/40 border border-[#D4AF37]/50 rounded text-white text-sm"
+                    value={item.harga_satuan}
+                    min={0}
+                    onChange={e => {
+                      const newOrder = { ...selectedOrder };
+                      newOrder.order_items = [...newOrder.order_items];
+                      newOrder.order_items[idx] = { ...newOrder.order_items[idx], harga_satuan: parseInt(e.target.value) || 0 };
+                      // Update total_produk juga
+                      newOrder.total_produk = newOrder.order_items.reduce((sum, i) => sum + (i.qty * i.harga_satuan), 0);
+                      setSelectedOrder(newOrder);
+                    }}
+                  />
+                  <span className="text-xs text-[#D4AF37] font-bold ml-2">= {formatRupiah(item.qty * item.harga_satuan)}</span>
+                </div>
               ))}
             </div>
             <div className="mt-3 pt-3 border-t border-white/20">
