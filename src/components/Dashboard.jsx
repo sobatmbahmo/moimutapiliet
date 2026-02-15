@@ -17,6 +17,7 @@ import { generateOrderNumber, calculateOrderTotal, formatOrderForWA } from '../l
 import { sendOrderConfirmation, sendInvoice, sendResiNotification, sendInvoiceNotification, sendAffiliatorApprovalNotification } from '../lib/fonntePush';
 import { validateOngkir, validateResi, validateNomorWA, validateAlamat, validateNama } from '../lib/validation';
 import { handleError, safeApiCall, withTimeout } from '../lib/errorHandler';
+import { sendAdminNotification } from '../lib/fonntePush';
 
 const formatRupiah = (number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -1781,8 +1782,7 @@ export default function Dashboard({ user, onLogout }) {
                     <label className="text-[#D4AF37] font-bold text-xs">Varian Paket Komplit</label>
                     <select
                       value={item.varian}
-                      onChange={(e) => {
-                        const newItems = [...offlineOrder.items];
+                      onChange={(e) =>
                         newItems[idx].varian = e.target.value;
                         setOfflineOrder({ ...offlineOrder, items: newItems });
                       }}
