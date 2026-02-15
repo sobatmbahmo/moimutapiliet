@@ -1295,7 +1295,8 @@ export default function Dashboard({ user, onLogout }) {
   const renderAdminOrders = () => {
     // Pisahkan order berdasarkan status
     const pendingOrders = orders.filter(o => o.status === 'WAITING_CONFIRMATION');
-    const processedOrders = orders.filter(o => o.status !== 'WAITING_CONFIRMATION' && o.status !== 'delivered');
+    const processedOrders = orders.filter(o => o.status === 'processing');
+    const shippedOrders = orders.filter(o => o.status === 'shipped');
     const deliveredOrders = orders.filter(o => o.status === 'delivered');
 
     const OrderCard = ({ order }) => (
@@ -1313,13 +1314,15 @@ export default function Dashboard({ user, onLogout }) {
           </div>
           <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
             order.status === 'WAITING_CONFIRMATION' ? 'bg-yellow-500/20 text-yellow-300' :
-            order.status === 'WAITING_PAYMENT' ? 'bg-orange-500/20 text-orange-300' :
             order.status === 'processing' ? 'bg-blue-500/20 text-blue-300' :
             order.status === 'shipped' ? 'bg-purple-500/20 text-purple-300' :
             order.status === 'delivered' ? 'bg-green-500/20 text-green-300' :
             'bg-gray-500/20 text-gray-300'
           }`}>
-            {order.status.toUpperCase()}
+            {order.status === 'WAITING_CONFIRMATION' && 'Order menunggu Konfirmasi'}
+            {order.status === 'processing' && 'Order Dalam Proses'}
+            {order.status === 'shipped' && 'Order dalam Perjalanan'}
+            {order.status === 'delivered' && 'Order Terkirim'}
           </span>
         </div>
 
@@ -1346,54 +1349,21 @@ export default function Dashboard({ user, onLogout }) {
                 <DollarSign size={14} className="inline mr-1" /> Konfirmasi Ongkir
               </button>
             )}
-            {order.status === 'WAITING_PAYMENT' && (
+            {order.status === 'processing' && (
               <button
-                onClick={() => {
-                  setSelectedOrderForLabel(order);
-                  setShowPrintLabel(true);
-                }}
-                className="px-3 py-1 bg-green-500/20 text-green-300 text-xs font-bold rounded hover:bg-green-500/30 transition"
+                onClick={() => setEditingResi(order.id)}
+                className="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded hover:bg-blue-500/30 transition"
               >
-                <Printer size={14} className="inline mr-1" /> Proses Packing & Kirim
+                <Truck size={14} className="inline mr-1" /> Input Resi & Kirim
               </button>
             )}
-            {order.status === 'processing' && (
-              <>
-                <button
-                  onClick={() => setEditingResi(order.id)}
-                  className="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded hover:bg-blue-500/30 transition"
-                >
-                  <Truck size={14} className="inline mr-1" /> Input Resi
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedOrderForResiNotif(order);
-                    setResiNotifNumber('');
-                    setErrorMsg('');
-                    setShowResiNotificationModal(true);
-                  }}
-                  className="px-3 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-bold rounded hover:bg-cyan-500/30 transition"
-                >
-                  <Send size={14} className="inline mr-1" /> Kirim Notifikasi Resi
-                </button>
-              </>
-            )}
             {order.status === 'shipped' && (
-              <>
-                <button
-                  onClick={() => handleConfirmDelivery(order.id)}
-                  className="px-3 py-1 bg-purple-500/20 text-purple-300 text-xs font-bold rounded hover:bg-purple-500/30 transition"
-                >
-                  <Check size={14} className="inline mr-1" /> Delivered
-                </button>
-                <button
-                  onClick={() => handleRePrintLabel(order)}
-                  className="px-3 py-1 bg-cyan-500/20 text-cyan-300 text-xs font-bold rounded hover:bg-cyan-500/30 transition"
-                  title="Print ulang resi jika print pertama gagal"
-                >
-                  <Printer size={14} className="inline mr-1" /> Print Ulang Resi
-                </button>
-              </>
+              <button
+                onClick={() => handleConfirmDelivery(order.id)}
+                className="px-3 py-1 bg-green-500/20 text-green-300 text-xs font-bold rounded hover:bg-green-500/30 transition"
+              >
+                <Check size={14} className="inline mr-1" /> Verifikasi Order Terkirim
+              </button>
             )}
             <button
               onClick={() => handleDeleteOrder(order.id, order.order_number)}
@@ -2208,21 +2178,6 @@ export default function Dashboard({ user, onLogout }) {
                 </p>
               </div>
             )}
-
-            <div>
-              <label className="block text-sm font-bold text-[#D4AF37] mb-2">Nominal Ongkir</label>
-              <div className="flex items-center">
-                <span className="px-3 py-2 bg-black/40 border border-white/20 border-r-0 rounded-l text-gray-400">Rp</span>
-                <input
-                  type="number"
-                  placeholder="0"
-                  value={shippingCost}
-                  onChange={(e) => setShippingCost(e.target.value)}
-                  onFocus={(e) => e.target.select()}
-                  className="flex-1 px-4 py-2 bg-black/40 border border-white/20 border-l-0 rounded-r text-white text-sm"
-                />
-              </div>
-            </div>
 
             <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-lg p-3">
               <p className="text-xs text-gray-300 mb-2">Total Pembayaran:</p>
