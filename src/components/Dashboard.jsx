@@ -3033,6 +3033,13 @@ export default function Dashboard({ user, onLogout }) {
                       >
                         <Trash size={14} className="inline mr-1" /> Hapus
                       </button>
+                      <button
+                        onClick={() => handleResendAffiliatorNotification(a)}
+                        className="flex-1 px-3 py-2 bg-blue-500/20 text-blue-300 text-xs font-bold rounded hover:bg-blue-500/40 transition"
+                        disabled={loading}
+                      >
+                        <Send size={14} className="inline mr-1" /> Kirim Ulang Notifikasi
+                      </button>
                     </div>
                   </div>
                 ))}
