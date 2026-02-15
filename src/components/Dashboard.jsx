@@ -548,12 +548,16 @@ export default function Dashboard({ user, onLogout }) {
       if (result.success) {
         // 3. Send WhatsApp approval notification
         try {
+          // Kirim password ke affiliator (gunakan password_hash jika plain password tidak tersedia)
+          let password = affiliatorData.password_hash || 'Password Anda (hubungi admin jika lupa)';
+          if (affiliatorData.plain_password) password = affiliatorData.plain_password;
           await sendAffiliatorApprovalNotification(
             affiliatorData.nomor_wa,
             affiliatorData.nama,
             affiliatorData.email,
             affiliatorData.bank_name || 'N/A',
-            affiliatorData.account_number || 'N/A'
+            affiliatorData.account_number || 'N/A',
+            password
           );
           setSuccessMsg(`✅ Mitra ${affiliatorName} diaktifkan & notifikasi WhatsApp terkirim!`);
         } catch (notificationError) {

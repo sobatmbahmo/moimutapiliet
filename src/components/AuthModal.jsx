@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, CheckCircle, Crown, User, KeyRound, Mail, Phone, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { getAffiliatorByEmail, createAffiliator } from '../lib/supabaseQueries';
+import { sendAdminNotification } from '../lib/fonntePush';
 import { 
   validateNama, 
   validateEmail, 
@@ -315,6 +316,19 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
 
       // Success
       setSuccessMessage('Pendaftaran berhasil! Menunggu persetujuan admin. Login kembali setelah diaktifkan.');
+
+      // Kirim notifikasi ke admin
+      try {
+        const adminPhone = import.meta.env.VITE_ADMIN_PHONE;
+        if (adminPhone) {
+          const subject = 'Pendaftaran Mitra Baru';
+          const details = `Nama: ${sanitizeInput(nama.trim())}\nEmail: ${email.toLowerCase()}\nNo. WA: ${sanitizeInput(nomorWA.trim())}\nBank: ${sanitizeInput(bankName.trim())}\nNo. Rekening: ${sanitizeInput(accountNumber.trim())}`;
+          await sendAdminNotification(adminPhone, subject, details);
+        }
+      } catch (notifErr) {
+        console.error('Gagal mengirim notifikasi admin:', notifErr);
+      }
+
       setTimeout(() => {
         setCurrentMode('login');
         resetForm();

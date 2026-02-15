@@ -372,7 +372,8 @@ export const sendAffiliatorApprovalNotification = async (
   affiliatorName,
   email,
   bankName,
-  accountNumber
+  accountNumber,
+  password
 ) => {
   const message = `
 *Pendaftaran Anda Disetujui! 🎉*
@@ -384,11 +385,12 @@ Selamat! Pendaftaran Anda sebagai Mitra telah *disetujui oleh admin*.
 *DATA AKUN ANDA:*
 Nama: ${affiliatorName}
 Email: ${email}
+Password: ${password}
 Bank: ${bankName}
 No. Rekening: ${accountNumber}
 
 *LANGKAH SELANJUTNYA:*
-1. Login ke dashboard dengan email & password Anda
+1. Login ke dashboard dengan email & password di atas
 2. Lengkapi profil TikTok Anda (jika ada)
 3. Mulai membagikan produk dan dapatkan komisi! 💰
 
