@@ -1,32 +1,25 @@
-// Existing functions...
+// New affiliate link functions added to support username-based affiliate URL system
 
-// New function to set the affiliate username
-export const setAffiliatorUsername = (username) => {
-    // Implementation to set affiliate username
-};
+function setAffiliatorUsername(username) {
+    // Implementation to set the affiliate username
+}
 
-// New function to get an affiliate by username
-export const getAffiliatorByUsername = (username) => {
-    // Implementation to get affiliate by username
-};
+function getAffiliatorByUsername(username) {
+    // Implementation to get the affiliator by username
+}
 
-// New function to generate an affiliate link
-export const generateAffiliateLink = (productId) => {
-    // Implementation to generate affiliate link
-};
+function generateAffiliateLink(userId) {
+    // Implementation to generate an affiliate link for a user
+}
 
-// New function to get affiliate product links
-export const getAffiliatorProductLinks = (affiliateId) => {
-    // Implementation to get affiliate product links
-};
+function getAffiliatorProductLinks(affiliatorId) {
+    // Implementation to retrieve product links for the affiliator
+}
 
-// Updated function to set an affiliate product link
-export const setAffiliatorProductLink = (link) => {
-    // New implementation that supports TEXT fields
-};
+function setAffiliatorProductLink(affiliatorId, productLink, textField) {
+    // Updated implementation to support TEXT fields
+}
 
-// New function to validate an affiliate link
-export const validateAffiliateLink = (link) => {
-    // Implementation to validate affiliate link
-};
-
+function validateAffiliateLink(link) {
+    // Implementation to validate the provided affiliate link
+}
