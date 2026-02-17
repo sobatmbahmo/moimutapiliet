@@ -9,7 +9,8 @@ import {
   getUserOrders, createOrder, addOrderItems, updateOrderStatus, deleteOrder,
   createWithdrawal, getAffiliatorWithdrawals,
   getAffiliatorByEmail, updateAffiliator, updateProduct, deleteAffiliator, reorderProduct,
-  searchCustomers, upsertCustomer, setAffiliatorProductLink, getAffiliatorProductLink
+  searchCustomers, upsertCustomer, setAffiliatorProductLink, getAffiliatorProductLink,
+  createOrGetUser, getAllCustomers, deleteCustomer
 } from '../lib/supabaseQueries';
 import { getAffiliatorDashboardSummary, validateWithdrawalRequest, getTopAffiliators } from '../lib/affiliateLogic';
 import { getAffiliatorBindings } from '../lib/bindingLogic';
@@ -18,6 +19,17 @@ import { sendOrderConfirmation, sendInvoice, sendResiNotification, sendInvoiceNo
 import { validateOngkir, validateResi, validateNomorWA, validateAlamat, validateNama } from '../lib/validation';
 import { handleError, safeApiCall, withTimeout } from '../lib/errorHandler';
 import { sendAdminNotification } from '../lib/fonntePush';
+
+// Import Dashboard Modular Components
+import AddCustomerModal from './dashboard/AddCustomerModal';
+import OfflineOrderForm from './dashboard/OfflineOrderForm';
+import ShippingModal from './dashboard/ShippingModal';
+import ResiNotificationModal from './dashboard/ResiNotificationModal';
+import EditAffiliatorModal from './dashboard/EditAffiliatorModal';
+import AdminOrdersPanel from './dashboard/AdminOrdersPanel';
+import AdminProductsPanel from './dashboard/AdminProductsPanel';
+import AdminAffiliatorsPanel from './dashboard/AdminAffiliatorsPanel';
+import AffiliatorDashboard from './dashboard/AffiliatorDashboard';
 
 const formatRupiah = (number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -69,6 +81,11 @@ export default function Dashboard({ user, onLogout }) {
   const [showResiNotificationModal, setShowResiNotificationModal] = useState(false);
   const [selectedOrderForResiNotif, setSelectedOrderForResiNotif] = useState(null);
   const [resiNotifNumber, setResiNotifNumber] = useState('');
+
+  // State untuk Print Resi Modal
+  const [showPrintResiModal, setShowPrintResiModal] = useState(false);
+  const [selectedOrderForPrintResi, setSelectedOrderForPrintResi] = useState(null);
+  const [expeditionRequestCode, setExpeditionRequestCode] = useState('');
 
   // Handler untuk kirim ulang notifikasi ke affiliator
   const handleResendAffiliatorNotification = async (affiliator) => {
@@ -133,10 +150,11 @@ export default function Dashboard({ user, onLogout }) {
   const [reorderingProduct, setReorderingProduct] = useState(null);
   const [reorderDestination, setReorderDestination] = useState('');
 
-  // Customer Autocomplete & Add Modal
+  // Customer Autocomplete & Add/Edit Modal
   const [customerSearchResults, setCustomerSearchResults] = useState([]);
   const [showCustomerSearchDropdown, setShowCustomerSearchDropdown] = useState(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState(null); // null = add mode, customer object = edit mode
   const [newCustomerForm, setNewCustomerForm] = useState({
     nama: '',
     nomor_wa: '',
@@ -214,6 +232,14 @@ export default function Dashboard({ user, onLogout }) {
           .select('*')
           .order('nama', { ascending: true });
         setAffiliators(affiliatorsData || []);
+
+        // Load customers for offline order form
+        const customersResult = await getAllCustomers();
+        if (customersResult.success) {
+          setCustomers(customersResult.customers || []);
+        } else {
+          console.error('Failed to load customers:', customersResult.error);
+        }
       } else if (isAffiliator) {
         // Affiliator: Load products for all to display
         const { data: productsData } = await supabase
@@ -386,27 +412,50 @@ export default function Dashboard({ user, onLogout }) {
     setCustomerSearchResults([]);
   };
 
+  const handleEditCustomer = (customer) => {
+    setEditingCustomer(customer);
+    setNewCustomerForm({
+      nama: customer.nama,
+      nomor_wa: customer.nomor_wa,
+      alamat: customer.alamat || ''
+    });
+    setShowAddCustomerModal(true);
+    setShowCustomerSearchDropdown(false);
+  };
+
   const handleAddNewCustomer = async () => {
-    if (!newCustomerForm.nama.trim()) {
+    console.log('handleAddNewCustomer called with form:', newCustomerForm);
+    
+    if (!newCustomerForm.nama?.trim()) {
       setErrorMsg('Nama customer harus diisi');
       return;
     }
-    if (!newCustomerForm.nomor_wa.trim()) {
+    if (!newCustomerForm.nomor_wa?.trim()) {
       setErrorMsg('Nomor WhatsApp harus diisi');
       return;
     }
 
     try {
       setLoading(true);
+      setErrorMsg('');
+      
+      console.log('Calling upsertCustomer with:', {
+        nama: newCustomerForm.nama,
+        nomor_wa: newCustomerForm.nomor_wa,
+        alamat: newCustomerForm.alamat || null
+      });
+      
       const result = await upsertCustomer(
         newCustomerForm.nama,
         newCustomerForm.nomor_wa,
         newCustomerForm.alamat || null
       );
 
+      console.log('upsertCustomer result:', result);
+
       if (result.success) {
-        setSuccessMsg('Customer berhasil ditambahkan');
-        // Auto-fill form dengan data customer baru
+        setSuccessMsg(editingCustomer ? 'Customer berhasil diupdate' : 'Customer berhasil ditambahkan');
+        // Auto-fill form dengan data customer baru/updated
         setOfflineOrder({
           ...offlineOrder,
           customer_name: result.customer.nama,
@@ -415,6 +464,43 @@ export default function Dashboard({ user, onLogout }) {
         });
         setShowAddCustomerModal(false);
         setNewCustomerForm({ nama: '', nomor_wa: '', alamat: '' });
+        setEditingCustomer(null);
+        setErrorMsg('');
+        
+        // Refresh customers list
+        const customersResult = await getAllCustomers();
+        if (customersResult.success) {
+          setCustomers(customersResult.customers || []);
+        }
+      } else {
+        console.error('upsertCustomer failed:', result.error);
+        setErrorMsg('Error: ' + result.error);
+      }
+    } catch (err) {
+      console.error('handleAddNewCustomer error:', err);
+      setErrorMsg('Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handle delete customer
+  const handleDeleteCustomer = async (customerId) => {
+    try {
+      setLoading(true);
+      const result = await deleteCustomer(customerId);
+      
+      if (result.success) {
+        setSuccessMsg('Customer berhasil dihapus');
+        setShowAddCustomerModal(false);
+        setEditingCustomer(null);
+        setNewCustomerForm({ nama: '', nomor_wa: '', alamat: '' });
+        
+        // Refresh customers list
+        const customersResult = await getAllCustomers();
+        if (customersResult.success) {
+          setCustomers(customersResult.customers || []);
+        }
       } else {
         setErrorMsg('Error: ' + result.error);
       }
@@ -905,6 +991,84 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
+  // Handler untuk konfirmasi pembayaran (WAITING_PAYMENT -> PAID)
+  const handleConfirmPayment = async (orderId) => {
+    try {
+      setLoading(true);
+      const { error } = await supabase
+        .from('orders')
+        .update({ 
+          status: 'PAID',
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', orderId);
+
+      if (error) throw error;
+      setSuccessMsg('Pembayaran berhasil dikonfirmasi!');
+      loadInitialData();
+    } catch (err) {
+      setErrorMsg('Gagal konfirmasi pembayaran: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Handler untuk buka modal print resi
+  const handleOpenPrintResiModal = (order) => {
+    setSelectedOrderForPrintResi(order);
+    // Pre-fill kode rikues jika sudah ada (untuk reprint)
+    const isReprint = order.status === 'SHIPPED' || order.status === 'shipped';
+    if (isReprint && order.resi && order.resi.includes('-')) {
+      // Extract kode rikues dari format "EXPEDISI-KODE"
+      const parts = order.resi.split('-');
+      setExpeditionRequestCode(parts.slice(1).join('-') || '');
+    } else {
+      setExpeditionRequestCode('');
+    }
+    setShowPrintResiModal(true);
+  };
+
+  // Handler untuk submit print resi dengan kode rikues
+  const handleSubmitPrintResi = async () => {
+    if (!expeditionRequestCode.trim()) {
+      setErrorMsg('Kode rikues expedisi wajib diisi');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      const isReprint = selectedOrderForPrintResi.status === 'SHIPPED' || selectedOrderForPrintResi.status === 'shipped';
+      
+      // Update resi dengan kode rikues
+      const updateData = { 
+        resi: `${selectedOrderForPrintResi.courier_name || selectedOrderForPrintResi.resi?.split('-')[0] || 'EXPEDISI'}-${expeditionRequestCode}`,
+        updated_at: new Date().toISOString()
+      };
+      
+      // Hanya ubah status ke SHIPPED jika bukan reprint
+      if (!isReprint) {
+        updateData.status = 'SHIPPED';
+      }
+      
+      const { error } = await supabase
+        .from('orders')
+        .update(updateData)
+        .eq('id', selectedOrderForPrintResi.id);
+
+      if (error) throw error;
+      
+      setSuccessMsg(isReprint ? 'Resi berhasil diupdate!' : 'Resi berhasil disimpan! Order dalam perjalanan.');
+      setShowPrintResiModal(false);
+      setSelectedOrderForPrintResi(null);
+      setExpeditionRequestCode('');
+      loadInitialData();
+    } catch (err) {
+      setErrorMsg('Gagal menyimpan resi: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleOpenShippingModal = (order) => {
     setSelectedOrder(order);
     // Pre-fill with existing data jika sudah ada (offline orders)
@@ -927,24 +1091,12 @@ export default function Dashboard({ user, onLogout }) {
       return;
     }
 
-    // Check if bill order is required but empty
-    if (couriersWithBill.includes(couriername) && !billOrder.trim()) {
-      setErrorMsg(`Nomor tiket/bill order wajib untuk ${couriername}`);
-      return;
-    }
-
     try {
       setLoading(true);
       const shippingAmount = parseInt(shippingCost);
       // Hitung ulang total_produk dari order_items (harga bisa diedit)
       const updatedTotalProduk = selectedOrder.order_items.reduce((sum, i) => sum + (i.qty * i.harga_satuan), 0);
       const newTotal = updatedTotalProduk + shippingAmount;
-
-      // Format resi with courier bill if provided
-      let resiData = couriername;
-      if (billOrder.trim()) {
-        resiData = `${couriername}-${billOrder}`;
-      }
 
       // Update order_items harga_satuan (diskon per order)
       for (const item of selectedOrder.order_items) {
@@ -962,7 +1114,7 @@ export default function Dashboard({ user, onLogout }) {
           courier_name: couriername,
           total_produk: updatedTotalProduk,
           total_bayar: newTotal,
-          resi: resiData,
+          resi: couriername,
           status: 'WAITING_PAYMENT',
           updated_at: new Date().toISOString()
         })
@@ -1141,6 +1293,17 @@ export default function Dashboard({ user, onLogout }) {
 
       console.log('✅ Generated order number:', orderNumber);
 
+      // Create or get user for offline order (user_id is required)
+      const userResult = await createOrGetUser(
+        offlineOrder.customer_name,
+        offlineOrder.customer_phone,
+        null,
+        offlineOrder.customer_address
+      );
+      if (!userResult.success) throw new Error('Gagal membuat/mendapatkan data user: ' + userResult.error);
+      const userId = userResult.user.id;
+      console.log('✅ User ID for order:', userId);
+
       // Calculate totals
       const subtotal = offlineOrder.items.reduce((sum, i) => sum + (i.quantity * i.price), 0);
       const total = subtotal + offlineOrder.shipping_cost;
@@ -1153,8 +1316,8 @@ export default function Dashboard({ user, onLogout }) {
         nomor_wa: offlineOrder.customer_phone
       });
 
-      // Create order (use null for userId for offline orders) - Call directly without safeApiCall wrapper
-      const createOrderResult = await createOrder(null, {
+      // Create order with valid user_id
+      const createOrderResult = await createOrder(userId, {
         order_number: orderNumber,
         metode_bayar: offlineOrder.payment_method,
         total_produk: subtotal,
@@ -1289,596 +1452,6 @@ export default function Dashboard({ user, onLogout }) {
       setLoading(false);
     }
   };
-
-  // ======================
-  // RENDER: ADMIN ORDERS TAB
-  // ======================
-  const renderAdminOrders = () => {
-    // Pisahkan order berdasarkan status
-    const pendingOrders = orders.filter(o => o.status === 'WAITING_CONFIRMATION');
-    const processedOrders = orders.filter(o => o.status === 'processing');
-    const shippedOrders = orders.filter(o => o.status === 'shipped');
-    const deliveredOrders = orders.filter(o => o.status === 'delivered');
-
-    const OrderCard = ({ order }) => (
-      <div
-        key={order.id}
-        className="bg-black/30 border border-white/10 rounded-lg p-4 space-y-2"
-      >
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="font-bold text-white">{order.order_number}</p>
-            <p className="text-sm text-gray-400">
-              {order.users?.nama || order.nama_pembeli} • {order.users?.nomor_wa || order.nomor_wa}
-            </p>
-            <p className="text-xs text-gray-500 mt-1">{order.alamat}</p>
-          </div>
-          <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-            order.status === 'WAITING_CONFIRMATION' ? 'bg-yellow-500/20 text-yellow-300' :
-            order.status === 'processing' ? 'bg-blue-500/20 text-blue-300' :
-            order.status === 'shipped' ? 'bg-purple-500/20 text-purple-300' :
-            order.status === 'delivered' ? 'bg-green-500/20 text-green-300' :
-            'bg-gray-500/20 text-gray-300'
-          }`}>
-            {order.status === 'WAITING_CONFIRMATION' && 'Order menunggu Konfirmasi'}
-            {order.status === 'processing' && 'Order Dalam Proses'}
-            {order.status === 'shipped' && 'Order dalam Perjalanan'}
-            {order.status === 'delivered' && 'Order Terkirim'}
-          </span>
-        </div>
-
-        <div className="py-2 border-y border-white/10">
-          {order.order_items?.map((item) => (
-            <p key={item.id} className="text-sm text-gray-300">
-              {item.products?.name || 'Produk'} × {item.qty} = {formatRupiah(item.qty * item.harga_satuan)}
-              {item.varian && <span className="ml-2 text-xs bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded">{item.varian}</span>}
-            </p>
-          ))}
-        </div>
-
-        <div className="flex justify-between items-center text-sm">
-          <div>
-            <p className="text-gray-400">Total:</p>
-            <p className="font-bold text-[#D4AF37]">{formatRupiah(order.total_bayar)}</p>
-          </div>
-          <div className="flex gap-2 flex-wrap justify-end">
-            {order.status === 'WAITING_CONFIRMATION' && (
-              <button
-                onClick={() => handleOpenShippingModal(order)}
-                className="px-3 py-1 bg-orange-500/20 text-orange-300 text-xs font-bold rounded hover:bg-orange-500/30 transition"
-              >
-                <DollarSign size={14} className="inline mr-1" /> Konfirmasi Ongkir
-              </button>
-            )}
-            {order.status === 'processing' && (
-              <button
-                onClick={() => setEditingResi(order.id)}
-                className="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded hover:bg-blue-500/30 transition"
-              >
-                <Truck size={14} className="inline mr-1" /> Input Resi & Kirim
-              </button>
-            )}
-            {order.status === 'shipped' && (
-              <button
-                onClick={() => handleConfirmDelivery(order.id)}
-                className="px-3 py-1 bg-green-500/20 text-green-300 text-xs font-bold rounded hover:bg-green-500/30 transition"
-              >
-                <Check size={14} className="inline mr-1" /> Verifikasi Order Terkirim
-              </button>
-            )}
-            <button
-              onClick={() => handleDeleteOrder(order.id, order.order_number)}
-              disabled={deletingOrderId === order.id}
-              className="px-3 py-1 bg-red-500/20 text-red-300 text-xs font-bold rounded hover:bg-red-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-              title="Hapus order (untuk mengantisipasi double order)"
-            >
-              {deletingOrderId === order.id ? 'Menghapus...' : <><Trash size={14} className="inline mr-1" /> Hapus</>}
-            </button>
-          </div>
-        </div>
-
-        {editingResi === order.id && (
-          <div className="bg-black/40 border border-[#D4AF37]/30 rounded-lg p-3 space-y-2">
-            <input
-              type="text"
-              placeholder="Nomor Resi"
-              value={resiNumber}
-              onChange={(e) => setResiNumber(e.target.value)}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm"
-            />
-            <select
-              value={couriername}
-              onChange={(e) => setCourierName(e.target.value)}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm"
-            >
-              <option value="JNE">JNE</option>
-              <option value="TIKI">TIKI</option>
-              <option value="POS">POS Indonesia</option>
-              <option value="Gojek">Gojek</option>
-              <option value="Grab">Grab</option>
-            </select>
-            <div className="flex gap-2">
-              <button
-                onClick={() => handleInputResi(order.id)}
-                className="flex-1 px-3 py-2 bg-green-500 text-black font-bold rounded text-sm hover:bg-green-600 transition"
-              >
-                <Check size={14} className="inline mr-1" /> Kirim
-              </button>
-              <button
-                onClick={() => setEditingResi(null)}
-                className="flex-1 px-3 py-2 bg-red-500/20 text-red-300 font-bold rounded text-sm hover:bg-red-500/30 transition"
-              >
-                <X size={14} className="inline mr-1" /> Batal
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-
-    return (
-      <div className="space-y-4">
-        {/* Tombol Tambah Order Manual */}
-        <div className="flex justify-between items-center">
-          <h3 className="text-lg font-bold text-white">Manajemen Order</h3>
-          <button
-            onClick={() => setShowOfflineOrderForm(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition"
-          >
-            <Plus size={18} /> Tambah Order Manual
-          </button>
-        </div>
-
-        {/* GRID 2 KOLOM: PENDING & PROCESSED */}
-        <div className="grid grid-cols-2 gap-6">
-          {/* KOLOM 1: SECTION PENDING ORDERS */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b-2 border-yellow-500/50">
-              <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-              <h4 className="text-base font-bold text-yellow-300">
-                Order Menunggu Konfirmasi Ongkir ({pendingOrders.length})
-              </h4>
-            </div>
-            {pendingOrders.length === 0 ? (
-              <div className="text-center py-6 bg-black/20 rounded-lg border border-yellow-500/20">
-                <p className="text-gray-400 text-sm">Tidak ada order yang menunggu konfirmasi ongkir</p>
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {pendingOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* KOLOM 2: SECTION PROCESSED ORDERS */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b-2 border-blue-500/50">
-              <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-              <h4 className="text-base font-bold text-blue-300">
-                Order Dalam Proses ({processedOrders.length})
-              </h4>
-            </div>
-            {processedOrders.length === 0 ? (
-              <div className="text-center py-6 bg-black/20 rounded-lg border border-blue-500/20">
-                <p className="text-gray-400 text-sm">Tidak ada order dalam proses</p>
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {processedOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* KOLOM 3: SECTION DELIVERED ORDERS */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 pb-2 border-b-2 border-green-500/50">
-              <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-              <h4 className="text-base font-bold text-green-300">
-                Order Terkirim ({deliveredOrders.length})
-              </h4>
-            </div>
-            {deliveredOrders.length === 0 ? (
-              <div className="text-center py-6 bg-black/20 rounded-lg border border-green-500/20">
-                <p className="text-gray-400 text-sm">Tidak ada order yang terkirim</p>
-              </div>
-            ) : (
-              <div className="grid gap-3">
-                {deliveredOrders.map((order) => (
-                  <OrderCard key={order.id} order={order} />
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  // ======================
-  // RENDER: MODAL TAMBAH CUSTOMER BARU
-  // ======================
-  if (showAddCustomerModal && isAdmin) {
-    return (
-      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
-        <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-md p-6 space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-white">Tambah Customer Baru</h2>
-            <button
-              onClick={() => {
-                setShowAddCustomerModal(false);
-                setNewCustomerForm({ nama: '', nomor_wa: '', alamat: '' });
-              }}
-              className="text-gray-400 hover:text-white"
-            >
-              <X size={24} />
-            </button>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[#D4AF37] font-bold text-sm">Nama</label>
-            <input
-              type="text"
-              value={newCustomerForm.nama}
-              onChange={(e) => setNewCustomerForm({ ...newCustomerForm, nama: e.target.value })}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-              placeholder="Nama customer"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[#D4AF37] font-bold text-sm">Nomor WhatsApp</label>
-            <input
-              type="tel"
-              value={newCustomerForm.nomor_wa}
-              onChange={(e) => setNewCustomerForm({ ...newCustomerForm, nomor_wa: e.target.value })}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-              placeholder="628xxxxxxxxx"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[#D4AF37] font-bold text-sm">Alamat</label>
-            <textarea
-              value={newCustomerForm.alamat}
-              onChange={(e) => setNewCustomerForm({ ...newCustomerForm, alamat: e.target.value })}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white h-16"
-              placeholder="Alamat (opsional)"
-            />
-          </div>
-
-          <div className="flex gap-2 pt-4">
-            <button
-              onClick={handleAddNewCustomer}
-              disabled={loading}
-              className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition disabled:opacity-50"
-            >
-              {loading ? 'Menyimpan...' : 'Simpan Customer'}
-            </button>
-            <button
-              onClick={() => {
-                setShowAddCustomerModal(false);
-                setNewCustomerForm({ nama: '', nomor_wa: '', alamat: '' });
-              }}
-              className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30 transition"
-            >
-              Batal
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ======================
-  // RENDER: OFFLINE ORDER MODAL
-  // ======================
-  if (showOfflineOrderForm && isAdmin) {
-    return (
-      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
-        <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-2xl max-h-screen overflow-y-auto p-6 space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-white">Tambah Order Manual</h2>
-            <button
-              onClick={() => setShowOfflineOrderForm(false)}
-              className="text-gray-400 hover:text-white"
-            >
-              <X size={24} />
-            </button>
-          </div>
-
-          {/* Customer Info */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-[#D4AF37] font-bold text-sm">Nama Customer</label>
-              <button
-                onClick={() => setShowAddCustomerModal(true)}
-                className="text-[#D4AF37] hover:text-[#F4D03F] text-xs flex items-center gap-1"
-              >
-                <Plus size={14} /> Tambah Customer Baru
-              </button>
-            </div>
-            <div className="relative">
-              <input
-                type="text"
-                value={offlineOrder.customer_name}
-                onChange={(e) => handleCustomerNameChange(e.target.value)}
-                onFocus={() => offlineOrder.customer_name && setShowCustomerSearchDropdown(true)}
-                className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                placeholder="Ketik nama atau nomor WA untuk mencari..."
-              />
-              {showCustomerSearchDropdown && customerSearchResults.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-black/90 border border-[#D4AF37]/50 rounded-lg z-50 max-h-40 overflow-y-auto">
-                  {customerSearchResults.map(customer => (
-                    <button
-                      key={customer.id}
-                      onClick={() => handleSelectCustomer(customer)}
-                      className="w-full px-3 py-2 text-left hover:bg-[#D4AF37]/20 text-white text-sm border-b border-white/10 last:border-0"
-                    >
-                      <p className="font-bold">{customer.nama}</p>
-                      <p className="text-xs text-gray-400">{customer.nomor_wa}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[#D4AF37] font-bold text-sm">Nomor WhatsApp</label>
-            <div className="relative">
-              <input
-                type="tel"
-                value={offlineOrder.customer_phone}
-                onChange={(e) => handleCustomerPhoneChange(e.target.value)}
-                onFocus={() => offlineOrder.customer_phone && setShowCustomerSearchDropdown(true)}
-                className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                placeholder="628xxxxxxxxx"
-              />
-              {showCustomerSearchDropdown && customerSearchResults.length > 0 && (
-                <div className="absolute left-0 right-0 top-full mt-1 bg-black/90 border border-[#D4AF37]/50 rounded-lg z-50 max-h-40 overflow-y-auto">
-                  {customerSearchResults.map(customer => (
-                    <button
-                      key={customer.id}
-                      onClick={() => handleSelectCustomer(customer)}
-                      className="w-full px-3 py-2 text-left hover:bg-[#D4AF37]/20 text-white text-sm border-b border-white/10 last:border-0"
-                    >
-                      <p className="font-bold">{customer.nama}</p>
-                      <p className="text-xs text-gray-400">{customer.nomor_wa}</p>
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-[#D4AF37] font-bold text-sm">Alamat Lengkap</label>
-            <textarea
-              value={offlineOrder.customer_address}
-              onChange={(e) => setOfflineOrder({ ...offlineOrder, customer_address: e.target.value })}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white h-20"
-              placeholder="Alamat detail"
-            />
-          </div>
-
-          {/* Items */}
-          <div className="space-y-2">
-            <div className="flex justify-between items-center">
-              <label className="text-[#D4AF37] font-bold text-sm">Produk</label>
-              <button
-                onClick={handleAddOfflineItem}
-                className="text-[#D4AF37] hover:text-[#F4D03F] flex items-center gap-1"
-              >
-                <Plus size={16} /> Tambah Item
-              </button>
-            </div>
-            {offlineOrder.items.map((item, idx) => {
-              const selectedProduct = products.find(p => p.id === item.product_id);
-              const isPacketComplete = selectedProduct?.name?.toLowerCase().includes('paket komplit');
-              
-              const VARIANTS = ['GGSA', 'INL', 'RHS', 'JRM', 'BB', 'MLB', 'DJS', 'SMP', 'PLN', 'APLN', 'KPLN'];
-              
-              return (
-              <div key={idx} className="space-y-2 p-3 bg-black/20 rounded-lg border border-white/10">
-                {/* Row 1: Product Name Selector + Satuan + Qty + Delete */}
-                <div className="flex gap-2 items-start">
-                  <select
-                    value={item.product_id}
-                    onChange={(e) => {
-                      const prod = products.find(p => p.id === e.target.value);
-                      const newItems = [...offlineOrder.items];
-                      newItems[idx] = { 
-                        ...item, 
-                        product_id: e.target.value, 
-                        price: prod?.price || 0, 
-                        varian: '',
-                        satuan: '100gr'
-                      };
-                      setOfflineOrder({ ...offlineOrder, items: newItems });
-                    }}
-                    className="flex-1 px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white text-sm"
-                  >
-                    <option value="">--Pilih Produk--</option>
-                    {products.map(p => (
-                      <option key={p.id} value={p.id}>{p.name}</option>
-                    ))}
-                  </select>
-
-                  {/* Satuan Selector - untuk semua produk */}
-                  {item.product_id && (
-                    <select
-                      value={item.satuan}
-                      onChange={(e) => {
-                        const newItems = [...offlineOrder.items];
-                        newItems[idx].satuan = e.target.value;
-                        // Jika pilih 100gr, auto-fill dari database
-                        if (e.target.value === '100gr') {
-                          newItems[idx].price = selectedProduct?.price || 0;
-                        }
-                        setOfflineOrder({ ...offlineOrder, items: newItems });
-                      }}
-                      className="px-3 py-2 bg-black/40 border border-[#D4AF37]/50 rounded-lg text-white text-sm"
-                    >
-                      <option value="100gr">100gr</option>
-                      <option value="Kg">Kg</option>
-                    </select>
-                  )}
-
-                  <input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) => {
-                      const newItems = [...offlineOrder.items];
-                      newItems[idx].quantity = parseInt(e.target.value) || 1;
-                      setOfflineOrder({ ...offlineOrder, items: newItems });
-                    }}
-                    className="w-16 px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white text-sm text-center"
-                    placeholder="Qty"
-                  />
-
-                  <button
-                    onClick={() => handleRemoveOfflineItem(idx)}
-                    className="p-2 text-red-400 hover:text-red-500"
-                  >
-                    <Trash size={16} />
-                  </button>
-                </div>
-
-                {/* Row 2: Harga + Subtotal - Always editable */}
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-[#D4AF37] font-bold text-xs">Harga {item.satuan === 'Kg' ? '(Kg)' : ''}</label>
-                    <div className="relative">
-                      <span className="absolute left-2 top-1.5 text-gray-400 text-xs">Rp</span>
-                      <input
-                        type="number"
-                        value={item.price}
-                        onChange={(e) => {
-                          const newItems = [...offlineOrder.items];
-                          newItems[idx].price = parseInt(e.target.value) || 0;
-                          setOfflineOrder({ ...offlineOrder, items: newItems });
-                        }}
-                        className="w-full pl-6 pr-3 py-2 bg-black/40 border border-[#D4AF37]/50 rounded-lg text-white text-sm"
-                        placeholder="0"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[#D4AF37] font-bold text-xs">Subtotal</label>
-                    <div className="px-3 py-2 bg-black/60 border border-[#D4AF37]/30 rounded-lg text-[#D4AF37] text-sm font-bold">
-                      {formatRupiah(item.quantity * item.price)}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Row 3: Varian (hanya untuk PAKET KOMPLIT) */}
-                {isPacketComplete && (
-                  <div className="space-y-1">
-                    <label className="text-[#D4AF37] font-bold text-xs">Varian Paket Komplit</label>
-                    <select
-                      value={item.varian}
-                      onChange={(e) =>
-                        newItems[idx].varian = e.target.value;
-                        setOfflineOrder({ ...offlineOrder, items: newItems });
-                      }}
-                      className="w-full px-3 py-2 bg-black/40 border border-[#D4AF37]/50 rounded-lg text-white text-sm"
-                    >
-                      <option value="">--Pilih Varian--</option>
-                      {VARIANTS.map(v => (
-                        <option key={v} value={v}>{v}</option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-              </div>
-            );
-            })}
-          </div>
-
-          {/* Payment Method */}
-          <div className="space-y-2">
-            <label className="text-[#D4AF37] font-bold text-sm">Metode Bayar</label>
-            <select
-              value={offlineOrder.payment_method}
-              onChange={(e) => setOfflineOrder({ ...offlineOrder, payment_method: e.target.value })}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-            >
-              <option value="transfer">Transfer Bank</option>
-              <option value="cod">COD</option>
-            </select>
-          </div>
-
-          {/* Expedisi & Ongkir */}
-          <div className="grid grid-cols-2 gap-2">
-            <div className="space-y-2">
-              <label className="text-[#D4AF37] font-bold text-sm">Expedisi</label>
-              <select
-                value={offlineOrder.courier_name}
-                onChange={(e) => setOfflineOrder({ ...offlineOrder, courier_name: e.target.value })}
-                className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white text-sm"
-              >
-                <option value="J&T">J&T</option>
-                <option value="WAHANA">WAHANA</option>
-                <option value="ID Express">ID Express</option>
-                <option value="Indah Cargo">Indah Cargo</option>
-                <option value="JNE">JNE</option>
-                <option value="Tiki">Tiki</option>
-                <option value="Pos Indonesia">Pos Indonesia</option>
-                <option value="Grab Express">Grab Express</option>
-                <option value="GoSend">GoSend</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label className="text-[#D4AF37] font-bold text-sm">Ongkir</label>
-              <div className="relative">
-                <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 text-sm">Rp</span>
-                <input
-                  type="number"
-                  value={offlineOrder.shipping_cost}
-                  onChange={(e) => setOfflineOrder({ ...offlineOrder, shipping_cost: parseInt(e.target.value) || 0 })}
-                  className="w-full pl-8 pr-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white text-sm"
-                  placeholder="0"
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Notes */}
-          <div className="space-y-2">
-            <label className="text-[#D4AF37] font-bold text-sm">Catatan Admin</label>
-            <textarea
-              value={offlineOrder.notes}
-              onChange={(e) => setOfflineOrder({ ...offlineOrder, notes: e.target.value })}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white h-16"
-              placeholder="Catatan khusus untuk order ini"
-            />
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-2 pt-4">
-            <button
-              onClick={handleSubmitOfflineOrder}
-              disabled={loading}
-              className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition disabled:opacity-50"
-            >
-              {loading ? 'Membuat...' : 'Buat Order'}
-            </button>
-            <button
-              onClick={() => setShowOfflineOrderForm(false)}
-              className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30 transition"
-            >
-              Batal
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   // ======================
   // RENDER: PRINT LABEL MODAL (A5 Format - Split Label & Packing List)
@@ -2090,731 +1663,60 @@ export default function Dashboard({ user, onLogout }) {
   }
 
   // ======================
-  if (showShippingModal && selectedOrder) {
-    return (
-      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
-        <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-lg p-6 space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-[#D4AF37]">Konfirmasi Ongkir</h2>
-            <button
-              onClick={() => {
-                setShowShippingModal(false);
-                setBillOrder('');
-              }}
-              className="p-2 hover:bg-white/10 rounded text-gray-300"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Order Details */}
-          <div className="bg-black/30 border border-white/10 rounded-lg p-4 space-y-2">
-            <p className="font-bold text-white">{selectedOrder.order_number}</p>
-            <p className="text-sm text-gray-400">{selectedOrder.users?.nama || selectedOrder.nama_pembeli} • {selectedOrder.users?.nomor_wa || selectedOrder.nomor_wa}</p>
-            <div className="mt-3 pt-3 border-t border-white/20">
-              {selectedOrder.order_items?.map((item, idx) => (
-                <div key={item.id} className="flex items-center gap-2 mb-2">
-                  <span className="flex-1 text-sm text-gray-300">{item.products?.name} × {item.qty}</span>
-                  <input
-                    type="number"
-                    className="w-24 px-2 py-1 bg-black/40 border border-[#D4AF37]/50 rounded text-white text-sm"
-                    value={item.harga_satuan}
-                    min={0}
-                    onChange={e => {
-                      const newOrder = { ...selectedOrder };
-                      newOrder.order_items = [...newOrder.order_items];
-                      newOrder.order_items[idx] = { ...newOrder.order_items[idx], harga_satuan: parseInt(e.target.value) || 0 };
-                      // Update total_produk juga
-                      newOrder.total_produk = newOrder.order_items.reduce((sum, i) => sum + (i.qty * i.harga_satuan), 0);
-                      setSelectedOrder(newOrder);
-                    }}
-                  />
-                  <span className="text-xs text-[#D4AF37] font-bold ml-2">= {formatRupiah(item.qty * item.harga_satuan)}</span>
-                </div>
-              ))}
-            </div>
-            <div className="mt-3 pt-3 border-t border-white/20">
-              <p className="text-sm text-gray-400">Subtotal:</p>
-              <p className="text-lg font-bold text-[#D4AF37]">{formatRupiah(selectedOrder.total_produk)}</p>
-            </div>
-          </div>
-
-          {/* Shipping Input */}
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-bold text-[#D4AF37] mb-2">Ekspedisi</label>
-              <select
-                value={couriername}
-                onChange={(e) => setCourierName(e.target.value)}
-                className="w-full px-4 py-2 bg-black/40 border border-white/20 rounded text-white text-sm"
-              >
-                <option value="J&T">J&T</option>
-                <option value="WAHANA">WAHANA</option>
-                <option value="ID Express">ID Express</option>
-                <option value="Indah Cargo">Indah Cargo</option>
-                <option value="JNE">JNE</option>
-                <option value="Tiki">Tiki</option>
-                <option value="Pos Indonesia">Pos Indonesia</option>
-                <option value="Grab Express">Grab Express</option>
-                <option value="GoSend">GoSend</option>
-              </select>
-            </div>
-
-            {/* Bill Order Field - Only show for certain couriers */}
-            {couriersWithBill.includes(couriername) && (
-              <div>
-                <label className="block text-sm font-bold text-[#D4AF37] mb-2">
-                  Nomor Tiket/Bill Order <span className="text-red-400">*</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder={`Contoh: JNT-2026-001 atau nomor tiket ${couriername}`}
-                  value={billOrder}
-                  onChange={(e) => setBillOrder(e.target.value)}
-                  className="w-full px-4 py-2 bg-black/40 border border-white/20 rounded text-white text-sm"
-                />
-                <p className="text-xs text-gray-400 mt-1">
-                  Nomor tiket/bill order dari sistem {couriername}
-                </p>
-              </div>
-            )}
-
-            <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-lg p-3">
-              <p className="text-xs text-gray-300 mb-2">Total Pembayaran:</p>
-              <p className="text-2xl font-bold text-[#F4D03F]">
-                {formatRupiah((selectedOrder.total_produk || 0) + (parseInt(shippingCost) || 0))}
-              </p>
-            </div>
-          </div>
-
-          {/* Error/Success Messages */}
-          {errorMsg && (
-            <div className="p-3 bg-red-500/20 border border-red-500/30 rounded text-red-300 text-sm">
-              {errorMsg}
-            </div>
-          )}
-
-          {/* Buttons */}
-          <div className="flex gap-3">
-            <button
-              onClick={handleConfirmShipping}
-              disabled={loading}
-              className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition disabled:opacity-50"
-            >
-              {loading ? 'Menyimpan...' : '✓ Simpan & Buat Invoice'}
-            </button>
-            <button
-              onClick={() => {
-                setShowShippingModal(false);
-                setBillOrder('');
-              }}
-              className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30 transition"
-            >
-              Batal
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ======================
-  // RESI NOTIFICATION MODAL
-  // ======================
-  if (showResiNotificationModal && selectedOrderForResiNotif) {
-    return (
-      <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
-        <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-lg p-6 space-y-4">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-2xl font-bold text-[#D4AF37]">Kirim Notifikasi Resi</h2>
-            <button
-              onClick={() => {
-                setShowResiNotificationModal(false);
-                setResiNotifNumber('');
-                setErrorMsg('');
-              }}
-              className="p-2 hover:bg-white/10 rounded text-gray-300"
-            >
-              <X size={20} />
-            </button>
-          </div>
-
-          {/* Order Details */}
-          <div className="bg-black/30 border border-white/10 rounded-lg p-4 space-y-2">
-            <p className="font-bold text-white">{selectedOrderForResiNotif.order_number}</p>
-            <p className="text-sm text-gray-400">
-              {selectedOrderForResiNotif.users?.nama || selectedOrderForResiNotif.nama_pembeli} • 
-              {selectedOrderForResiNotif.users?.nomor_wa || selectedOrderForResiNotif.nomor_wa}
-            </p>
-            <div className="mt-3 pt-3 border-t border-white/20">
-              <p className="text-sm font-bold text-[#D4AF37]">Kurir: {selectedOrderForResiNotif.courier_name}</p>
-            </div>
-          </div>
-
-          {/* Resi Input */}
-          <div className="space-y-3">
-            <div>
-              <label className="block text-sm font-bold text-[#D4AF37] mb-2">Nomor Resi <span className="text-red-400">*</span></label>
-              <input
-                type="text"
-                placeholder="Contoh: 1234567890AB"
-                value={resiNotifNumber}
-                onChange={(e) => setResiNotifNumber(e.target.value)}
-                autoFocus
-                className="w-full px-4 py-2 bg-black/40 border border-white/20 rounded text-white text-sm"
-              />
-              <p className="text-xs text-gray-400 mt-1">
-                Masukkan nomor resi dari sistem kurir
-              </p>
-            </div>
-          </div>
-
-          {/* Error/Success Messages */}
-          {errorMsg && (
-            <div className="p-3 bg-red-500/20 border border-red-500/30 rounded text-red-300 text-sm">
-              {errorMsg}
-            </div>
-          )}
-
-          {/* Buttons */}
-          <div className="flex gap-3">
-            <button
-              onClick={handleSendResiNotification}
-              disabled={loading}
-              className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition disabled:opacity-50 flex items-center justify-center gap-2"
-            >
-              <Send size={18} /> {loading ? 'Mengirim...' : 'Kirim Notifikasi'}
-            </button>
-            <button
-              onClick={() => {
-                setShowResiNotificationModal(false);
-                setResiNotifNumber('');
-                setErrorMsg('');
-              }}
-              className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30 transition"
-            >
-              Batal
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ======================
   // RENDER: AFFILIATOR DASHBOARD
   // ======================
   if (isAffiliator) {
     return (
-      <div className="min-h-screen bg-gradient-to-b from-[#042f2e] to-[#022c22] text-white p-4">
-        <div className="max-w-4xl mx-auto space-y-6">
-          {/* Header */}
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-[#D4AF37]">Dashboard Mitra</h1>
-              <p className="text-gray-400">Halo {user.nama}!</p>
-            </div>
-            <button
-              onClick={onLogout}
-              className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30"
-            >
-              <LogOut size={18} /> Logout
-            </button>
-          </div>
-
-          {/* Summary Cards */}
-          {summary && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="bg-black/30 border border-white/10 rounded-lg p-4 text-center">
-                <p className="text-gray-400 text-sm mb-1">Saldo</p>
-                <p className="text-2xl font-bold text-[#D4AF37]">{formatRupiah(summary.currentBalance)}</p>
-              </div>
-              <div className="bg-black/30 border border-white/10 rounded-lg p-4 text-center">
-                <p className="text-gray-400 text-sm mb-1">Penghasilan</p>
-                <p className="text-2xl font-bold text-green-400">{formatRupiah(summary.totalEarnings)}</p>
-              </div>
-              <div className="bg-black/30 border border-white/10 rounded-lg p-4 text-center">
-                <p className="text-gray-400 text-sm mb-1">Pelanggan</p>
-                <p className="text-2xl font-bold text-blue-400">{summary.customerCount}</p>
-              </div>
-              <div className="bg-black/30 border border-white/10 rounded-lg p-4 text-center">
-                <p className="text-gray-400 text-sm mb-1">Pesanan Terjual</p>
-                <p className="text-2xl font-bold text-purple-400">{summary.orderCount}</p>
-              </div>
-            </div>
-          )}
-
-          {/* Tabs */}
-          <div className="flex gap-2 border-b border-white/10 overflow-x-auto">
-            {['overview', 'products', 'customers', 'withdrawals'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`px-4 py-2 font-bold transition whitespace-nowrap ${
-                  activeTab === tab 
-                    ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]' 
-                    : 'text-gray-400 hover:text-white'
-                }`}
-              >
-                {tab === 'products' ? 'Produk' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab Content */}
-          {activeTab === 'overview' && (
-            <div className="space-y-4">
-              <div className="bg-black/30 border border-[#D4AF37]/30 rounded-lg p-4">
-                <h3 className="font-bold text-[#D4AF37] mb-3">📌 Link Referral Anda</h3>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    readOnly
-                    value={`${window.location.origin}?ref=${user.id}`}
-                    className="flex-1 px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm"
-                  />
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(`${window.location.origin}?ref=${user.id}`);
-                      setSuccessMsg('Link tersalin!');
-                      setTimeout(() => setSuccessMsg(''), 2000);
-                    }}
-                    className="px-4 py-2 bg-[#D4AF37] text-black font-bold rounded hover:bg-[#F4D03F] transition"
-                  >
-                    <Copy size={16} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'products' && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="font-bold text-[#D4AF37] mb-4">🛍️ Produk untuk Affiliasi TikTokShop</h3>
-                {selectedProducts.length > 0 && (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-400">{selectedProducts.length} dipilih</span>
-                    <button
-                      onClick={handleBulkEditOpen}
-                      className="px-4 py-2 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition flex items-center gap-2"
-                    >
-                      <Edit size={16} /> Edit Batch ({selectedProducts.length})
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {products.length === 0 ? (
-                <div className="text-center py-8 bg-black/30 rounded-lg border border-white/10">
-                  <p className="text-gray-400">Belum ada produk tersedia</p>
-                </div>
-              ) : (
-                <div className="grid gap-4">
-                  {products
-                    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-                    .map(p => (
-                      <div 
-                        key={p.id} 
-                        className={`bg-black/30 border rounded-lg p-4 transition ${
-                          selectedProducts.includes(p.id)
-                            ? 'border-[#D4AF37] bg-[#D4AF37]/10'
-                            : 'border-white/10 hover:border-[#D4AF37]/30'
-                        }`}
-                      >
-                        <div className="flex gap-4">
-                          {/* Checkbox */}
-                          <div className="flex items-start pt-1">
-                            <input
-                              type="checkbox"
-                              checked={selectedProducts.includes(p.id)}
-                              onChange={() => toggleProductSelection(p.id)}
-                              className="w-5 h-5 cursor-pointer"
-                            />
-                          </div>
-
-                          {/* Product Image */}
-                          {p.image_url && (
-                            <div className="w-24 h-24 flex-shrink-0">
-                              <img src={p.image_url} alt={p.name} className="w-full h-full object-cover rounded-lg" />
-                            </div>
-                          )}
-                          
-                          {/* Product Info */}
-                          <div className="flex-1">
-                            <p className="font-bold text-white text-lg mb-1">{p.name}</p>
-                            <p className="text-[#D4AF37] font-bold text-lg mb-2">{formatRupiah(p.price)}</p>
-                            <p className="text-xs text-gray-400">Kode: {p.product_code || 'N/A'}</p>
-                            {p.afiliasi_tiktok && (
-                              <p className="text-xs text-green-300 mt-1">
-                                🔗 TikTokShop Link: 
-                                <a href={p.afiliasi_tiktok} target="_blank" rel="noopener noreferrer" className="text-[#D4AF37] hover:underline ml-1">
-                                  Buka
-                                </a>
-                              </p>
-                            )}
-                          </div>
-                          
-                          {/* Action Buttons */}
-                          <div className="flex flex-col gap-2 h-fit">
-                            <button
-                              onClick={() => handleEditProductLink(p)}
-                              className="px-3 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded hover:bg-[#D4AF37]/40 transition"
-                            >
-                              <Edit size={14} className="inline mr-1" /> Edit Link
-                            </button>
-                            <button
-                              onClick={() => handleShareProduct(p)}
-                              className="px-3 py-2 bg-green-500/20 text-green-300 text-xs font-bold rounded hover:bg-green-500/40 transition"
-                            >
-                              <Share2 size={14} className="inline mr-1" /> Share
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
-              
-              {/* Edit TikTok Account Info */}
-              <div className="mt-6 bg-black/30 border border-[#D4AF37]/30 rounded-lg p-4">
-                <h4 className="font-bold text-[#D4AF37] mb-3">📱 Manajemen Akun TikTok</h4>
-                <p className="text-sm text-gray-400 mb-3">
-                  Perbarui akun TikTok Anda untuk hasil affiliate yang lebih baik.
-                </p>
-                <button
-                  onClick={() => handleEditAffiliator(user)}
-                  className="w-full px-4 py-2 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition"
-                >
-                  Edit Profil Mitra
-                </button>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'customers' && (
-            <div className="space-y-4">
-              <h3 className="font-bold text-[#D4AF37]">Pelanggan Terikat (90 hari)</h3>
-              {bindings.length === 0 ? (
-                <div className="text-center py-8 bg-black/30 rounded-lg border border-white/10">
-                  <p className="text-gray-400">Tidak ada pelanggan terikat</p>
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  {bindings.map(b => (
-                    <div key={b.id} className="bg-black/30 border border-white/10 rounded p-3 flex justify-between items-center">
-                      <div>
-                        <p className="font-bold text-white">{b.users?.nama}</p>
-                        <p className="text-sm text-gray-400">{b.users?.nomor_wa}</p>
-                      </div>
-                      <div className="text-right text-sm">
-                        <p className="text-[#D4AF37]">Berakhir: {new Date(b.end_date).toLocaleDateString('id-ID')}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {activeTab === 'withdrawals' && (
-            <div className="space-y-4">
-              <button
-                onClick={() => setShowWithdrawalForm(true)}
-                className="w-full px-4 py-2 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition flex items-center justify-center gap-2"
-              >
-                <Plus size={18} /> Buat Permintaan Penarikan
-              </button>
-
-              {withdrawals.length === 0 ? (
-                <div className="text-center py-8 bg-black/30 rounded-lg border border-white/10">
-                  <p className="text-gray-400">Belum ada riwayat penarikan</p>
-                </div>
-              ) : (
-                <div className="grid gap-2">
-                  {withdrawals.map(w => (
-                    <div key={w.id} className="bg-black/30 border border-white/10 rounded p-3">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <p className="font-bold text-[#D4AF37]">{formatRupiah(w.nominal)}</p>
-                          <p className="text-sm text-gray-400">{w.bank_name} - {w.account_name}</p>
-                        </div>
-                        <span className={`px-2 py-1 rounded text-xs font-bold ${
-                          w.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
-                          w.status === 'approved' ? 'bg-green-500/20 text-green-300' :
-                          'bg-red-500/20 text-red-300'
-                        }`}>
-                          {w.status.toUpperCase()}
-                        </span>
-                      </div>
-                      <p className="text-xs text-gray-500">{new Date(w.created_at).toLocaleDateString('id-ID')}</p>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Withdrawal Modal */}
-          {showWithdrawalForm && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
-              <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-md p-6 space-y-4">
-                <h2 className="text-2xl font-bold text-white">Buat Permintaan Penarikan</h2>
-
-                <div className="space-y-2">
-                  <label className="text-[#D4AF37] font-bold text-sm">Nominal (Rp)</label>
-                  <input
-                    type="number"
-                    value={withdrawalForm.nominal}
-                    onChange={(e) => setWithdrawalForm({ ...withdrawalForm, nominal: e.target.value })}
-                    className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                    placeholder="Minimal Rp50.000"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[#D4AF37] font-bold text-sm">Nama Bank</label>
-                  <input
-                    type="text"
-                    value={withdrawalForm.bank_name}
-                    onChange={(e) => setWithdrawalForm({ ...withdrawalForm, bank_name: e.target.value })}
-                    className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                    placeholder="Contoh: BRI"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[#D4AF37] font-bold text-sm">Atas Nama Rekening</label>
-                  <input
-                    type="text"
-                    value={withdrawalForm.account_name}
-                    onChange={(e) => setWithdrawalForm({ ...withdrawalForm, account_name: e.target.value })}
-                    className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                    placeholder="Nama di rekening"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-[#D4AF37] font-bold text-sm">Nomor Rekening</label>
-                  <input
-                    type="text"
-                    value={withdrawalForm.account_number}
-                    onChange={(e) => setWithdrawalForm({ ...withdrawalForm, account_number: e.target.value })}
-                    className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                    placeholder="1234567890"
-                  />
-                </div>
-
-                <div className="flex gap-2">
-                  <button
-                    onClick={handleRequestWithdrawal}
-                    disabled={loading}
-                    className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] disabled:opacity-50"
-                  >
-                    {loading ? 'Mengirim...' : 'Kirim Permintaan'}
-                  </button>
-                  <button
-                    onClick={() => setShowWithdrawalForm(false)}
-                    className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30"
-                  >
-                    Batal
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Edit Product Link Modal */}
-          {showEditProductLinkModal && editingProductForLink && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
-              <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-md p-6 space-y-4">
-                <h2 className="text-2xl font-bold text-white">Edit Link TikTok Affiliate</h2>
-                <p className="text-sm text-gray-400">{editingProductForLink.name}</p>
-
-                <div className="space-y-2">
-                  <label className="text-[#D4AF37] font-bold text-sm">Link TikTok Shop Affiliate <span className="text-red-400">*</span></label>
-                  <input
-                    type="url"
-                    placeholder="https://vt.tiktok.com/..."
-                    value={productLinkForm.tiktok_shop}
-                    onChange={(e) => setProductLinkForm({ ...productLinkForm, tiktok_shop: e.target.value })}
-                    className="w-full px-4 py-2 bg-black/40 border border-white/20 rounded text-white text-sm focus:border-[#D4AF37]"
-                  />
-                  <p className="text-xs text-gray-400 mt-1">
-                    Paste link TikTok Shop affiliate Anda di sini agar komisi tetap masuk ke akun Anda.
-                  </p>
-                </div>
-
-                {errorMsg && (
-                  <div className="p-2 bg-red-500/10 border border-red-500/30 rounded text-red-300 text-xs">
-                    {errorMsg}
-                  </div>
-                )}
-
-                <div className="flex gap-3">
-                  <button
-                    onClick={handleSaveProductLink}
-                    disabled={loading}
-                    className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition disabled:opacity-50"
-                  >
-                    {loading ? 'Menyimpan...' : '💾 Simpan Link'}
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowEditProductLinkModal(false);
-                      setProductLinkForm({ tiktok_shop: '' });
-                      setErrorMsg('');
-                    }}
-                    className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30"
-                  >
-                    Batal
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Share Product Modal */}
-          {showShareProductModal && sharingProduct && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
-              <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-md p-6 space-y-4">
-                <h2 className="text-2xl font-bold text-white">🔗 Share Produk</h2>
-                <p className="text-sm text-gray-400">{sharingProduct.name}</p>
-
-                {/* Affiliate Link */}
-                <div className="space-y-2 bg-black/30 border border-white/10 rounded-lg p-4">
-                  <label className="text-[#D4AF37] font-bold text-sm">Link Affiliasi Anda:</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={generateAffiliatorLink(sharingProduct)}
-                      className="flex-1 px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-xs"
-                    />
-                    <button
-                      onClick={() => copyLinkToClipboard(sharingProduct)}
-                      className="px-3 py-2 bg-[#D4AF37] text-black font-bold rounded hover:bg-[#F4D03F] transition"
-                      title="Salin ke clipboard"
-                    >
-                      <Copy size={16} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Share Methods */}
-                <div className="space-y-2 pt-2">
-                  <p className="text-sm text-gray-400 font-bold">Bagikan ke:</p>
-                  <button
-                    onClick={() => shareToWhatsApp(sharingProduct)}
-                    className="w-full px-4 py-3 bg-green-500/20 text-green-300 font-bold rounded-lg hover:bg-green-500/30 transition flex items-center justify-center gap-2"
-                  >
-                    💬 WhatsApp
-                  </button>
-                </div>
-
-                {/* Info */}
-                <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded text-blue-300 text-xs">
-                  <p>💡 <strong>Tips:</strong> Setiap orang yang klik link ini akan masuk sebagai customer Anda, dan Anda akan mendapat komisi dari pesanan mereka!</p>
-                </div>
-
-                {/* Close Button */}
-                <button
-                  onClick={() => {
-                    setShowShareProductModal(false);
-                    setSharingProduct(null);
-                  }}
-                  className="w-full px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30 transition"
-                >
-                  Tutup
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Bulk Edit TikTok Links Modal */}
-          {showBulkEditModal && (
-            <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 overflow-y-auto">
-              <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-2xl p-6 space-y-4 my-8">
-                <h2 className="text-2xl font-bold text-white">📝 Edit Batch - Link TikTok Affiliate</h2>
-                <p className="text-sm text-gray-400">Masukkan link TikTok Shop Affiliate untuk {selectedProducts.length} produk yang dipilih</p>
-
-                {/* Apply to All Section */}
-                <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 space-y-3">
-                  <label className="text-green-300 font-bold text-sm">🚀 Terapkan Link yang Sama ke Semua Produk</label>
-                  <div className="flex gap-2">
-                    <input
-                      type="url"
-                      placeholder="https://vt.tiktok.com/..."
-                      value={bulkLinkInput}
-                      onChange={(e) => setBulkLinkInput(e.target.value)}
-                      className="flex-1 px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm focus:border-green-500"
-                    />
-                    <button
-                      onClick={applyLinkToAll}
-                      disabled={!bulkLinkInput.trim()}
-                      className="px-4 py-2 bg-green-500 text-white font-bold rounded hover:bg-green-600 disabled:opacity-50 disabled:cursor-not-allowed transition"
-                    >
-                      Apply
-                    </button>
-                  </div>
-                </div>
-
-                {/* Product List with Link Inputs */}
-                <div>
-                  <label className="text-[#D4AF37] font-bold text-sm mb-3 block">⬇️ Edit Manual per Produk (opsional)</label>
-                  <div className="space-y-3 max-h-96 overflow-y-auto">
-                    {selectedProducts.map((productId) => {
-                      const product = products.find(p => p.id === productId);
-                      if (!product) return null;
-
-                      return (
-                        <div key={productId} className="bg-black/30 border border-white/10 rounded-lg p-3">
-                          <p className="text-white font-bold text-sm mb-2">{product.name}</p>
-                          <input
-                            type="url"
-                            placeholder="https://vt.tiktok.com/..."
-                            value={bulkEditForm[productId] || ''}
-                            onChange={(e) => setBulkEditForm({
-                              ...bulkEditForm,
-                              [productId]: e.target.value
-                            })}
-                            className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm focus:border-[#D4AF37]"
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex gap-3 pt-4">
-                  <button
-                    onClick={handleBulkEditSave}
-                    className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition"
-                  >
-                    ✅ Simpan {selectedProducts.length} Link
-                  </button>
-                  <button
-                    onClick={() => {
-                      setShowBulkEditModal(false);
-                      setBulkEditForm({});
-                      setBulkLinkInput('');
-                    }}
-                    className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30 transition"
-                  >
-                    Batal
-                  </button>
-                </div>
-
-                {/* Info */}
-                <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded text-blue-300 text-xs">
-                  <p>💡 <strong>Tips:</strong> Gunakan "Apply" untuk mengisi semua otomatis, atau edit manual untuk produk tertentu</p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
+      <AffiliatorDashboard
+        user={user}
+        onLogout={onLogout}
+        products={products}
+        bindings={bindings}
+        withdrawals={withdrawals}
+        summary={summary}
+        loading={loading}
+        successMsg={successMsg}
+        errorMsg={errorMsg}
+        setSuccessMsg={setSuccessMsg}
+        setErrorMsg={setErrorMsg}
+        // Withdrawal form
+        showWithdrawalForm={showWithdrawalForm}
+        setShowWithdrawalForm={setShowWithdrawalForm}
+        withdrawalForm={withdrawalForm}
+        setWithdrawalForm={setWithdrawalForm}
+        handleRequestWithdrawal={handleRequestWithdrawal}
+        // Product link
+        showEditProductLinkModal={showEditProductLinkModal}
+        editingProductForLink={editingProductForLink}
+        productLinkForm={productLinkForm}
+        setProductLinkForm={setProductLinkForm}
+        handleEditProductLink={handleEditProductLink}
+        handleSaveProductLink={handleSaveProductLink}
+        setShowEditProductLinkModal={setShowEditProductLinkModal}
+        // Share product
+        showShareProductModal={showShareProductModal}
+        sharingProduct={sharingProduct}
+        handleShareProduct={handleShareProduct}
+        setShowShareProductModal={setShowShareProductModal}
+        setSharingProduct={setSharingProduct}
+        generateAffiliatorLink={generateAffiliatorLink}
+        copyLinkToClipboard={copyLinkToClipboard}
+        shareToWhatsApp={shareToWhatsApp}
+        // Bulk edit
+        selectedProducts={selectedProducts}
+        toggleProductSelection={toggleProductSelection}
+        showBulkEditModal={showBulkEditModal}
+        setShowBulkEditModal={setShowBulkEditModal}
+        handleBulkEditOpen={handleBulkEditOpen}
+        bulkEditForm={bulkEditForm}
+        setBulkEditForm={setBulkEditForm}
+        bulkLinkInput={bulkLinkInput}
+        setBulkLinkInput={setBulkLinkInput}
+        applyLinkToAll={applyLinkToAll}
+        handleBulkEditSave={handleBulkEditSave}
+        // Edit affiliator
+        handleEditAffiliator={handleEditAffiliator}
+      />
     );
   }
 
@@ -2870,184 +1772,52 @@ export default function Dashboard({ user, onLogout }) {
         </div>
 
         {/* Orders Tab */}
-        {activeTab === 'orders' && renderAdminOrders()}
+        {activeTab === 'orders' && (
+          <AdminOrdersPanel
+            orders={orders}
+            loading={loading}
+            deletingOrderId={deletingOrderId}
+            editingResi={editingResi}
+            resiNumber={resiNumber}
+            couriername={couriername}
+            setEditingResi={setEditingResi}
+            setResiNumber={setResiNumber}
+            setCourierName={setCourierName}
+            setShowOfflineOrderForm={setShowOfflineOrderForm}
+            handleOpenShippingModal={handleOpenShippingModal}
+            handleConfirmPayment={handleConfirmPayment}
+            handleOpenPrintResiModal={handleOpenPrintResiModal}
+            handleInputResi={handleInputResi}
+            handleConfirmDelivery={handleConfirmDelivery}
+            handleDeleteOrder={handleDeleteOrder}
+          />
+        )}
 
         {/* Products Tab */}
         {activeTab === 'products' && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold text-white">Daftar Produk ({products.length})</h3>
-              {selectedAdminProducts.length > 0 && (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-gray-400">{selectedAdminProducts.length} dipilih</span>
-                  <button
-                    onClick={handleAdminBulkEditOpen}
-                    className="px-4 py-2 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition flex items-center gap-2"
-                  >
-                    <Edit size={16} /> Edit Batch ({selectedAdminProducts.length})
-                  </button>
-                </div>
-              )}
-            </div>
-            
-            {loading ? (
-              <p className="text-gray-400">Loading...</p>
-            ) : products.length === 0 ? (
-              <div className="text-center py-8 bg-black/30 rounded-lg border border-white/10">
-                <p className="text-gray-400">Belum ada produk</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-4">
-                {products
-                  .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
-                  .map(p => {
-                    const hasVariants = p.name && p.name.toLowerCase().includes('paket komplit');
-                    return (
-                      <div 
-                        key={p.id} 
-                        className={`bg-black/30 border rounded-lg p-4 transition flex gap-4 ${
-                          selectedAdminProducts.includes(p.id)
-                            ? 'border-[#D4AF37] bg-[#D4AF37]/10'
-                            : 'border-white/10 hover:border-[#D4AF37]/50'
-                        }`}
-                      >
-                        {/* Checkbox */}
-                        <div className="flex items-start pt-1">
-                          <input
-                            type="checkbox"
-                            checked={selectedAdminProducts.includes(p.id)}
-                            onChange={() => toggleAdminProductSelection(p.id)}
-                            className="w-5 h-5 cursor-pointer"
-                          />
-                        </div>
-
-                        {/* Left: Product Image (1:1 Square) */}
-                        {p.image_url && (
-                          <div className="w-32 h-32 flex-shrink-0">
-                            <img src={p.image_url} alt={p.name} className="w-full h-full object-cover rounded-lg" />
-                          </div>
-                        )}
-                        
-                        {/* Right: Product Info */}
-                        <div className="flex-1 space-y-2 flex flex-col justify-between">
-                          <div className="space-y-2">
-                            <p className="font-bold text-white line-clamp-2">{p.name}</p>
-                            
-                            {/* Harga & Kode (1 baris) */}
-                            <div className="flex items-center justify-between gap-2 text-xs">
-                              <p className="text-[#D4AF37] font-bold">{formatRupiah(p.price)}</p>
-                              <p className="text-gray-400">{p.product_code || 'N/A'}</p>
-                            </div>
-                            
-                            {/* Komisi & Urutan (1 baris) */}
-                            <div className="flex items-center justify-between gap-2">
-                              <p className="text-xs text-gray-400">{p.commission_rate}% komisi</p>
-                              <div className="flex items-center gap-1">
-                                <label className="text-xs text-[#D4AF37] font-bold">Pos:</label>
-                                <span className="w-12 px-2 py-1 bg-black/40 border border-white/20 rounded text-white text-xs text-center font-bold">
-                                  {p.sort_order || 0}
-                                </span>
-                                <button
-                                  onClick={() => {
-                                    setReorderingProduct(p);
-                                    setReorderDestination(String(p.sort_order || 0));
-                                    setShowReorderModal(true);
-                                  }}
-                                  className="px-2 py-1 bg-[#D4AF37]/30 text-[#D4AF37] text-xs font-bold rounded hover:bg-[#D4AF37]/50 transition"
-                                  title="Pindahkan ke posisi lain"
-                                >
-                                  ↕
-                                </button>
-                              </div>
-                            </div>
-                            
-                            {/* Variants Badge */}
-                            {hasVariants && (
-                              <div className="pt-1">
-                                <span className="inline-block px-2 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded">
-                                  + Varian Opsional
-                                </span>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Edit Button */}
-                          <button
-                            onClick={() => handleEditProduct(p)}
-                            className="px-3 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded hover:bg-[#D4AF37]/40 transition w-full"
-                          >
-                            <Edit size={14} className="inline mr-1" /> Edit
-                          </button>
-                        </div>
-                      </div>
-                    );
-                  })}
-              </div>
-            )}
-          </div>
+          <AdminProductsPanel
+            products={products}
+            loading={loading}
+            selectedAdminProducts={selectedAdminProducts}
+            toggleAdminProductSelection={toggleAdminProductSelection}
+            handleAdminBulkEditOpen={handleAdminBulkEditOpen}
+            handleEditProduct={handleEditProduct}
+            setReorderingProduct={setReorderingProduct}
+            setReorderDestination={setReorderDestination}
+            setShowReorderModal={setShowReorderModal}
+          />
         )}
 
         {/* Affiliators Tab */}
         {activeTab === 'affiliators' && (
-          <div className="space-y-4">
-            <h3 className="text-lg font-bold text-white">Daftar Mitra ({affiliators.length})</h3>
-            {loading ? (
-              <p className="text-gray-400">Loading...</p>
-            ) : (
-              <div className="grid gap-4">
-                {affiliators.map(a => (
-                  <div key={a.id} className="bg-black/30 border border-white/10 rounded-lg p-4">
-                    <div className="flex justify-between items-start mb-3">
-                      <div className="flex-1">
-                        <p className="font-bold text-white text-lg">{a.nama}</p>
-                        <p className="text-sm text-gray-400">{a.email}</p>
-                        <p className="text-sm text-gray-400">{a.nomor_wa}</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-[#D4AF37] font-bold text-lg">{formatRupiah(a.current_balance || 0)}</p>
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-bold ${
-                          a.status === 'active' ? 'bg-green-500/20 text-green-300' : 'bg-yellow-500/20 text-yellow-300'
-                        }`}>
-                          {a.status === 'active' ? '✅ AKTIF' : '⏳ PENDING'}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons */}
-                    <div className="flex gap-2">
-                      {a.status === 'pending' && (
-                        <button
-                          onClick={() => handleApproveAffiliator(a.id, a.nama)}
-                          className="flex-1 px-3 py-2 bg-green-500/20 text-green-300 text-xs font-bold rounded hover:bg-green-500/40 transition"
-                        >
-                          <Check size={14} className="inline mr-1" /> Setujui
-                        </button>
-                      )}
-                      <button
-                        onClick={() => handleEditAffiliator(a)}
-                        className="flex-1 px-3 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded hover:bg-[#D4AF37]/40 transition"
-                      >
-                        <Edit size={14} className="inline mr-1" /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteAffiliator(a.id, a.nama)}
-                        className="flex-1 px-3 py-2 bg-red-500/20 text-red-300 text-xs font-bold rounded hover:bg-red-500/40 transition"
-                      >
-                        <Trash size={14} className="inline mr-1" /> Hapus
-                      </button>
-                      <button
-                        onClick={() => handleResendAffiliatorNotification(a)}
-                        className="flex-1 px-3 py-2 bg-blue-500/20 text-blue-300 text-xs font-bold rounded hover:bg-blue-500/40 transition"
-                        disabled={loading}
-                      >
-                        <Send size={14} className="inline mr-1" /> Kirim Ulang Notifikasi
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
+          <AdminAffiliatorsPanel
+            affiliators={affiliators}
+            loading={loading}
+            handleApproveAffiliator={handleApproveAffiliator}
+            handleEditAffiliator={handleEditAffiliator}
+            handleDeleteAffiliator={handleDeleteAffiliator}
+            handleResendAffiliatorNotification={handleResendAffiliatorNotification}
+          />
         )}
 
         {/* MODAL: EDIT PRODUCT */}
@@ -3242,175 +2012,14 @@ export default function Dashboard({ user, onLogout }) {
         )}
 
         {/* MODAL: EDIT AFFILIATOR */}
-        {showEditAffiliatorModal && editingAffiliator && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
-            <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-2xl max-h-screen overflow-y-auto p-6 space-y-4">
-              <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-white">Edit Mitra</h2>
-                <button
-                  onClick={() => setShowEditAffiliatorModal(false)}
-                  className="text-gray-400 hover:text-white"
-                >
-                  <X size={24} />
-                </button>
-              </div>
-
-              {/* Form Fields */}
-              <div className="space-y-4">
-                {/* Nama */}
-                <div className="space-y-2">
-                  <label className="text-[#D4AF37] font-bold text-sm">Nama *</label>
-                  <input
-                    type="text"
-                    value={editAffiliatorForm.nama}
-                    onChange={(e) => setEditAffiliatorForm({ ...editAffiliatorForm, nama: e.target.value })}
-                    className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                    placeholder="Nama lengkap"
-                  />
-                </div>
-
-                {/* No HP & Email (2 cols) */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[#D4AF37] font-bold text-sm">No HP</label>
-                    <input
-                      type="text"
-                      value={editAffiliatorForm.nomor_wa}
-                      onChange={(e) => setEditAffiliatorForm({ ...editAffiliatorForm, nomor_wa: e.target.value })}
-                      className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                      placeholder="628xxxxxxxxxx"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[#D4AF37] font-bold text-sm">Email</label>
-                    <input
-                      type="email"
-                      value={editAffiliatorForm.email}
-                      onChange={(e) => setEditAffiliatorForm({ ...editAffiliatorForm, email: e.target.value })}
-                      className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                      placeholder="email@example.com"
-                    />
-                  </div>
-                </div>
-
-                {/* Status */}
-                <div className="space-y-2">
-                  <label className="text-[#D4AF37] font-bold text-sm">Status</label>
-                  <select
-                    value={editAffiliatorForm.status}
-                    onChange={(e) => setEditAffiliatorForm({ ...editAffiliatorForm, status: e.target.value })}
-                    className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                  >
-                    <option value="pending">Pending</option>
-                    <option value="active">Active</option>
-                    <option value="suspended">Suspended</option>
-                    <option value="rejected">Rejected</option>
-                  </select>
-                </div>
-
-                {/* Password Hash */}
-                <div className="space-y-2">
-                  <label className="text-[#D4AF37] font-bold text-sm">Password (biarkan kosong jika tidak diubah)</label>
-                  <input
-                    type="password"
-                    value={editAffiliatorForm.password_hash}
-                    onChange={(e) => setEditAffiliatorForm({ ...editAffiliatorForm, password_hash: e.target.value })}
-                    className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                    placeholder="Masukkan password baru"
-                  />
-                </div>
-
-                {/* TikTok Accounts */}
-                <div className="space-y-2">
-                  <label className="text-[#D4AF37] font-bold text-sm">Akun TikTok (pisahkan dengan koma)</label>
-                  <textarea
-                    value={editAffiliatorForm.akun_tiktok}
-                    onChange={(e) => setEditAffiliatorForm({ ...editAffiliatorForm, akun_tiktok: e.target.value })}
-                    className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white h-16"
-                    placeholder="@akun1, @akun2, @akun3"
-                  />
-                </div>
-
-                {/* Bank Details (2 cols) */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[#D4AF37] font-bold text-sm">Nama Bank</label>
-                    <input
-                      type="text"
-                      value={editAffiliatorForm.bank_name}
-                      onChange={(e) => setEditAffiliatorForm({ ...editAffiliatorForm, bank_name: e.target.value })}
-                      className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                      placeholder="BRI, BNI, Mandiri, etc"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[#D4AF37] font-bold text-sm">No Rekening</label>
-                    <input
-                      type="text"
-                      value={editAffiliatorForm.account_number}
-                      onChange={(e) => setEditAffiliatorForm({ ...editAffiliatorForm, account_number: e.target.value })}
-                      className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                      placeholder="1234567890"
-                    />
-                  </div>
-                </div>
-
-                {/* Saldo (Balance) */}
-                <div className="space-y-2">
-                  <label className="text-[#D4AF37] font-bold text-sm">Saldo Saat Ini (Rp)</label>
-                  <input
-                    type="number"
-                    value={editAffiliatorForm.current_balance}
-                    onChange={(e) => setEditAffiliatorForm({ ...editAffiliatorForm, current_balance: parseFloat(e.target.value) || 0 })}
-                    className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                    placeholder="0"
-                  />
-                </div>
-
-                {/* Total Commission & Total Withdrawn (2 cols) */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[#D4AF37] font-bold text-sm">Total Komisi (Rp)</label>
-                    <input
-                      type="number"
-                      value={editAffiliatorForm.total_commission}
-                      onChange={(e) => setEditAffiliatorForm({ ...editAffiliatorForm, total_commission: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                      placeholder="0"
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[#D4AF37] font-bold text-sm">Total Ditarik (Rp)</label>
-                    <input
-                      type="number"
-                      value={editAffiliatorForm.total_withdrawn}
-                      onChange={(e) => setEditAffiliatorForm({ ...editAffiliatorForm, total_withdrawn: parseFloat(e.target.value) || 0 })}
-                      className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                      placeholder="0"
-                    />
-                  </div>
-                </div>
-
-                {/* Buttons */}
-                <div className="flex gap-2 pt-4">
-                  <button
-                    onClick={handleSaveAffiliator}
-                    disabled={loading}
-                    className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition disabled:opacity-50"
-                  >
-                    {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
-                  </button>
-                  <button
-                    onClick={() => setShowEditAffiliatorModal(false)}
-                    className="flex-1 px-4 py-3 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30 transition"
-                  >
-                    Batal
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+        <EditAffiliatorModal
+          isOpen={showEditAffiliatorModal && !!editingAffiliator}
+          onClose={() => setShowEditAffiliatorModal(false)}
+          form={editAffiliatorForm}
+          setForm={setEditAffiliatorForm}
+          onSubmit={handleSaveAffiliator}
+          loading={loading}
+        />
 
         {/* MODAL: ADMIN BULK EDIT TikTok LINKS */}
         {showAdminBulkEditModal && (
@@ -3494,6 +2103,166 @@ export default function Dashboard({ user, onLogout }) {
             </div>
           </div>
         )}
+
+        {/* MODULAR MODALS */}
+        <AddCustomerModal
+          isOpen={showAddCustomerModal}
+          onClose={() => {
+            setShowAddCustomerModal(false);
+            setEditingCustomer(null);
+            setErrorMsg('');
+          }}
+          editingCustomer={editingCustomer}
+          form={newCustomerForm}
+          setForm={setNewCustomerForm}
+          onSubmit={handleAddNewCustomer}
+          onDelete={handleDeleteCustomer}
+          loading={loading}
+          errorMsg={errorMsg}
+        />
+
+        <ShippingModal
+          isOpen={showShippingModal && !!selectedOrder}
+          onClose={() => {
+            setShowShippingModal(false);
+            setBillOrder('');
+          }}
+          selectedOrder={selectedOrder}
+          setSelectedOrder={setSelectedOrder}
+          couriername={couriername}
+          setCourierName={setCourierName}
+          couriersWithBill={couriersWithBill}
+          billOrder={billOrder}
+          setBillOrder={setBillOrder}
+          shippingCost={shippingCost}
+          errorMsg={errorMsg}
+          loading={loading}
+          onConfirm={handleConfirmShipping}
+          formatRupiah={formatRupiah}
+        />
+
+        {/* Print Resi Modal */}
+        {showPrintResiModal && selectedOrderForPrintResi && (
+          <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
+            <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-md p-6 space-y-4">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-[#D4AF37]">
+                  {(selectedOrderForPrintResi.status === 'SHIPPED' || selectedOrderForPrintResi.status === 'shipped') 
+                    ? 'Print Resi Ulang' 
+                    : 'Print Resi'}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowPrintResiModal(false);
+                    setSelectedOrderForPrintResi(null);
+                    setExpeditionRequestCode('');
+                  }}
+                  className="p-2 hover:bg-white/10 rounded text-gray-300"
+                >
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Reprint Notice */}
+              {(selectedOrderForPrintResi.status === 'SHIPPED' || selectedOrderForPrintResi.status === 'shipped') && (
+                <div className="p-3 bg-purple-500/20 border border-purple-500/30 rounded-lg text-purple-300 text-sm">
+                  <Printer size={16} className="inline mr-2" />
+                  Print ulang resi - masukkan kode rikues baru jika berbeda
+                </div>
+              )}
+
+              {/* Order Info */}
+              <div className="bg-black/30 border border-white/10 rounded-lg p-3 space-y-1">
+                <p className="font-bold text-white">{selectedOrderForPrintResi.order_number}</p>
+                <p className="text-sm text-gray-400">
+                  {selectedOrderForPrintResi.users?.nama || selectedOrderForPrintResi.nama_pembeli}
+                </p>
+                <p className="text-xs text-gray-500">{selectedOrderForPrintResi.alamat}</p>
+                <p className="text-sm text-[#D4AF37] font-bold">
+                  Expedisi: {selectedOrderForPrintResi.resi || selectedOrderForPrintResi.courier_name || 'Belum dipilih'}
+                </p>
+              </div>
+
+              {/* Kode Request Input */}
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-[#D4AF37]">
+                  Kode Request Expedisi <span className="text-red-400">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="Masukkan kode rikues dari expedisi..."
+                  value={expeditionRequestCode}
+                  onChange={(e) => setExpeditionRequestCode(e.target.value)}
+                  className="w-full px-4 py-3 bg-black/40 border border-white/20 rounded-lg text-white"
+                />
+                <p className="text-xs text-gray-400">
+                  Nomor tiket/kode rikues yang didapat dari sistem expedisi saat booking
+                </p>
+              </div>
+
+              {/* Error Message */}
+              {errorMsg && (
+                <div className="p-3 bg-red-500/20 border border-red-500/30 rounded text-red-300 text-sm">
+                  {errorMsg}
+                </div>
+              )}
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleSubmitPrintResi}
+                  disabled={loading}
+                  className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition disabled:opacity-50"
+                >
+                  {loading ? 'Menyimpan...' : '✓ Simpan & Kirim'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowPrintResiModal(false);
+                    setSelectedOrderForPrintResi(null);
+                    setExpeditionRequestCode('');
+                  }}
+                  className="px-4 py-3 bg-gray-500/20 text-gray-300 font-bold rounded-lg hover:bg-gray-500/30 transition"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <ResiNotificationModal
+          isOpen={showResiNotificationModal && !!selectedOrderForResiNotif}
+          onClose={() => {
+            setShowResiNotificationModal(false);
+            setResiNotifNumber('');
+            setErrorMsg('');
+          }}
+          selectedOrder={selectedOrderForResiNotif}
+          resiNumber={resiNotifNumber}
+          setResiNumber={setResiNotifNumber}
+          errorMsg={errorMsg}
+          loading={loading}
+          onSend={handleSendResiNotification}
+        />
+
+        <OfflineOrderForm
+          isOpen={showOfflineOrderForm && isAdmin}
+          onClose={() => setShowOfflineOrderForm(false)}
+          offlineOrder={offlineOrder}
+          setOfflineOrder={setOfflineOrder}
+          products={products}
+          customers={customers}
+          loading={loading}
+          onSubmit={handleSubmitOfflineOrder}
+          onAddCustomer={() => {
+            setEditingCustomer(null);
+            setNewCustomerForm({ nama: '', nomor_wa: '', alamat: '' });
+            setShowAddCustomerModal(true);
+          }}
+          onEditCustomer={handleEditCustomer}
+          formatRupiah={formatRupiah}
+        />
       </div>
     </div>
   );
