@@ -149,9 +149,9 @@ export const validateAlamat = (alamat) => {
     return 'Alamat maksimal 500 karakter';
   }
 
-  // Allow letters, numbers, spaces, and common address chars
-  if (!/^[a-zA-Z0-9\s\-.,#no\/\\()ąćęłńóśźżА-Яа-я]+$/.test(alamat)) {
-    return 'Alamat mengandung karakter yang tidak diizinkan';
+// Validasi karakter yang diizinkan setelah dibersihkan
+  if (!/^[a-zA-Z0-9\s\-.,#no\/\\()]+$/.test(cleanedAlamat)) {
+    return 'Alamat masih mengandung karakter yang tidak diizinkan';
   }
 
   return null;
