@@ -1,6 +1,6 @@
 # 🏗️ TOKONEMBAHMO BLUEPRINT
 ## Complete System Documentation & Data Wiring
-**Version:** 2.0.0  
+**Version:** 2.1.0  
 **Last Updated:** February 17, 2026  
 **Tech Stack:** React 19 + Vite 7 + Supabase + Tailwind CSS
 
@@ -19,7 +19,8 @@
 10. [API & External Services](#api--external-services)
 11. [Key Features](#key-features)
 12. [Environment Variables](#environment-variables)
-13. [Troubleshooting Guide](#troubleshooting-guide)
+13. [Deployment](#deployment)
+14. [Troubleshooting Guide](#troubleshooting-guide)
 
 ---
 
@@ -710,7 +711,66 @@ VITE_GA_ID=
 
 ---
 
-## 🔍 TROUBLESHOOTING GUIDE
+## � DEPLOYMENT
+
+### Hosting: Cloudflare Pages
+
+**Production URL:** https://moimutapiliet.pages.dev
+
+### Auto-Deploy Flow
+```
+┌─────────────┐     git push     ┌─────────────┐     auto-build     ┌─────────────┐
+│   VS Code   │ ───────────────→ │   GitHub    │ ─────────────────→ │ Cloudflare  │
+│   (local)   │                  │    main     │                    │   Pages     │
+└─────────────┘                  └─────────────┘                    └─────────────┘
+```
+
+### GitHub Repository
+| Setting | Value |
+|---------|-------|
+| Repository | `sobatmbahmo/moimutapiliet` |
+| Branch | `main` |
+| Visibility | Public |
+
+### Cloudflare Pages Configuration
+| Setting | Value |
+|---------|-------|
+| Project Name | `moimutapiliet` |
+| Framework | Vite |
+| Build Command | `npm run build` |
+| Build Output | `dist` |
+| Root Directory | `/` |
+
+### Environment Variables (Cloudflare Dashboard)
+```
+VITE_SUPABASE_URL=https://enwngiuiqcnbonhinctl.supabase.co
+VITE_SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+VITE_FONNTE_TOKEN=rUanTDbsyiRTN9nqTp6v
+```
+
+### Deploy Commands (Manual)
+```bash
+# Build locally
+npm run build
+
+# Push to GitHub (triggers auto-deploy)
+git add -A
+git commit -m "your message"
+git push
+```
+
+### SPA Routing
+Cloudflare Pages automatically handles SPA routing. No additional `_redirects` file needed when using the default configuration.
+
+### Custom Domain (Future)
+When you have a custom domain:
+1. Add domain in Cloudflare Pages → Custom domains
+2. Cloudflare auto-provisions SSL
+3. No code changes needed (base path already `/`)
+
+---
+
+## �🔍 TROUBLESHOOTING GUIDE
 
 ### Common Issues
 
@@ -815,6 +875,7 @@ const formatRupiah = (number) => {
 | 1.0.0 | Feb 12, 2026 | Initial release |
 | 1.5.0 | Feb 14, 2026 | Dashboard modularization |
 | 2.0.0 | Feb 17, 2026 | WA parser + Address API |
+| 2.1.0 | Feb 17, 2026 | Cloudflare Pages deployment |
 
 ---
 
