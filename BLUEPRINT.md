@@ -697,11 +697,11 @@ GET /villages/{district_id}.json
 
 ```env
 # Supabase Configuration
-VITE_SUPABASE_URL=https://enwngiuiqcnbonhinctl.supabase.co
-VITE_SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+VITE_SUPABASE_URL=https://[YOUR_PROJECT_REF].supabase.co
+VITE_SUPABASE_KEY=[YOUR_ANON_KEY]
 
 # Fonnte WhatsApp API
-VITE_FONNTE_TOKEN=your_fonnte_token_here
+VITE_FONNTE_TOKEN=[YOUR_FONNTE_TOKEN]
 
 # Optional: Analytics, etc.
 VITE_GA_ID=
@@ -743,9 +743,9 @@ VITE_GA_ID=
 
 ### Environment Variables (Cloudflare Dashboard)
 ```
-VITE_SUPABASE_URL=https://enwngiuiqcnbonhinctl.supabase.co
-VITE_SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-VITE_FONNTE_TOKEN=rUanTDbsyiRTN9nqTp6v
+VITE_SUPABASE_URL=https://[YOUR_PROJECT_REF].supabase.co
+VITE_SUPABASE_KEY=[YOUR_ANON_KEY]
+VITE_FONNTE_TOKEN=[YOUR_FONNTE_TOKEN]
 ```
 
 ### Deploy Commands (Manual)

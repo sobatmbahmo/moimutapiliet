@@ -17,6 +17,11 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Migration scripts with credentials
+migrate-*.js
+DEPLOYMENT_GUIDE.md
+*BLUEPRINT*.txt
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
