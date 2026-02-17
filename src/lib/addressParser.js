@@ -4,7 +4,6 @@
  */
 
 // Common field variations for parsing
-// Separator is now optional - can be : - = or just space
 const FIELD_PATTERNS = {
   nama: /^(?:nama(?:\s*penerima)?|name|penerima)\s*[:\-=]?\s*(.+)/i,
   phone: /^(?:no\.?\s*(?:hp|wa|telp|telepon|handphone)|hp|wa|whatsapp|phone|nomor[\s_]?(?:wa|hp|telepon)?)\s*[:\-=]?\s*([\d\s\-+]+)/i,
@@ -29,7 +28,7 @@ const SECTION_VALUE_HEADERS = {
 // Lines to completely skip
 const SKIP_PATTERNS = [
   /^[📦📋🛒].*(DETAIL PESANAN|RINGKASAN)/i,
-  /^\d+\.\s+[A-Z]+.*\(.*\)/i, // Order items like "1. PAKET KOMPLIT - GGSA (1x)"
+  /^\d+\.\s+[A-Z]+.*\(.*\)/i, 
   /^\(Kode:/i,
   /^Subtotal/i,
   /^Ongkos Kirim/i,
@@ -39,40 +38,38 @@ const SKIP_PATTERNS = [
 ];
 
 /**
+ * 💡 FUNGSI TAMBAHAN: Sanitasi Karakter
+ * Menghapus emoji dan karakter aneh yang tidak diizinkan API/Database
+ */
+function sanitizeString(str) {
+  if (!str) return '';
+  // Hanya izinkan Huruf, Angka, Spasi, Titik, Koma, Strip, dan Garis Miring
+  return str.replace(/[^\w\s.,\-\/]/gi, '').trim();
+}
+
+/**
  * Clean phone number to standard format
- * @param {string} phone 
- * @returns {string}
  */
 function cleanPhoneNumber(phone) {
   if (!phone) return '';
-  
-  // Remove all non-digits
   let cleaned = phone.replace(/\D/g, '');
-  
-  // Handle Indonesian formats
   if (cleaned.startsWith('0')) {
     cleaned = '62' + cleaned.substring(1);
   } else if (!cleaned.startsWith('62') && cleaned.length >= 9) {
     cleaned = '62' + cleaned;
   }
-  
   return cleaned;
 }
 
 /**
  * Clean line from emojis and extra whitespace
- * @param {string} line 
- * @returns {string}
  */
 function cleanLine(line) {
-  // Remove emojis and special characters at start
   return line.replace(/^[^\w\s]*/, '').trim();
 }
 
 /**
  * Parse raw WA message text into structured data
- * @param {string} text - Raw message text
- * @returns {Object} Parsed data object
  */
 export function parseWAMessage(text) {
   if (!text || typeof text !== 'string') {
@@ -92,18 +89,16 @@ export function parseWAMessage(text) {
     raw_text: text
   };
 
-  // Split by lines and process each
   const lines = text.split('\n').map(line => line.trim()).filter(line => line);
   
   let currentField = null;
   let multiLineCollector = '';
   let inAlamatSection = false;
-  let nextLineIsValue = null; // Track if next line should be captured as a specific field
+  let nextLineIsValue = null;
 
   for (let i = 0; i < lines.length; i++) {
     let line = lines[i];
     
-    // Check for section headers that indicate NEXT LINE is the value
     const cleanedForSection = cleanLine(line);
     if (SECTION_VALUE_HEADERS.alamat.test(cleanedForSection)) {
       nextLineIsValue = 'alamat';
@@ -115,41 +110,31 @@ export function parseWAMessage(text) {
       continue;
     }
     
-    // Skip section headers with emojis
     if (SECTION_HEADERS.test(line)) {
-      // Check if entering ALAMAT section
-      if (/ALAMAT/i.test(line)) {
-        inAlamatSection = true;
-      } else {
-        inAlamatSection = false;
-      }
+      inAlamatSection = /ALAMAT/i.test(line);
       continue;
     }
     
-    // Skip irrelevant lines (order items, totals, etc.)
     if (SKIP_PATTERNS.some(p => p.test(line))) {
       continue;
     }
     
-    // Clean line from emojis
     line = cleanLine(line);
     if (!line) continue;
     
-    // Handle if this line is supposed to be a value from section header
     if (nextLineIsValue === 'alamat' && line) {
-      result.alamat_jalan = line;
+      result.alamat_jalan = sanitizeString(line); // 💡 Sanitasi
       nextLineIsValue = null;
       continue;
     }
     if (nextLineIsValue === 'metode' && line) {
-      // Clean metode - extract just the type
       const metodeLower = line.toLowerCase();
       if (metodeLower.includes('transfer')) {
         result.metode_bayar = 'transfer';
       } else if (metodeLower.includes('cod') || metodeLower.includes('bayar di tempat')) {
         result.metode_bayar = 'cod';
       } else {
-        result.metode_bayar = line;
+        result.metode_bayar = sanitizeString(line); // 💡 Sanitasi
       }
       nextLineIsValue = null;
       continue;
@@ -157,25 +142,22 @@ export function parseWAMessage(text) {
     
     let matched = false;
 
-    // If we're in alamat section and line doesn't match any field, it's the address
     if (inAlamatSection && !FIELD_PATTERNS.nama.test(line) && !FIELD_PATTERNS.phone.test(line)) {
       if (!result.alamat_jalan) {
-        result.alamat_jalan = line;
+        result.alamat_jalan = sanitizeString(line); // 💡 Sanitasi
         matched = true;
       }
     }
 
-    // Try to match each field pattern
     for (const [field, pattern] of Object.entries(FIELD_PATTERNS)) {
       const match = line.match(pattern);
       if (match) {
-        // Save previous multi-line field if any
         if (currentField === 'alamat' && multiLineCollector) {
-          result.alamat_jalan = multiLineCollector.trim();
+          result.alamat_jalan = sanitizeString(multiLineCollector); // 💡 Sanitasi
           multiLineCollector = '';
         }
         
-        const value = match[1].trim();
+        const value = sanitizeString(match[1]); // 💡 Sanitasi setiap hasil match
         
         switch (field) {
           case 'nama':
@@ -191,9 +173,8 @@ export function parseWAMessage(text) {
           case 'kecamatan':
             result.kecamatan = value;
             currentField = null;
-            // Save alamat if we transition to kecamatan
             if (multiLineCollector) {
-              result.alamat_jalan = multiLineCollector.trim();
+              result.alamat_jalan = sanitizeString(multiLineCollector); // 💡 Sanitasi
               multiLineCollector = '';
             }
             break;
@@ -201,7 +182,7 @@ export function parseWAMessage(text) {
             result.kelurahan = value;
             currentField = null;
             if (multiLineCollector) {
-              result.alamat_jalan = multiLineCollector.trim();
+              result.alamat_jalan = sanitizeString(multiLineCollector); // 💡 Sanitasi
               multiLineCollector = '';
             }
             break;
@@ -227,19 +208,16 @@ export function parseWAMessage(text) {
       }
     }
 
-    // If not matched and we're collecting alamat, append
     if (!matched && currentField === 'alamat') {
       multiLineCollector += ' ' + line;
     }
   }
 
-  // Final save of multi-line alamat
   if (currentField === 'alamat' && multiLineCollector) {
-    result.alamat_jalan = multiLineCollector.trim();
+    result.alamat_jalan = sanitizeString(multiLineCollector); // 💡 Sanitasi
   }
 
-  // Try to extract KABUPATEN/KOTA and PROVINSI from inline address
-  // Format: "alamat, KECAMATAN, KABUPATEN XXX, PROVINSI"
+  // --- Logic for inline address parsing ---
   if (result.alamat_jalan && !result.kabupaten) {
     const inlineMatch = result.alamat_jalan.match(/,\s*(KABUPATEN|KAB\.?|KOTA)\s+([^,]+),\s*([A-Z\s]+)$/i);
     if (inlineMatch) {
@@ -247,33 +225,19 @@ export function parseWAMessage(text) {
       const kabName = inlineMatch[2].trim();
       const provName = inlineMatch[3].trim();
       
-      // Extract kabupaten
-      result.kabupaten = (kabType.startsWith('KAB') ? 'KABUPATEN ' : 'KOTA ') + kabName.toUpperCase();
-      result.provinsi = provName.toUpperCase();
+      result.kabupaten = sanitizeString((kabType.startsWith('KAB') ? 'KABUPATEN ' : 'KOTA ') + kabName.toUpperCase());
+      result.provinsi = sanitizeString(provName.toUpperCase());
       
-      // Clean alamat - remove kabupaten and provinsi from it
-      result.alamat_jalan = result.alamat_jalan.replace(/,\s*(KABUPATEN|KAB\.?|KOTA)\s+[^,]+,\s*[A-Z\s]+$/i, '').trim();
+      result.alamat_jalan = sanitizeString(result.alamat_jalan.replace(/,\s*(KABUPATEN|KAB\.?|KOTA)\s+[^,]+,\s*[A-Z\s]+$/i, '').trim());
       
-      // Try to extract kecamatan from remaining address
       const kecMatch = result.alamat_jalan.match(/,\s*([^,]+)$/);
       if (kecMatch) {
         const potentialKec = kecMatch[1].trim();
-        // If it looks like a kecamatan name (ALL CAPS or proper case, not too long)
         if (potentialKec.length < 50 && /^[A-Z\s]+$/i.test(potentialKec)) {
-          result.kecamatan = potentialKec;
-          result.alamat_jalan = result.alamat_jalan.replace(/,\s*[^,]+$/, '').trim();
+          result.kecamatan = sanitizeString(potentialKec);
+          result.alamat_jalan = sanitizeString(result.alamat_jalan.replace(/,\s*[^,]+$/, '').trim());
         }
       }
-    }
-  }
-
-  // Handle metode_bayar: clean "Transfer Bank - xxx" to just "transfer"
-  if (result.metode_bayar) {
-    const metodeLower = result.metode_bayar.toLowerCase();
-    if (metodeLower.includes('transfer')) {
-      result.metode_bayar = 'transfer';
-    } else if (metodeLower.includes('cod') || metodeLower.includes('bayar di tempat')) {
-      result.metode_bayar = 'cod';
     }
   }
 
@@ -282,81 +246,50 @@ export function parseWAMessage(text) {
 
 /**
  * Format parsed address into single line for database
- * @param {Object} parsed - Parsed address object
- * @returns {string} Formatted address
  */
 export function formatAddressString(parsed) {
   if (!parsed) return '';
 
   const parts = [];
   
-  // Street address
   if (parsed.alamat_jalan) {
-    parts.push(parsed.alamat_jalan);
+    parts.push(sanitizeString(parsed.alamat_jalan)); // 💡 Sanitasi
   }
   
-  // Kelurahan
   if (parsed.kelurahan) {
-    parts.push(`Kel. ${parsed.kelurahan}`);
+    parts.push(`Kel. ${sanitizeString(parsed.kelurahan)}`); // 💡 Sanitasi
   }
   
-  // Kecamatan
   if (parsed.kecamatan) {
-    parts.push(`Kec. ${parsed.kecamatan}`);
+    parts.push(`Kec. ${sanitizeString(parsed.kecamatan)}`); // 💡 Sanitasi
   }
   
-  // Kabupaten/Kota
   if (parsed.kabupaten) {
-    // Normalize kota/kabupaten prefix
-    let kab = parsed.kabupaten;
-    if (!/^(kota|kabupaten|kab\.?)\s+/i.test(kab)) {
-      // Try to detect if it's a city or regency
-      kab = kab.toUpperCase();
-    } else {
-      kab = kab.toUpperCase();
-    }
-    parts.push(kab);
+    parts.push(sanitizeString(parsed.kabupaten.toUpperCase())); // 💡 Sanitasi
   }
   
-  // Provinsi
   if (parsed.provinsi) {
-    parts.push(parsed.provinsi.toUpperCase());
+    parts.push(sanitizeString(parsed.provinsi.toUpperCase())); // 💡 Sanitasi
   }
   
-  // Kode Pos
   if (parsed.kode_pos) {
-    parts.push(parsed.kode_pos);
+    parts.push(parsed.kode_pos.replace(/\D/g, ''));
   }
 
   return parts.join(', ');
 }
 
-/**
- * Detect payment method from text
- * @param {string} text 
- * @returns {string} 'transfer' or 'cod'
- */
 export function detectPaymentMethod(text) {
   if (!text) return 'transfer';
-  
   const lower = text.toLowerCase();
-  
   if (lower.includes('cod') || lower.includes('bayar di tempat') || lower.includes('cash on delivery')) {
     return 'cod';
   }
-  
   return 'transfer';
 }
 
-/**
- * Normalize RT/RW format
- * @param {string} text 
- * @returns {string}
- */
 export function normalizeRTRW(text) {
   if (!text) return text;
-  
-  // Normalize various RT/RW formats
   return text
     .replace(/rt\s*(\d+)\s*[\/\\]\s*rw?\s*(\d+)/gi, 'RT $1/RW $2')
     .replace(/rt\s*[:\s]+(\d+)\s+rw?\s*[:\s]+(\d+)/gi, 'RT $1/RW $2')
