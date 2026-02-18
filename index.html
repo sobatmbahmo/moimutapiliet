@@ -8,86 +8,6 @@
     <meta name="theme-color" content="#D4AF37" />
     <title>TOKONEMBAHMO - Toko Makanan Ringan</title>
 
-    <!-- Deteksi in-app browser (TikTok/IG/FB) → tampilkan overlay instruksi -->
-    <script type="text/javascript">
-      (function() {
-        var ua = navigator.userAgent || navigator.vendor || '';
-        var isInApp = /FBAN|FBAV|Instagram|Line\/|TikTok|Snapchat|BytedanceWebview|musical_ly/i.test(ua);
-        
-        if (isInApp) {
-          // Coba redirect otomatis dulu (kadang berhasil)
-          var url = window.location.href;
-          var isAndroid = /Android/i.test(ua);
-          var isTikTok = /TikTok|BytedanceWebview|musical_ly/i.test(ua);
-
-          if (isAndroid && !isTikTok) {
-            // Non-TikTok Android: intent masih bisa jalan
-            var intentUrl = 'intent://' + url.replace(/https?:\/\//, '') 
-              + '#Intent;scheme=https;package=com.android.chrome;end';
-            window.location.href = intentUrl;
-            return;
-          }
-
-          // Untuk TikTok & iOS: tampilkan overlay instruksi
-          document.addEventListener('DOMContentLoaded', function() {
-            var overlay = document.createElement('div');
-            overlay.id = 'inapp-overlay';
-            overlay.innerHTML = ''
-              + '<div style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;">'
-              + '<div style="background:linear-gradient(to bottom,#042f2e,#022c22);border:1px solid rgba(212,175,55,0.4);border-radius:16px;max-width:380px;width:100%;padding:28px 24px;text-align:center;font-family:system-ui,sans-serif;">'
-              
-              // Icon
-              + '<div style="width:56px;height:56px;background:rgba(212,175,55,0.15);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">'
-              + '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
-              + '</div>'
-
-              // Title
-              + '<h2 style="color:#fff;font-size:18px;font-weight:700;margin:0 0 8px;">Buka di Browser</h2>'
-              + '<p style="color:#9ca3af;font-size:13px;line-height:1.5;margin:0 0 20px;">'
-              + 'Untuk pengalaman terbaik & bisa install aplikasi, buka website ini di <b style="color:#D4AF37;">Chrome</b> atau browser HP Anda.'
-              + '</p>'
-
-              // Steps
-              + '<div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;text-align:left;margin-bottom:16px;">'
-              
-              + (isTikTok 
-                ? // TikTok instructions
-                  '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">'
-                  + '<div style="min-width:24px;height:24px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">1</div>'
-                  + '<p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Ketuk ikon <b style="color:#fff;">⋯</b> (titik tiga) di pojok kanan bawah</p>'
-                  + '</div>'
-                  + '<div style="display:flex;align-items:flex-start;gap:10px;">'
-                  + '<div style="min-width:24px;height:24px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">2</div>'
-                  + '<p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Pilih <b style="color:#fff;">"Buka di browser"</b> atau <b style="color:#fff;">"Open in browser"</b></p>'
-                  + '</div>'
-                : // Instagram/Facebook/other instructions
-                  '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">'
-                  + '<div style="min-width:24px;height:24px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">1</div>'
-                  + '<p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Ketuk ikon <b style="color:#fff;">⋮</b> atau <b style="color:#fff;">⋯</b> di pojok kanan atas/bawah</p>'
-                  + '</div>'
-                  + '<div style="display:flex;align-items:flex-start;gap:10px;">'
-                  + '<div style="min-width:24px;height:24px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">2</div>'
-                  + '<p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Pilih <b style="color:#fff;">"Buka di browser"</b> atau <b style="color:#fff;">"Open in browser"</b></p>'
-                  + '</div>'
-              )
-              
-              + '</div>'
-
-              // Copy link button
-              + '<button onclick="navigator.clipboard.writeText(window.location.href).then(function(){document.getElementById(\'copy-feedback\').style.display=\'block\';setTimeout(function(){document.getElementById(\'copy-feedback\').style.display=\'none\'},2000)})" style="width:100%;padding:12px;background:#D4AF37;color:#000;font-weight:700;font-size:14px;border:none;border-radius:10px;cursor:pointer;margin-bottom:8px;">📋 Salin Link & Buka di Chrome</button>'
-              + '<p id="copy-feedback" style="display:none;color:#4ade80;font-size:12px;margin:4px 0 0;">✓ Link tersalin! Buka Chrome lalu paste di address bar</p>'
-
-              // Skip option
-              + '<button onclick="document.getElementById(\'inapp-overlay\').remove()" style="width:100%;padding:10px;background:transparent;color:#6b7280;font-size:13px;border:none;cursor:pointer;margin-top:4px;">Lanjut di sini saja →</button>'
-
-              + '</div>'
-              + '</div>';
-            document.body.appendChild(overlay);
-          });
-        }
-      })();
-    </script>
-
     <!-- SPA redirect for GitHub Pages -->
     <script type="text/javascript">
       (function(l) {
@@ -103,7 +23,125 @@
     </script>
   </head>
   <body>
+    <!-- In-app browser overlay (hidden by default, shown via JS) -->
+    <div id="inapp-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.95);z-index:99999;align-items:center;justify-content:center;padding:20px;font-family:system-ui,-apple-system,sans-serif;">
+      <div style="background:linear-gradient(to bottom,#042f2e,#022c22);border:1px solid rgba(212,175,55,0.4);border-radius:16px;max-width:380px;width:100%;padding:28px 24px;text-align:center;">
+        
+        <!-- Icon -->
+        <div style="width:56px;height:56px;background:rgba(212,175,55,0.15);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        </div>
+
+        <!-- Title -->
+        <h2 style="color:#fff;font-size:18px;font-weight:700;margin:0 0 8px;">Buka di Browser</h2>
+        <p style="color:#9ca3af;font-size:13px;line-height:1.5;margin:0 0 20px;">
+          Untuk pengalaman terbaik, buka website ini di <b style="color:#D4AF37;">Chrome</b> atau browser HP Anda.
+        </p>
+
+        <!-- Steps -->
+        <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;text-align:left;margin-bottom:16px;">
+          <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:14px;">
+            <div style="min-width:26px;height:26px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">1</div>
+            <p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Ketuk ikon <b style="color:#fff;font-size:16px;">⋯</b> atau <b style="color:#fff;font-size:16px;">⋮</b> di pojok kanan atas atau bawah layar</p>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px;">
+            <div style="min-width:26px;height:26px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">2</div>
+            <p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Pilih <b style="color:#fff;">"Buka di browser"</b> atau <b style="color:#fff;">"Open in browser"</b></p>
+          </div>
+        </div>
+
+        <!-- Copy link button -->
+        <button id="copy-btn" style="width:100%;padding:13px;background:#D4AF37;color:#000;font-weight:700;font-size:14px;border:none;border-radius:10px;cursor:pointer;margin-bottom:8px;">
+          📋 Salin Link
+        </button>
+        <p id="copy-feedback" style="display:none;color:#4ade80;font-size:12px;margin:4px 0 8px;">✅ Link tersalin! Buka Chrome, paste di address bar</p>
+
+        <!-- Skip -->
+        <button id="skip-btn" style="width:100%;padding:10px;background:transparent;color:#6b7280;font-size:13px;border:none;cursor:pointer;margin-top:4px;">
+          Lanjut di sini saja →
+        </button>
+      </div>
+    </div>
+
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
+
+    <!-- In-app browser detection (runs after body is parsed) -->
+    <script>
+      (function() {
+        var ua = navigator.userAgent || navigator.vendor || window.opera || '';
+        
+        // Extensive in-app browser detection
+        var inAppPatterns = [
+          'FBAN', 'FBAV', 'FB_IAB', 'FBIOS', 'FBSS',    // Facebook
+          'Instagram',                                      // Instagram
+          'TikTok', 'BytedanceWebview', 'musical_ly',       // TikTok
+          'ByteLocale', 'aweme',                            // TikTok China
+          'Line/',                                          // Line
+          'Snapchat',                                       // Snapchat
+          'Twitter', 'TwitterAndroid',                      // Twitter/X
+          'MicroMessenger',                                 // WeChat
+          'KAKAOTALK',                                      // KakaoTalk
+          'Telegram',                                       // Telegram
+          'Pinterest',                                      // Pinterest
+        ];
+        
+        var isInApp = false;
+        for (var i = 0; i < inAppPatterns.length; i++) {
+          if (ua.indexOf(inAppPatterns[i]) > -1) {
+            isInApp = true;
+            break;
+          }
+        }
+
+        // Extra check: many in-app browsers add 'wv' (WebView) to UA
+        if (!isInApp && /; wv\)/i.test(ua)) {
+          isInApp = true;
+        }
+
+        if (isInApp) {
+          var overlay = document.getElementById('inapp-overlay');
+          if (overlay) {
+            overlay.style.display = 'flex';
+
+            // Copy button
+            var copyBtn = document.getElementById('copy-btn');
+            if (copyBtn) {
+              copyBtn.addEventListener('click', function() {
+                var url = window.location.href;
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                  navigator.clipboard.writeText(url).then(function() {
+                    document.getElementById('copy-feedback').style.display = 'block';
+                    copyBtn.textContent = '✅ Tersalin!';
+                    copyBtn.style.background = '#22c55e';
+                  });
+                } else {
+                  // Fallback for older WebViews
+                  var ta = document.createElement('textarea');
+                  ta.value = url;
+                  ta.style.position = 'fixed';
+                  ta.style.left = '-9999px';
+                  document.body.appendChild(ta);
+                  ta.select();
+                  document.execCommand('copy');
+                  document.body.removeChild(ta);
+                  document.getElementById('copy-feedback').style.display = 'block';
+                  copyBtn.textContent = '✅ Tersalin!';
+                  copyBtn.style.background = '#22c55e';
+                }
+              });
+            }
+
+            // Skip button
+            var skipBtn = document.getElementById('skip-btn');
+            if (skipBtn) {
+              skipBtn.addEventListener('click', function() {
+                overlay.style.display = 'none';
+              });
+            }
+          }
+        }
+      })();
+    </script>
   </body>
 </html>
