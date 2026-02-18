@@ -10,6 +10,7 @@ import AuthModal from './components/AuthModal';
 import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import InvoicePage from './pages/InvoicePage';
+import InstallPrompt from './components/InstallPrompt';
 import { ReferralProvider } from './context/ReferralContext';
 
 function App() {
@@ -262,6 +263,8 @@ function App() {
           onAddToCart={addToCart} 
           isHidden={isAnyModalOpen} 
         />
+
+        <InstallPrompt />
             </>
           </ReferralProvider>
         } />

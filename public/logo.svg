@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#042f2e"/>
+  <circle cx="256" cy="180" r="80" fill="none" stroke="#D4AF37" stroke-width="6"/>
+  <text x="256" y="190" text-anchor="middle" font-family="Georgia, serif" font-size="64" font-weight="bold" fill="#D4AF37">M</text>
+  <text x="256" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="40" font-weight="bold" fill="#D4AF37">MOI</text>
+  <text x="256" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#D4AF37">MUTAPILIET</text>
+  <line x1="156" y1="385" x2="356" y2="385" stroke="#D4AF37" stroke-width="2" opacity="0.5"/>
+  <text x="256" y="420" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#a3a3a3">Jamaah Linitingiyah</text>
+</svg>
