@@ -29,7 +29,7 @@ const PrintArea = ({ printData, printType }) => {
           }
           html, body {
             width: ${printType === 'resi' ? '100mm' : '210mm'};
-            height: auto;
+            height: ${printType === 'resi' ? '150mm' : 'auto'};
             margin: 0 !important;
             padding: 0 !important;
             overflow: hidden !important;
@@ -46,23 +46,27 @@ const PrintArea = ({ printData, printType }) => {
             position: absolute;
             top: 0;
             left: 0;
-            width: ${printType === 'resi' ? '100mm' : '100%'};
-            height: auto;
+            width: ${printType === 'resi' ? '96mm' : '100%'};
+            height: ${printType === 'resi' ? '146mm' : 'auto'};
+            max-height: ${printType === 'resi' ? '146mm' : 'none'};
             background: white;
             z-index: 9999;
             padding: 0;
             margin: 0;
+            overflow: hidden !important;
           }
           #printable-area > div {
             width: 100%;
+            height: ${printType === 'resi' ? '146mm' : 'auto'};
             max-height: ${printType === 'resi' ? '146mm' : 'none'};
             margin: 0;
             box-sizing: border-box;
             background: white;
             padding: ${printType === 'resi' ? '2mm' : '5mm'};
-            page-break-after: avoid;
-            page-break-inside: avoid;
-            overflow: hidden;
+            page-break-after: ${printType === 'resi' ? 'avoid' : 'auto'};
+            page-break-inside: ${printType === 'resi' ? 'avoid' : 'auto'};
+            page-break-before: ${printType === 'resi' ? 'avoid' : 'auto'};
+            overflow: hidden !important;
           }
         }
       `}</style>
