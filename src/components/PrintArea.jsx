@@ -94,47 +94,68 @@ const PrintArea = ({ printData, printType }) => {
             </div>
           </div>
         ) : (
-          <div className="text-black uppercase font-black" style={{ fontSize: '9px', height: '146mm', display: 'flex', flexDirection: 'column' }}>
-            {/* === BAGIAN ATAS 50%: DATA RESI === */}
-            <div style={{ height: '50%', borderBottom: '2px solid black', paddingBottom: '1mm', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-              <div className="flex justify-between items-center border-b border-black pb-0.5">
-                <span style={{ fontSize: '7px' }} className="font-bold uppercase">Resi Penghantaran</span>
-                <span style={{ fontSize: '6px' }} className="italic uppercase">{new Date().toLocaleDateString('id-ID')}</span>
-              </div>
-              <div className="text-center">
-                <p style={{ fontSize: '7px' }} className="border border-black px-1 inline-block py-0.5 font-bold">NO. RESI / REQUEST:</p>
-                <h1 style={{ fontSize: '16px' }} className="font-black tracking-tight break-all leading-none mt-0.5">{printData.receipt_number}</h1>
-              </div>
-              <div className="flex justify-between items-start gap-1" style={{ flex: 1, marginTop: '1mm' }}>
-                <div className="flex-1 border-r border-black pr-1" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <p style={{ fontSize: '7px' }} className="border border-black px-0.5 inline-block mb-0.5 font-bold uppercase w-fit">KEPADA:</p>
-                  <p style={{ fontSize: '13px', lineHeight: '1.1' }} className="font-black uppercase">{printData.customer_name}</p>
-                  <p style={{ fontSize: '10px' }} className="font-bold font-mono">{printData.customer_phone}</p>
-                  <div style={{ fontSize: '7px', lineHeight: '1.2' }} className="italic font-normal uppercase">{printData.customer_address}</div>
-                </div>
-                <div className="text-center self-center" style={{ width: '22mm' }}>
-                  <p style={{ fontSize: '7px' }} className="font-bold border-b border-black mb-0.5">KURIR:</p>
-                  <p style={{ fontSize: '13px' }} className="font-black italic">{printData.expedition || 'KURIR'}</p>
-                </div>
-              </div>
+          <div className="text-black uppercase" style={{ fontSize: '9px', height: '146mm', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+
+            {/* === BARIS 1: NO RESI + TANGGAL === */}
+            <div className="flex justify-between items-center" style={{ padding: '1mm 0' }}>
+              <span style={{ fontSize: '9px' }} className="font-black">{printData.receipt_number}</span>
+              <span style={{ fontSize: '8px' }} className="font-normal">{new Date().toLocaleDateString('id-ID')}</span>
             </div>
 
-            {/* === BAGIAN BAWAH 50%: ISI PAKET === */}
-            <div style={{ height: '50%', paddingTop: '1mm', display: 'flex', flexDirection: 'column' }}>
-              <div className="border-b border-black text-center py-0.5 font-black uppercase" style={{ fontSize: '8px' }}>ISI PAKET (CATATAN PACKING)</div>
-              <div style={{ flex: 1, overflow: 'hidden', marginTop: '1mm' }} className={`grid ${printData.items_detail.length > 4 ? 'grid-cols-2 gap-x-2' : 'grid-cols-1'} content-start`}>
-                {printData.items_detail.map((i, idx) => (
-                  <div key={idx} className="border-b border-black py-0.5 flex flex-col last:border-0">
-                    <div className="flex gap-1 items-center">
-                      <span style={{ fontSize: '16px' }} className="font-black shrink-0">[{i.qty}]</span>
-                      <span style={{ fontSize: '12px', lineHeight: '1.1' }} className="font-black uppercase">{i.name}</span>
-                    </div>
-                    {i.note && <div className="ml-6 border-l-2 border-black pl-1 italic font-bold uppercase" style={{ fontSize: '8px' }}>* {i.note}</div>}
-                  </div>
-                ))}
-              </div>
-              <div className="pt-0.5 border-t border-black text-center opacity-30 uppercase tracking-widest font-bold" style={{ fontSize: '6px' }}>TOKONEMBAHMO SURABAYA</div>
+            {/* === SEPARATOR === */}
+            <div style={{ borderBottom: '1.5px solid black' }} />
+
+            {/* === BARIS 2: EXPEDISI + KODE REQUEST === */}
+            <div className="text-center" style={{ padding: '2mm 0' }}>
+              <span style={{ fontSize: '9px' }} className="font-bold">{printData.expedition || 'KURIR'}</span>
+              <div style={{ fontSize: '0', lineHeight: '0' }}>&nbsp;</div>
+              <span style={{ fontSize: '20px', lineHeight: '1', wordBreak: 'break-all', display: 'block', fontWeight: '900', letterSpacing: '1px' }}>{printData.request_code || printData.receipt_number}</span>
             </div>
+
+            {/* === SEPARATOR === */}
+            <div style={{ borderBottom: '1.5px solid black' }} />
+
+            {/* === BARIS 3: NAMA + NO HP + ALAMAT === */}
+            <div style={{ padding: '1.5mm 0' }}>
+              <div className="flex justify-between items-baseline">
+                <span style={{ fontSize: '12px', lineHeight: '1.1' }} className="font-black">{printData.customer_name}</span>
+                <span style={{ fontSize: '9px' }} className="font-normal font-mono shrink-0 ml-2">{printData.customer_phone}</span>
+              </div>
+              <div style={{ fontSize: '8px', lineHeight: '1.3', wordBreak: 'break-word', marginTop: '1mm' }} className="font-normal">{printData.customer_address}</div>
+            </div>
+
+            {/* === SEPARATOR === */}
+            <div style={{ borderBottom: '1.5px solid black' }} />
+
+            {/* === BARIS 4: TABEL BARANG === */}
+            <div style={{ flex: 1, paddingTop: '1mm', overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8px' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid black' }}>
+                    <th style={{ textAlign: 'left', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '7px' }}>NAMA BARANG</th>
+                    <th style={{ textAlign: 'left', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '7px' }}>KODE</th>
+                    <th style={{ textAlign: 'center', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '7px' }}>SATUAN</th>
+                    <th style={{ textAlign: 'center', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '7px' }}>QTY</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {printData.items_detail.map((i, idx) => (
+                    <tr key={idx} style={{ borderBottom: '0.5px solid #ccc' }}>
+                      <td style={{ padding: '0.8mm 1mm', fontWeight: '700', fontSize: '9px', lineHeight: '1.2' }}>
+                        {i.name}
+                        {i.note && <div style={{ fontSize: '7px', fontWeight: '400', fontStyle: 'italic' }}>({i.note})</div>}
+                      </td>
+                      <td style={{ padding: '0.8mm 1mm', fontSize: '8px', fontFamily: 'monospace' }}>{i.product_code}</td>
+                      <td style={{ padding: '0.8mm 1mm', fontSize: '8px', textAlign: 'center' }}>{i.satuan}</td>
+                      <td style={{ padding: '0.8mm 1mm', fontSize: '12px', textAlign: 'center', fontWeight: '900' }}>{i.qty}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            {/* === FOOTER === */}
+            <div className="text-center" style={{ borderTop: '1px solid black', paddingTop: '0.5mm', fontSize: '6px', opacity: 0.3, letterSpacing: '2px', fontWeight: '700' }}>TOKONEMBAHMO SURABAYA</div>
           </div>
         )}
       </div>

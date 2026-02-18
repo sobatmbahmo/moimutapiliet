@@ -1004,13 +1004,16 @@ export default function Dashboard({ user, onLogout }) {
       const resiCode = `${order.courier_name || order.resi?.split('-')[0] || 'EXPEDISI'}-${expeditionRequestCode}`;
       const itemsDetail = (order.order_items || []).map(item => ({
         name: item.products?.name || item.nama_produk || 'Produk',
+        product_code: item.products?.product_code || '',
         qty: item.qty || 1,
+        satuan: item.satuan || 'pcs',
         price: item.harga_satuan || 0,
         note: item.varian || ''
       }));
 
       setPrintData({
         receipt_number: resiCode,
+        request_code: expeditionRequestCode,
         customer_name: order.users?.nama || order.nama_pembeli || '',
         customer_phone: order.users?.nomor_wa || order.nomor_wa || '',
         customer_address: order.alamat || '',
