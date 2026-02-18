@@ -14,11 +14,11 @@ const PrintArea = ({ printData, printType }) => {
       <style>{`
         @media print {
           @page {
-            size: A4 portrait;
-            margin: 10mm;
+            size: ${printType === 'resi' ? '100mm 150mm' : 'A4 portrait'};
+            margin: ${printType === 'resi' ? '2mm' : '10mm'};
           }
           html, body {
-            width: 210mm;
+            width: ${printType === 'resi' ? '100mm' : '210mm'};
             height: auto;
             margin: 0 !important;
             padding: 0 !important;
@@ -36,7 +36,7 @@ const PrintArea = ({ printData, printType }) => {
             position: absolute;
             top: 0;
             left: 0;
-            width: 100%;
+            width: ${printType === 'resi' ? '100mm' : '100%'};
             height: auto;
             background: white;
             z-index: 9999;
@@ -45,17 +45,18 @@ const PrintArea = ({ printData, printType }) => {
           }
           #printable-area > div {
             width: 100%;
-            height: auto;
+            max-height: ${printType === 'resi' ? '146mm' : 'none'};
             margin: 0;
             box-sizing: border-box;
             background: white;
-            padding: 5mm;
+            padding: ${printType === 'resi' ? '2mm' : '5mm'};
             page-break-after: avoid;
             page-break-inside: avoid;
+            overflow: hidden;
           }
         }
       `}</style>
-      <div style={{ width: '100%', margin: '0 auto', background: 'white', boxSizing: 'border-box', padding: '5mm' }}>
+      <div style={{ width: printType === 'resi' ? '100mm' : '100%', margin: '0 auto', background: 'white', boxSizing: 'border-box', padding: printType === 'resi' ? '2mm' : '5mm' }}>
         {printType === 'invoice' ? (
           <div className="text-black uppercase font-black">
             <div className="text-center border-b-2 border-black pb-2 mb-4">
@@ -93,40 +94,40 @@ const PrintArea = ({ printData, printType }) => {
             </div>
           </div>
         ) : (
-          <div className="text-black uppercase font-black" style={{ fontSize: '12px' }}>
-            <div className="flex justify-between items-center border-b-2 border-black pb-1 mb-2">
-              <span className="text-[10px] font-bold py-1 uppercase">Resi Penghantaran</span>
-              <span className="text-[9px] italic uppercase">Dicetak: {new Date().toLocaleString('id-ID')}</span>
+          <div className="text-black uppercase font-black" style={{ fontSize: '9px' }}>
+            <div className="flex justify-between items-center border-b border-black pb-0.5 mb-1">
+              <span style={{ fontSize: '8px' }} className="font-bold uppercase">Resi Penghantaran</span>
+              <span style={{ fontSize: '7px' }} className="italic uppercase">Dicetak: {new Date().toLocaleString('id-ID')}</span>
             </div>
-            <div className="text-center mb-3">
-              <p className="text-[10px] border border-black px-2 inline-block py-1 font-bold">NO. RESI / REQUEST:</p>
-              <h1 className="text-4xl font-black tracking-tight break-all leading-none mt-1">{printData.receipt_number}</h1>
+            <div className="text-center mb-1.5">
+              <p style={{ fontSize: '8px' }} className="border border-black px-1 inline-block py-0.5 font-bold">NO. RESI / REQUEST:</p>
+              <h1 style={{ fontSize: '18px' }} className="font-black tracking-tight break-all leading-none mt-0.5">{printData.receipt_number}</h1>
             </div>
-            <div className="flex justify-between items-start mb-3 gap-2">
-              <div className="flex-1 border-r-2 border-black pr-2">
-                <p className="text-[10px] border border-black px-1 inline-block mb-1 font-bold uppercase">KEPADA:</p>
-                <p className="text-3xl font-black leading-none uppercase">{printData.customer_name}</p>
-                <p className="text-xl font-bold mb-1 font-mono">{printData.customer_phone}</p>
-                <div className="text-[10px] leading-tight italic font-normal uppercase">{printData.customer_address}</div>
+            <div className="flex justify-between items-start mb-1.5 gap-1">
+              <div className="flex-1 border-r border-black pr-1">
+                <p style={{ fontSize: '8px' }} className="border border-black px-0.5 inline-block mb-0.5 font-bold uppercase">KEPADA:</p>
+                <p style={{ fontSize: '14px' }} className="font-black leading-none uppercase">{printData.customer_name}</p>
+                <p style={{ fontSize: '11px' }} className="font-bold mb-0.5 font-mono">{printData.customer_phone}</p>
+                <div style={{ fontSize: '8px' }} className="leading-tight italic font-normal uppercase">{printData.customer_address}</div>
               </div>
-              <div className="w-1/3 text-center self-center">
-                <p className="text-[10px] font-bold border-b border-black mb-1">KURIR:</p>
-                <p className="text-3xl font-black italic">{printData.expedition || 'KURIR'}</p>
+              <div className="w-1/4 text-center self-center">
+                <p style={{ fontSize: '8px' }} className="font-bold border-b border-black mb-0.5">KURIR:</p>
+                <p style={{ fontSize: '14px' }} className="font-black italic">{printData.expedition || 'KURIR'}</p>
               </div>
             </div>
-            <div className="border-y-2 border-black text-center py-1 text-sm mb-2 font-black uppercase">ISI PAKET (CATATAN PACKING)</div>
-            <div className={`grid ${printData.items_detail.length > 5 ? 'grid-cols-2 gap-x-4' : 'grid-cols-1'}`}>
+            <div className="border-y border-black text-center py-0.5 mb-1 font-black uppercase" style={{ fontSize: '9px' }}>ISI PAKET</div>
+            <div className={`grid ${printData.items_detail.length > 5 ? 'grid-cols-2 gap-x-2' : 'grid-cols-1'}`}>
               {printData.items_detail.map((i, idx) => (
-                <div key={idx} className="border-b border-black py-1 flex flex-col mb-1 last:border-0">
-                  <div className="flex gap-2 items-center">
-                    <span className="text-3xl font-black shrink-0">[{i.qty}]</span>
-                    <span className="text-xl leading-none font-black uppercase">{i.name}</span>
+                <div key={idx} className="border-b border-black py-0.5 flex flex-col last:border-0">
+                  <div className="flex gap-1 items-center">
+                    <span style={{ fontSize: '14px' }} className="font-black shrink-0">[{i.qty}]</span>
+                    <span style={{ fontSize: '11px' }} className="leading-none font-black uppercase">{i.name}</span>
                   </div>
-                  {i.note && <div className="ml-12 text-[12px] border-l-4 border-black pl-2 italic font-bold mt-1 uppercase">* {i.note}</div>}
+                  {i.note && <div className="ml-6 border-l-2 border-black pl-1 italic font-bold mt-0.5 uppercase" style={{ fontSize: '8px' }}>* {i.note}</div>}
                 </div>
               ))}
             </div>
-            <div className="mt-6 pt-2 border-t border-black text-center opacity-30 uppercase tracking-widest text-[10px] font-bold">TOKONEMBAHMO SURABAYA</div>
+            <div className="mt-2 pt-1 border-t border-black text-center opacity-30 uppercase tracking-widest font-bold" style={{ fontSize: '7px' }}>TOKONEMBAHMO SURABAYA</div>
           </div>
         )}
       </div>
