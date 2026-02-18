@@ -141,16 +141,19 @@ export const validateAlamat = (alamat) => {
     return 'Alamat harus diisi';
   }
 
-  if (alamat.length < 5) {
+  const trimmed = alamat.trim();
+
+  if (trimmed.length < 5) {
     return 'Alamat minimal 5 karakter';
   }
 
-  if (alamat.length > 500) {
+  if (trimmed.length > 500) {
     return 'Alamat maksimal 500 karakter';
   }
 
-  // Allow letters, numbers, spaces, and common address chars
-  if (!/^[a-zA-Z0-9\s\-.,#no/\\()ąćęłńóśźżА-Яа-я]+$/.test(alamat)) {
+  // Block only dangerous HTML/script characters, allow everything else
+  // Indonesian addresses can contain: letters, numbers, spaces, . , - / \ : ; ' " ( ) # & + RT/RW etc.
+  if (/[<>]/.test(trimmed)) {
     return 'Alamat mengandung karakter yang tidak diizinkan';
   }
 
