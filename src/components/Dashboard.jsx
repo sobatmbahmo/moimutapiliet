@@ -1684,53 +1684,84 @@ export default function Dashboard({ user, onLogout }) {
   // ======================
   // RENDER: ADMIN DASHBOARD
   // ======================
+
+  // Tab config with icons & labels
+  const adminTabs = [
+    { key: 'orders', label: 'Orders', icon: <Package size={18} />, count: orders.length },
+    { key: 'products', label: 'Produk', icon: <BarChart3 size={18} />, count: products.length },
+    { key: 'affiliators', label: 'Mitra', icon: <Users size={18} />, count: affiliators.length },
+    { key: 'customers', label: 'Pelanggan', icon: <Share2 size={18} />, count: customers.length },
+  ];
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#042f2e] to-[#022c22] text-white p-4">
-      <div className="max-w-6xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-[#D4AF37]">Admin Dashboard</h1>
-            <p className="text-gray-400">Halo {user.nama}!</p>
+    <div className="min-h-screen bg-gradient-to-b from-[#042f2e] to-[#022c22] text-white">
+      {/* ====== TOP HEADER BAR ====== */}
+      <div className="sticky top-0 z-40 bg-[#042f2e]/95 backdrop-blur-md border-b border-white/10">
+        <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex justify-between items-center">
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-2xl font-bold text-[#D4AF37] truncate">Dashboard Admin</h1>
+            <p className="text-xs sm:text-sm text-gray-400 truncate">Halo, {user.nama}!</p>
           </div>
-          <button
-            onClick={onLogout}
-            className="flex items-center gap-2 px-4 py-2 bg-red-500/20 text-red-300 font-bold rounded-lg hover:bg-red-500/30"
-          >
-            <LogOut size={18} /> Logout
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => { loadInitialData(); }}
+              className="p-2 bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white rounded-lg transition"
+              title="Refresh data"
+            >
+              <RefreshCw size={18} />
+            </button>
+            <button
+              onClick={onLogout}
+              className="flex items-center gap-1.5 px-3 py-2 bg-red-500/20 text-red-300 text-sm font-bold rounded-lg hover:bg-red-500/30 transition"
+            >
+              <LogOut size={16} /> <span className="hidden sm:inline">Logout</span>
+            </button>
+          </div>
         </div>
 
+        {/* ====== TAB NAVIGATION ====== */}
+        <div className="max-w-7xl mx-auto px-3 sm:px-6">
+          <div className="flex overflow-x-auto scrollbar-hide -mb-px">
+            {adminTabs.map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => setActiveTab(tab.key)}
+                className={`flex items-center gap-1.5 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold whitespace-nowrap border-b-2 transition-all ${
+                  activeTab === tab.key
+                    ? 'text-[#D4AF37] border-[#D4AF37] bg-[#D4AF37]/5'
+                    : 'text-gray-400 border-transparent hover:text-white hover:border-white/20'
+                }`}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+                <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                  activeTab === tab.key
+                    ? 'bg-[#D4AF37]/20 text-[#D4AF37]'
+                    : 'bg-white/10 text-gray-400'
+                }`}>
+                  {tab.count}
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {/* ====== MAIN CONTENT ====== */}
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
         {/* Messages */}
         {successMsg && (
-          <div className="p-4 bg-green-500/10 border border-green-500/30 rounded-lg flex gap-2 items-center">
-            <CheckCircle2 size={20} className="text-green-400" />
-            <p className="text-green-300">{successMsg}</p>
+          <div className="p-3 sm:p-4 bg-green-500/10 border border-green-500/30 rounded-lg flex gap-2 items-center animate-fade-in">
+            <CheckCircle2 size={18} className="text-green-400 shrink-0" />
+            <p className="text-green-300 text-sm">{successMsg}</p>
           </div>
         )}
         {errorMsg && (
-          <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex gap-2 items-center">
-            <AlertCircle size={20} className="text-red-400" />
-            <p className="text-red-300">{errorMsg}</p>
+          <div className="p-3 sm:p-4 bg-red-500/10 border border-red-500/30 rounded-lg flex gap-2 items-center animate-fade-in">
+            <AlertCircle size={18} className="text-red-400 shrink-0" />
+            <p className="text-red-300 text-sm">{errorMsg}</p>
           </div>
         )}
-
-        {/* Tabs */}
-        <div className="flex gap-2 border-b border-white/10">
-          {['orders', 'products', 'affiliators', 'customers'].map(tab => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`px-4 py-2 font-bold transition ${
-                activeTab === tab 
-                  ? 'text-[#D4AF37] border-b-2 border-[#D4AF37]' 
-                  : 'text-gray-400 hover:text-white'
-              }`}
-            >
-              {tab === 'customers' ? 'Pelanggan' : tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
 
         {/* Orders Tab */}
         {activeTab === 'orders' && (
@@ -2245,3 +2276,4 @@ export default function Dashboard({ user, onLogout }) {
     </div>
   );
 }
+

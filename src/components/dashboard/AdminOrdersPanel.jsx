@@ -1,10 +1,26 @@
-import React from 'react';
-import { DollarSign, Check, Truck, Printer, Trash, Plus, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { DollarSign, Check, Truck, Printer, Trash, Plus, X, Clock, Package, Send, CheckCircle } from 'lucide-react';
 
 const formatRupiah = (number) => {
   return new Intl.NumberFormat('id-ID', {
     style: 'currency', currency: 'IDR', minimumFractionDigits: 0, maximumFractionDigits: 0
   }).format(number);
+};
+
+const STATUS_FILTERS = [
+  { key: 'all', label: 'Semua', icon: <Package size={14} />, color: 'gray' },
+  { key: 'pending', label: 'Menunggu', icon: <Clock size={14} />, color: 'yellow' },
+  { key: 'process', label: 'Proses', icon: <DollarSign size={14} />, color: 'blue' },
+  { key: 'shipped', label: 'Dikirim', icon: <Truck size={14} />, color: 'purple' },
+  { key: 'delivered', label: 'Terkirim', icon: <CheckCircle size={14} />, color: 'green' },
+];
+
+const colorMap = {
+  yellow: { bg: 'bg-yellow-500/15', border: 'border-yellow-500/40', text: 'text-yellow-300', dot: 'bg-yellow-500', activeBg: 'bg-yellow-500/25' },
+  blue: { bg: 'bg-blue-500/15', border: 'border-blue-500/40', text: 'text-blue-300', dot: 'bg-blue-500', activeBg: 'bg-blue-500/25' },
+  purple: { bg: 'bg-purple-500/15', border: 'border-purple-500/40', text: 'text-purple-300', dot: 'bg-purple-500', activeBg: 'bg-purple-500/25' },
+  green: { bg: 'bg-green-500/15', border: 'border-green-500/40', text: 'text-green-300', dot: 'bg-green-500', activeBg: 'bg-green-500/25' },
+  gray: { bg: 'bg-white/5', border: 'border-white/20', text: 'text-gray-300', dot: 'bg-gray-500', activeBg: 'bg-white/10' },
 };
 
 export default function AdminOrdersPanel({
@@ -25,260 +41,264 @@ export default function AdminOrdersPanel({
   handleConfirmDelivery,
   handleDeleteOrder
 }) {
-  // Pisahkan order berdasarkan status
+  const [statusFilter, setStatusFilter] = useState('all');
+
+  // Categorise orders
   const pendingOrders = orders.filter(o => o.status === 'WAITING_CONFIRMATION');
-  // Order dalam proses: WAITING_PAYMENT, PAID, processing
-  const processedOrders = orders.filter(o => 
-    ['WAITING_PAYMENT', 'PAID', 'processing'].includes(o.status)
-  );
+  const processedOrders = orders.filter(o => ['WAITING_PAYMENT', 'PAID', 'processing'].includes(o.status));
   const shippedOrders = orders.filter(o => o.status === 'shipped' || o.status === 'SHIPPED');
   const deliveredOrders = orders.filter(o => o.status === 'delivered' || o.status === 'COMPLETED');
 
-  const OrderCard = ({ order }) => (
-    <div
-      key={order.id}
-      className="bg-black/30 border border-white/10 rounded-lg p-4 space-y-2"
-    >
-      <div className="flex justify-between items-start">
-        <div>
-          <p className="font-bold text-white">{order.order_number}</p>
-          <p className="text-sm text-gray-400">
-            {order.users?.nama || order.nama_pembeli} • {order.users?.nomor_wa || order.nomor_wa}
-          </p>
-          <p className="text-xs text-gray-500 mt-1">{order.alamat}</p>
-        </div>
-        <span className={`px-3 py-1 rounded-lg text-xs font-bold ${
-          order.status === 'WAITING_CONFIRMATION' ? 'bg-yellow-500/20 text-yellow-300' :
-          order.status === 'WAITING_PAYMENT' ? 'bg-orange-500/20 text-orange-300' :
-          order.status === 'PAID' ? 'bg-emerald-500/20 text-emerald-300' :
-          order.status === 'processing' ? 'bg-blue-500/20 text-blue-300' :
-          (order.status === 'shipped' || order.status === 'SHIPPED') ? 'bg-purple-500/20 text-purple-300' :
-          (order.status === 'delivered' || order.status === 'COMPLETED') ? 'bg-green-500/20 text-green-300' :
-          'bg-gray-500/20 text-gray-300'
-        }`}>
-          {order.status === 'WAITING_CONFIRMATION' && 'Menunggu Konfirmasi'}
-          {order.status === 'WAITING_PAYMENT' && 'Menunggu Pembayaran'}
-          {order.status === 'PAID' && 'Sudah Dibayar'}
-          {order.status === 'processing' && 'Dalam Proses'}
-          {(order.status === 'shipped' || order.status === 'SHIPPED') && 'Dalam Perjalanan'}
-          {(order.status === 'delivered' || order.status === 'COMPLETED') && 'Terkirim'}
-        </span>
-      </div>
+  const counts = {
+    all: orders.length,
+    pending: pendingOrders.length,
+    process: processedOrders.length,
+    shipped: shippedOrders.length,
+    delivered: deliveredOrders.length
+  };
 
-      <div className="py-2 border-y border-white/10">
-        {order.order_items?.map((item) => (
-          <p key={item.id} className="text-sm text-gray-300">
-            {item.products?.name || 'Produk'} × {item.qty} = {formatRupiah(item.qty * item.harga_satuan)}
-            {item.varian && <span className="ml-2 text-xs bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded">{item.varian}</span>}
-          </p>
-        ))}
-      </div>
+  // Filter active orders
+  const filteredOrders =
+    statusFilter === 'pending' ? pendingOrders :
+    statusFilter === 'process' ? processedOrders :
+    statusFilter === 'shipped' ? shippedOrders :
+    statusFilter === 'delivered' ? deliveredOrders :
+    orders;
 
-      <div className="flex justify-between items-center text-sm">
-        <div>
-          <p className="text-gray-400">Total:</p>
-          <p className="font-bold text-[#D4AF37]">{formatRupiah(order.total_bayar)}</p>
+  // Status label & badge
+  const getStatusInfo = (status) => {
+    switch (status) {
+      case 'WAITING_CONFIRMATION': return { label: 'Menunggu Konfirmasi', color: 'yellow' };
+      case 'WAITING_PAYMENT': return { label: 'Menunggu Bayar', color: 'orange' };
+      case 'PAID': return { label: 'Sudah Dibayar', color: 'emerald' };
+      case 'processing': return { label: 'Dalam Proses', color: 'blue' };
+      case 'shipped': case 'SHIPPED': return { label: 'Dalam Perjalanan', color: 'purple' };
+      case 'delivered': case 'COMPLETED': return { label: 'Terkirim', color: 'green' };
+      default: return { label: status, color: 'gray' };
+    }
+  };
+
+  const OrderCard = ({ order }) => {
+    const statusInfo = getStatusInfo(order.status);
+    const statusClasses = {
+      yellow: 'bg-yellow-500/20 text-yellow-300',
+      orange: 'bg-orange-500/20 text-orange-300',
+      emerald: 'bg-emerald-500/20 text-emerald-300',
+      blue: 'bg-blue-500/20 text-blue-300',
+      purple: 'bg-purple-500/20 text-purple-300',
+      green: 'bg-green-500/20 text-green-300',
+      gray: 'bg-gray-500/20 text-gray-300',
+    };
+
+    return (
+      <div className="bg-black/30 border border-white/10 rounded-xl p-3 sm:p-4 space-y-3 hover:border-white/20 transition">
+        {/* Header row */}
+        <div className="flex justify-between items-start gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="font-bold text-white text-sm sm:text-base truncate">{order.order_number}</p>
+            <p className="text-xs sm:text-sm text-gray-400 truncate">
+              {order.users?.nama || order.nama_pembeli}
+            </p>
+            <p className="text-xs text-gray-500 mt-0.5 hidden sm:block">{order.users?.nomor_wa || order.nomor_wa}</p>
+          </div>
+          <span className={`shrink-0 px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold ${statusClasses[statusInfo.color] || statusClasses.gray}`}>
+            {statusInfo.label}
+          </span>
         </div>
-        <div className="flex gap-2 flex-wrap justify-end">
-          {order.status === 'WAITING_CONFIRMATION' && (
-            <button
-              onClick={() => handleOpenShippingModal(order)}
-              className="px-3 py-1 bg-orange-500/20 text-orange-300 text-xs font-bold rounded hover:bg-orange-500/30 transition"
-            >
-              <DollarSign size={14} className="inline mr-1" /> Konfirmasi Ongkir
-            </button>
+
+        {/* Address - truncated on mobile */}
+        <p className="text-xs text-gray-500 line-clamp-2 sm:line-clamp-none">{order.alamat}</p>
+
+        {/* Items */}
+        <div className="py-2 border-y border-white/10 space-y-1">
+          {order.order_items?.map((item) => (
+            <div key={item.id} className="flex justify-between items-center text-xs sm:text-sm text-gray-300">
+              <span className="truncate flex-1 mr-2">
+                {item.products?.name || 'Produk'} × {item.qty}
+              </span>
+              <span className="shrink-0 font-mono">{formatRupiah(item.qty * item.harga_satuan)}</span>
+            </div>
+          ))}
+          {order.order_items?.some(item => item.varian) && (
+            <div className="flex flex-wrap gap-1 mt-1">
+              {order.order_items.filter(i => i.varian).map(item => (
+                <span key={item.id} className="text-[10px] bg-[#D4AF37]/20 text-[#D4AF37] px-2 py-0.5 rounded">{item.varian}</span>
+              ))}
+            </div>
           )}
-          {order.status === 'WAITING_PAYMENT' && (
-            <button
-              onClick={() => handleConfirmPayment(order.id)}
-              disabled={loading}
-              className="px-3 py-1 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded hover:bg-emerald-500/30 transition disabled:opacity-50"
-            >
-              <Check size={14} className="inline mr-1" /> Konfirmasi Pembayaran
-            </button>
-          )}
-          {order.status === 'PAID' && (
-            <button
-              onClick={() => handleOpenPrintResiModal(order)}
-              className="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded hover:bg-blue-500/30 transition"
-            >
-              <Truck size={14} className="inline mr-1" /> Print Resi
-            </button>
-          )}
-          {order.status === 'processing' && (
-            <button
-              onClick={() => setEditingResi(order.id)}
-              className="px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded hover:bg-blue-500/30 transition"
-            >
-              <Truck size={14} className="inline mr-1" /> Input Resi & Kirim
-            </button>
-          )}
-          {(order.status === 'shipped' || order.status === 'SHIPPED') && (
-            <>
+        </div>
+
+        {/* Total + Actions */}
+        <div className="space-y-2">
+          <div className="flex justify-between items-center">
+            <div>
+              <p className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider">Total</p>
+              <p className="font-bold text-[#D4AF37] text-sm sm:text-base">{formatRupiah(order.total_bayar)}</p>
+            </div>
+            <p className="text-[10px] text-gray-600">
+              {new Date(order.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' })}
+            </p>
+          </div>
+
+          {/* Action Buttons - stacked on mobile */}
+          <div className="flex flex-wrap gap-1.5">
+            {order.status === 'WAITING_CONFIRMATION' && (
+              <button
+                onClick={() => handleOpenShippingModal(order)}
+                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 bg-orange-500/20 text-orange-300 text-xs font-bold rounded-lg hover:bg-orange-500/30 transition"
+              >
+                <DollarSign size={14} /> Konfirmasi Ongkir
+              </button>
+            )}
+            {order.status === 'WAITING_PAYMENT' && (
+              <button
+                onClick={() => handleConfirmPayment(order.id)}
+                disabled={loading}
+                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-lg hover:bg-emerald-500/30 transition disabled:opacity-50"
+              >
+                <Check size={14} /> Konfirmasi Bayar
+              </button>
+            )}
+            {order.status === 'PAID' && (
               <button
                 onClick={() => handleOpenPrintResiModal(order)}
-                className="px-3 py-1 bg-purple-500/20 text-purple-300 text-xs font-bold rounded hover:bg-purple-500/30 transition"
-                title="Print ulang resi jika rusak/error"
+                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-lg hover:bg-blue-500/30 transition"
               >
-                <Printer size={14} className="inline mr-1" /> Print Resi Ulang
+                <Printer size={14} /> Print Resi
               </button>
+            )}
+            {order.status === 'processing' && (
               <button
-                onClick={() => handleConfirmDelivery(order.id)}
-                className="px-3 py-1 bg-green-500/20 text-green-300 text-xs font-bold rounded hover:bg-green-500/30 transition"
+                onClick={() => setEditingResi(order.id)}
+                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-lg hover:bg-blue-500/30 transition"
               >
-                <Check size={14} className="inline mr-1" /> Verifikasi Order Terkirim
+                <Truck size={14} /> Input Resi
               </button>
-            </>
-          )}
-          <button
-            onClick={() => handleDeleteOrder(order.id, order.order_number)}
-            disabled={deletingOrderId === order.id}
-            className="px-3 py-1 bg-red-500/20 text-red-300 text-xs font-bold rounded hover:bg-red-500/30 transition disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Hapus order (untuk mengantisipasi double order)"
-          >
-            {deletingOrderId === order.id ? 'Menghapus...' : <><Trash size={14} className="inline mr-1" /> Hapus</>}
-          </button>
-        </div>
-      </div>
-
-      {editingResi === order.id && (
-        <div className="bg-black/40 border border-[#D4AF37]/30 rounded-lg p-3 space-y-2">
-          <input
-            type="text"
-            placeholder="Nomor Resi"
-            value={resiNumber}
-            onChange={(e) => setResiNumber(e.target.value)}
-            className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm"
-          />
-          <select
-            value={couriername}
-            onChange={(e) => setCourierName(e.target.value)}
-            className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded text-white text-sm"
-          >
-            <option value="JNE">JNE</option>
-            <option value="TIKI">TIKI</option>
-            <option value="POS">POS Indonesia</option>
-            <option value="Gojek">Gojek</option>
-            <option value="Grab">Grab</option>
-          </select>
-          <div className="flex gap-2">
+            )}
+            {(order.status === 'shipped' || order.status === 'SHIPPED') && (
+              <>
+                <button
+                  onClick={() => handleOpenPrintResiModal(order)}
+                  className="flex-1 min-w-[100px] flex items-center justify-center gap-1 px-2 py-2 bg-purple-500/20 text-purple-300 text-xs font-bold rounded-lg hover:bg-purple-500/30 transition"
+                >
+                  <Printer size={13} /> Print Ulang
+                </button>
+                <button
+                  onClick={() => handleConfirmDelivery(order.id)}
+                  className="flex-1 min-w-[100px] flex items-center justify-center gap-1 px-2 py-2 bg-green-500/20 text-green-300 text-xs font-bold rounded-lg hover:bg-green-500/30 transition"
+                >
+                  <Check size={13} /> Terkirim
+                </button>
+              </>
+            )}
             <button
-              onClick={() => handleInputResi(order.id)}
-              className="flex-1 px-3 py-2 bg-green-500 text-black font-bold rounded text-sm hover:bg-green-600 transition"
+              onClick={() => handleDeleteOrder(order.id, order.order_number)}
+              disabled={deletingOrderId === order.id}
+              className="flex items-center justify-center gap-1 px-2.5 py-2 bg-red-500/15 text-red-400 text-xs font-bold rounded-lg hover:bg-red-500/25 transition disabled:opacity-50"
+              title="Hapus order"
             >
-              <Check size={14} className="inline mr-1" /> Kirim
-            </button>
-            <button
-              onClick={() => setEditingResi(null)}
-              className="flex-1 px-3 py-2 bg-red-500/20 text-red-300 font-bold rounded text-sm hover:bg-red-500/30 transition"
-            >
-              <X size={14} className="inline mr-1" /> Batal
+              {deletingOrderId === order.id ? '...' : <Trash size={14} />}
             </button>
           </div>
         </div>
-      )}
-    </div>
-  );
+
+        {/* Inline Resi Input */}
+        {editingResi === order.id && (
+          <div className="bg-black/40 border border-[#D4AF37]/30 rounded-lg p-3 space-y-2">
+            <input
+              type="text"
+              placeholder="Nomor Resi"
+              value={resiNumber}
+              onChange={(e) => setResiNumber(e.target.value)}
+              className="w-full px-3 py-2.5 bg-black/40 border border-white/20 rounded-lg text-white text-sm focus:border-[#D4AF37] focus:outline-none"
+            />
+            <select
+              value={couriername}
+              onChange={(e) => setCourierName(e.target.value)}
+              className="w-full px-3 py-2.5 bg-black/40 border border-white/20 rounded-lg text-white text-sm focus:border-[#D4AF37] focus:outline-none"
+            >
+              <option value="JNE">JNE</option>
+              <option value="TIKI">TIKI</option>
+              <option value="POS">POS Indonesia</option>
+              <option value="Gojek">Gojek</option>
+              <option value="Grab">Grab</option>
+            </select>
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleInputResi(order.id)}
+                className="flex-1 px-3 py-2.5 bg-green-500 text-black font-bold rounded-lg text-sm hover:bg-green-600 transition flex items-center justify-center gap-1.5"
+              >
+                <Send size={14} /> Kirim
+              </button>
+              <button
+                onClick={() => setEditingResi(null)}
+                className="flex-1 px-3 py-2.5 bg-red-500/20 text-red-300 font-bold rounded-lg text-sm hover:bg-red-500/30 transition flex items-center justify-center gap-1.5"
+              >
+                <X size={14} /> Batal
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-4">
-      {/* Tombol Tambah Order Manual */}
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-bold text-white">Manajemen Order</h3>
+      {/* Header + Add Button */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+        <div>
+          <h3 className="text-base sm:text-lg font-bold text-white">Manajemen Order</h3>
+          <p className="text-xs text-gray-500">{orders.length} total order</p>
+        </div>
         <button
           onClick={() => setShowOfflineOrderForm(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition"
+          className="flex items-center gap-2 px-4 py-2.5 bg-[#D4AF37] text-black text-sm font-bold rounded-lg hover:bg-[#F4D03F] transition w-full sm:w-auto justify-center"
         >
-          <Plus size={18} /> Tambah Order Manual
+          <Plus size={16} /> Tambah Order Manual
         </button>
       </div>
 
-      {/* GRID 4 KOLOM: PENDING, DALAM PROSES, SEDANG DIKIRIM, TERKIRIM */}
-      <div className="grid grid-cols-4 gap-4">
-        {/* KOLOM 1: SECTION PENDING ORDERS */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 pb-2 border-b-2 border-yellow-500/50">
-            <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-            <h4 className="text-sm font-bold text-yellow-300">
-              Menunggu Konfirmasi ({pendingOrders.length})
-            </h4>
-          </div>
-          {pendingOrders.length === 0 ? (
-            <div className="text-center py-6 bg-black/20 rounded-lg border border-yellow-500/20">
-              <p className="text-gray-400 text-xs">Tidak ada order</p>
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {pendingOrders.map((order) => (
-                <OrderCard key={order.id} order={order} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* KOLOM 2: SECTION PROCESSED ORDERS */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 pb-2 border-b-2 border-blue-500/50">
-            <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-            <h4 className="text-sm font-bold text-blue-300">
-              Dalam Proses ({processedOrders.length})
-            </h4>
-          </div>
-          {processedOrders.length === 0 ? (
-            <div className="text-center py-6 bg-black/20 rounded-lg border border-blue-500/20">
-              <p className="text-gray-400 text-xs">Tidak ada order</p>
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {processedOrders.map((order) => (
-                <OrderCard key={order.id} order={order} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* KOLOM 3: SECTION SEDANG DIKIRIM */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 pb-2 border-b-2 border-purple-500/50">
-            <div className="w-3 h-3 bg-purple-500 rounded-full"></div>
-            <h4 className="text-sm font-bold text-purple-300">
-              Sedang Dikirim ({shippedOrders.length})
-            </h4>
-          </div>
-          {shippedOrders.length === 0 ? (
-            <div className="text-center py-6 bg-black/20 rounded-lg border border-purple-500/20">
-              <p className="text-gray-400 text-xs">Tidak ada order</p>
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {shippedOrders.map((order) => (
-                <OrderCard key={order.id} order={order} />
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* KOLOM 4: SECTION ORDER TERKIRIM */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 pb-2 border-b-2 border-green-500/50">
-            <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-            <h4 className="text-sm font-bold text-green-300">
-              Terkirim ({deliveredOrders.length})
-            </h4>
-          </div>
-          {deliveredOrders.length === 0 ? (
-            <div className="text-center py-6 bg-black/20 rounded-lg border border-green-500/20">
-              <p className="text-gray-400 text-xs">Tidak ada order</p>
-            </div>
-          ) : (
-            <div className="grid gap-3">
-              {deliveredOrders.map((order) => (
-                <OrderCard key={order.id} order={order} />
-              ))}
-            </div>
-          )}
-        </div>
+      {/* Status Filter Pills - scrollable on mobile */}
+      <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-1 -mx-1 px-1">
+        {STATUS_FILTERS.map(f => {
+          const c = colorMap[f.color];
+          const isActive = statusFilter === f.key;
+          return (
+            <button
+              key={f.key}
+              onClick={() => setStatusFilter(f.key)}
+              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-bold whitespace-nowrap transition-all border ${
+                isActive
+                  ? `${c.activeBg} ${c.border} ${c.text}`
+                  : 'bg-white/5 border-transparent text-gray-400 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              {f.icon}
+              <span>{f.label}</span>
+              <span className={`ml-0.5 px-1.5 py-0.5 rounded-full text-[10px] ${
+                isActive ? `${c.bg} ${c.text}` : 'bg-white/10 text-gray-500'
+              }`}>
+                {counts[f.key]}
+              </span>
+            </button>
+          );
+        })}
       </div>
+
+      {/* Order Cards Grid - 1 col mobile, 2 col tablet, 3 col desktop */}
+      {filteredOrders.length === 0 ? (
+        <div className="text-center py-12 bg-black/20 rounded-xl border border-white/10">
+          <Package size={32} className="mx-auto text-gray-600 mb-2" />
+          <p className="text-gray-400 text-sm">Tidak ada order dalam kategori ini</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+          {filteredOrders.map((order) => (
+            <OrderCard key={order.id} order={order} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
