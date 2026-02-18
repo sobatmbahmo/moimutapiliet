@@ -25,7 +25,7 @@ const PrintArea = ({ printData, printType }) => {
         @media print {
           @page {
             size: ${printType === 'resi' ? '100mm 150mm' : 'A4 portrait'};
-            margin: ${printType === 'resi' ? '2mm' : '10mm'};
+            margin: ${printType === 'resi' ? '3mm 4mm' : '10mm'};
           }
           html, body {
             width: ${printType === 'resi' ? '100mm' : '210mm'};
@@ -51,9 +51,9 @@ const PrintArea = ({ printData, printType }) => {
             position: absolute;
             top: 0;
             left: 0;
-            width: ${printType === 'resi' ? '96mm' : '100%'};
-            height: ${printType === 'resi' ? '146mm' : 'auto'};
-            max-height: ${printType === 'resi' ? '146mm' : 'none'};
+            width: ${printType === 'resi' ? '92mm' : '100%'};
+            height: ${printType === 'resi' ? '144mm' : 'auto'};
+            max-height: ${printType === 'resi' ? '144mm' : 'none'};
             background: white;
             z-index: 9999;
             padding: 0;
@@ -62,12 +62,12 @@ const PrintArea = ({ printData, printType }) => {
           }
           #printable-area > div {
             width: 100%;
-            height: ${printType === 'resi' ? '146mm' : 'auto'};
-            max-height: ${printType === 'resi' ? '146mm' : 'none'};
+            height: ${printType === 'resi' ? '144mm' : 'auto'};
+            max-height: ${printType === 'resi' ? '144mm' : 'none'};
             margin: 0;
             box-sizing: border-box;
             background: white;
-            padding: ${printType === 'resi' ? '2mm' : '5mm'};
+            padding: ${printType === 'resi' ? '1mm' : '5mm'};
             page-break-after: ${printType === 'resi' ? 'avoid' : 'auto'};
             page-break-inside: ${printType === 'resi' ? 'avoid' : 'auto'};
             page-break-before: ${printType === 'resi' ? 'avoid' : 'auto'};
@@ -75,7 +75,7 @@ const PrintArea = ({ printData, printType }) => {
           }
         }
       `}</style>
-      <div style={{ width: printType === 'resi' ? '100mm' : '100%', margin: '0 auto', background: 'white', boxSizing: 'border-box', padding: printType === 'resi' ? '2mm' : '5mm' }}>
+      <div style={{ width: printType === 'resi' ? '92mm' : '100%', margin: '0 auto', background: 'white', boxSizing: 'border-box', padding: printType === 'resi' ? '1mm' : '5mm' }}>
         {printType === 'invoice' ? (
           <div className="text-black uppercase font-black">
             <div className="text-center border-b-2 border-black pb-2 mb-4">
@@ -113,7 +113,7 @@ const PrintArea = ({ printData, printType }) => {
             </div>
           </div>
         ) : (
-          <div className="text-black uppercase" style={{ fontSize: '9px', height: '146mm', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div className="text-black uppercase" style={{ fontSize: '9px', height: '144mm', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
             {/* === BARIS 1: NO INVOICE + TANGGAL === */}
             <div className="flex justify-between items-center" style={{ padding: '1mm 0' }}>
@@ -150,7 +150,7 @@ const PrintArea = ({ printData, printType }) => {
             <div style={{ padding: '1.5mm 0' }}>
               <div className="flex justify-between items-baseline">
                 <span style={{ fontSize: '12px', lineHeight: '1.1' }} className="font-black">{printData.customer_name}</span>
-                <span style={{ fontSize: '11px' }} className="font-bold font-mono shrink-0 ml-2">{printData.customer_phone}</span>
+                <span style={{ fontSize: '13px' }} className="font-black font-mono shrink-0 ml-2">{printData.customer_phone}</span>
               </div>
               <div style={{ fontSize: '12px', lineHeight: '1.3', marginTop: '1mm' }} className="font-normal">
                 {wrapText(printData.customer_address, 40).map((line, idx) => (
