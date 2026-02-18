@@ -38,33 +38,51 @@
           Website ini lebih baik dibuka di <b style="color:#D4AF37;">Chrome</b> atau browser HP Anda.
         </p>
 
-        <!-- Link display box -->
-        <div id="link-box" style="background:rgba(0,0,0,0.3);border:1px solid rgba(212,175,55,0.3);border-radius:10px;padding:12px 14px;margin-bottom:14px;display:flex;align-items:center;gap:8px;">
-          <span style="color:#D4AF37;font-size:13px;flex:1;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" id="link-text"></span>
-          <span id="copy-icon" style="color:#9ca3af;font-size:16px;cursor:pointer;">📋</span>
-        </div>
-
-        <!-- Salin Link button (primary) -->
-        <button id="copy-btn" style="width:100%;padding:14px;background:#D4AF37;color:#000;font-weight:700;font-size:15px;border:none;border-radius:10px;cursor:pointer;margin-bottom:6px;">
-          📋 Salin Link
-        </button>
-        <p id="copy-feedback" style="display:none;color:#4ade80;font-size:13px;font-weight:600;margin:6px 0 0;">✅ Link tersalin!</p>
-
-        <!-- Steps (shown after copy) -->
-        <div id="after-copy-steps" style="display:none;background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;text-align:left;margin-top:14px;">
-          <p style="color:#fff;font-size:13px;font-weight:600;margin:0 0 10px;">Langkah selanjutnya:</p>
+        <!-- Cara 1: Titik tiga -->
+        <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;text-align:left;margin-bottom:14px;">
+          <p style="color:#D4AF37;font-size:12px;font-weight:700;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.5px;">Cara 1 — Langsung dari sini</p>
           <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;">
             <div style="min-width:24px;height:24px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">1</div>
-            <p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Buka aplikasi <b style="color:#fff;">Chrome</b> di HP Anda</p>
+            <p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Ketuk ikon <b style="color:#fff;font-size:18px;">⋯</b> atau <b style="color:#fff;font-size:18px;">⋮</b> di pojok kanan atas atau bawah layar</p>
           </div>
           <div style="display:flex;align-items:flex-start;gap:10px;">
             <div style="min-width:24px;height:24px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">2</div>
-            <p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;"><b style="color:#fff;">Tahan</b> di address bar atas, lalu pilih <b style="color:#fff;">Paste & Go / Tempel</b></p>
+            <p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Pilih <b style="color:#fff;">"Buka di browser"</b> atau <b style="color:#fff;">"Open in browser"</b></p>
+          </div>
+        </div>
+
+        <!-- Cara 2: Salin Link -->
+        <div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:14px;text-align:left;margin-bottom:14px;">
+          <p style="color:#D4AF37;font-size:12px;font-weight:700;margin:0 0 10px;text-transform:uppercase;letter-spacing:0.5px;">Cara 2 — Salin link</p>
+
+          <!-- Link display box -->
+          <div style="background:rgba(0,0,0,0.3);border:1px solid rgba(212,175,55,0.3);border-radius:10px;padding:10px 12px;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+            <span style="color:#D4AF37;font-size:12px;flex:1;text-align:left;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;" id="link-text"></span>
+            <span id="copy-icon" style="color:#9ca3af;font-size:16px;cursor:pointer;">📋</span>
+          </div>
+
+          <!-- Salin Link button -->
+          <button id="copy-btn" style="width:100%;padding:12px;background:#D4AF37;color:#000;font-weight:700;font-size:14px;border:none;border-radius:10px;cursor:pointer;margin-bottom:4px;">
+            📋 Salin Link
+          </button>
+          <p id="copy-feedback" style="display:none;color:#4ade80;font-size:12px;font-weight:600;margin:4px 0 0;">✅ Link tersalin!</p>
+
+          <!-- Steps after copy -->
+          <div id="after-copy-steps" style="display:none;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,0.08);">
+            <p style="color:#fff;font-size:12px;font-weight:600;margin:0 0 8px;">Selanjutnya:</p>
+            <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
+              <div style="min-width:22px;height:22px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">1</div>
+              <p style="color:#d1d5db;font-size:12px;margin:0;line-height:1.4;">Buka aplikasi <b style="color:#fff;">Chrome</b> di HP Anda</p>
+            </div>
+            <div style="display:flex;align-items:flex-start;gap:10px;">
+              <div style="min-width:22px;height:22px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;">2</div>
+              <p style="color:#d1d5db;font-size:12px;margin:0;line-height:1.4;"><b style="color:#fff;">Tahan</b> di address bar, lalu <b style="color:#fff;">Tempel / Paste</b></p>
+            </div>
           </div>
         </div>
 
         <!-- Skip -->
-        <button id="skip-btn" style="width:100%;padding:10px;background:transparent;color:#6b7280;font-size:13px;border:none;cursor:pointer;margin-top:12px;">
+        <button id="skip-btn" style="width:100%;padding:10px;background:transparent;color:#6b7280;font-size:13px;border:none;cursor:pointer;">
           Lanjut di sini saja →
         </button>
       </div>
