@@ -8,32 +8,82 @@
     <meta name="theme-color" content="#D4AF37" />
     <title>TOKONEMBAHMO - Toko Makanan Ringan</title>
 
-    <!-- Force open in external browser (escape TikTok/IG/FB in-app browser) -->
+    <!-- Deteksi in-app browser (TikTok/IG/FB) → tampilkan overlay instruksi -->
     <script type="text/javascript">
       (function() {
         var ua = navigator.userAgent || navigator.vendor || '';
-        // Deteksi in-app browser: TikTok, Instagram, Facebook, Line, dll
         var isInApp = /FBAN|FBAV|Instagram|Line\/|TikTok|Snapchat|BytedanceWebview|musical_ly/i.test(ua);
         
         if (isInApp) {
+          // Coba redirect otomatis dulu (kadang berhasil)
           var url = window.location.href;
           var isAndroid = /Android/i.test(ua);
-          var isIOS = /iPhone|iPad|iPod/i.test(ua);
+          var isTikTok = /TikTok|BytedanceWebview|musical_ly/i.test(ua);
 
-          if (isAndroid) {
-            // Android: gunakan intent:// untuk buka di Chrome/browser default
+          if (isAndroid && !isTikTok) {
+            // Non-TikTok Android: intent masih bisa jalan
             var intentUrl = 'intent://' + url.replace(/https?:\/\//, '') 
               + '#Intent;scheme=https;package=com.android.chrome;end';
             window.location.href = intentUrl;
-          } else if (isIOS) {
-            // iOS: buka via googlechrome:// scheme, fallback ke Safari x-safari
-            var chromeUrl = url.replace('https://', 'googlechrome://');
-            window.location.href = chromeUrl;
-            // Fallback: jika Chrome tidak terinstall, buka di Safari
-            setTimeout(function() {
-              window.location.href = 'x-safari-' + url;
-            }, 500);
+            return;
           }
+
+          // Untuk TikTok & iOS: tampilkan overlay instruksi
+          document.addEventListener('DOMContentLoaded', function() {
+            var overlay = document.createElement('div');
+            overlay.id = 'inapp-overlay';
+            overlay.innerHTML = ''
+              + '<div style="position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:99999;display:flex;align-items:center;justify-content:center;padding:20px;">'
+              + '<div style="background:linear-gradient(to bottom,#042f2e,#022c22);border:1px solid rgba(212,175,55,0.4);border-radius:16px;max-width:380px;width:100%;padding:28px 24px;text-align:center;font-family:system-ui,sans-serif;">'
+              
+              // Icon
+              + '<div style="width:56px;height:56px;background:rgba(212,175,55,0.15);border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;">'
+              + '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>'
+              + '</div>'
+
+              // Title
+              + '<h2 style="color:#fff;font-size:18px;font-weight:700;margin:0 0 8px;">Buka di Browser</h2>'
+              + '<p style="color:#9ca3af;font-size:13px;line-height:1.5;margin:0 0 20px;">'
+              + 'Untuk pengalaman terbaik & bisa install aplikasi, buka website ini di <b style="color:#D4AF37;">Chrome</b> atau browser HP Anda.'
+              + '</p>'
+
+              // Steps
+              + '<div style="background:rgba(255,255,255,0.05);border-radius:12px;padding:16px;text-align:left;margin-bottom:16px;">'
+              
+              + (isTikTok 
+                ? // TikTok instructions
+                  '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">'
+                  + '<div style="min-width:24px;height:24px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">1</div>'
+                  + '<p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Ketuk ikon <b style="color:#fff;">⋯</b> (titik tiga) di pojok kanan bawah</p>'
+                  + '</div>'
+                  + '<div style="display:flex;align-items:flex-start;gap:10px;">'
+                  + '<div style="min-width:24px;height:24px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">2</div>'
+                  + '<p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Pilih <b style="color:#fff;">"Buka di browser"</b> atau <b style="color:#fff;">"Open in browser"</b></p>'
+                  + '</div>'
+                : // Instagram/Facebook/other instructions
+                  '<div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:12px;">'
+                  + '<div style="min-width:24px;height:24px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">1</div>'
+                  + '<p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Ketuk ikon <b style="color:#fff;">⋮</b> atau <b style="color:#fff;">⋯</b> di pojok kanan atas/bawah</p>'
+                  + '</div>'
+                  + '<div style="display:flex;align-items:flex-start;gap:10px;">'
+                  + '<div style="min-width:24px;height:24px;background:#D4AF37;color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">2</div>'
+                  + '<p style="color:#d1d5db;font-size:13px;margin:0;line-height:1.5;">Pilih <b style="color:#fff;">"Buka di browser"</b> atau <b style="color:#fff;">"Open in browser"</b></p>'
+                  + '</div>'
+              )
+              
+              + '</div>'
+
+              // Copy link button
+              + '<button onclick="navigator.clipboard.writeText(window.location.href).then(function(){document.getElementById(\'copy-feedback\').style.display=\'block\';setTimeout(function(){document.getElementById(\'copy-feedback\').style.display=\'none\'},2000)})" style="width:100%;padding:12px;background:#D4AF37;color:#000;font-weight:700;font-size:14px;border:none;border-radius:10px;cursor:pointer;margin-bottom:8px;">📋 Salin Link & Buka di Chrome</button>'
+              + '<p id="copy-feedback" style="display:none;color:#4ade80;font-size:12px;margin:4px 0 0;">✓ Link tersalin! Buka Chrome lalu paste di address bar</p>'
+
+              // Skip option
+              + '<button onclick="document.getElementById(\'inapp-overlay\').remove()" style="width:100%;padding:10px;background:transparent;color:#6b7280;font-size:13px;border:none;cursor:pointer;margin-top:4px;">Lanjut di sini saja →</button>'
+
+              + '</div>'
+              + '</div>';
+            document.body.appendChild(overlay);
+          });
         }
       })();
     </script>
