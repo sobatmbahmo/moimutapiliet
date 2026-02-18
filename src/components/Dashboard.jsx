@@ -30,6 +30,7 @@ import EditAffiliatorModal from './dashboard/EditAffiliatorModal';
 import AdminOrdersPanel from './dashboard/AdminOrdersPanel';
 import AdminProductsPanel from './dashboard/AdminProductsPanel';
 import AdminAffiliatorsPanel from './dashboard/AdminAffiliatorsPanel';
+import AdminCustomersPanel from './dashboard/AdminCustomersPanel';
 import AffiliatorDashboard from './dashboard/AffiliatorDashboard';
 
 const formatRupiah = (number) => {
@@ -394,13 +395,15 @@ export default function Dashboard({ user, onLogout }) {
 
       if (result.success) {
         setSuccessMsg(editingCustomer ? 'Customer berhasil diupdate' : 'Customer berhasil ditambahkan');
-        // Auto-fill form dengan data customer baru/updated
-        setOfflineOrder({
-          ...offlineOrder,
-          customer_name: result.customer.nama,
-          customer_phone: result.customer.nomor_wa,
-          customer_address: result.customer.alamat || offlineOrder.customer_address
-        });
+        // Auto-fill offline order form hanya jika sedang di tab orders/offline form
+        if (activeTab === 'orders') {
+          setOfflineOrder({
+            ...offlineOrder,
+            customer_name: result.customer.nama,
+            customer_phone: result.customer.nomor_wa,
+            customer_address: result.customer.alamat || offlineOrder.customer_address
+          });
+        }
         setShowAddCustomerModal(false);
         setNewCustomerForm({ nama: '', nomor_wa: '', alamat: '' });
         setEditingCustomer(null);
@@ -1712,7 +1715,7 @@ export default function Dashboard({ user, onLogout }) {
 
         {/* Tabs */}
         <div className="flex gap-2 border-b border-white/10">
-          {['orders', 'products', 'affiliators'].map(tab => (
+          {['orders', 'products', 'affiliators', 'customers'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -1722,7 +1725,7 @@ export default function Dashboard({ user, onLogout }) {
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'customers' ? 'Pelanggan' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -1773,6 +1776,20 @@ export default function Dashboard({ user, onLogout }) {
             handleEditAffiliator={handleEditAffiliator}
             handleDeleteAffiliator={handleDeleteAffiliator}
             handleResendAffiliatorNotification={handleResendAffiliatorNotification}
+          />
+        )}
+
+        {activeTab === 'customers' && (
+          <AdminCustomersPanel
+            customers={customers}
+            loading={loading}
+            onEditCustomer={handleEditCustomer}
+            onDeleteCustomer={handleDeleteCustomer}
+            onAddCustomer={() => {
+              setEditingCustomer(null);
+              setNewCustomerForm({ nama: '', nomor_wa: '', alamat: '' });
+              setShowAddCustomerModal(true);
+            }}
           />
         )}
 
