@@ -8,7 +8,7 @@
 export const sanitizeInput = (input) => {
   if (typeof input !== 'string') return '';
   return input
-    .replace(/[<>\"\']/g, '') // Remove < > " '
+    .replace(/[<>"']/g, '') // Remove < > " '
     .trim();
 };
 
@@ -30,7 +30,7 @@ export const validateNama = (nama) => {
   }
 
   // Allow: letters, numbers, spaces, hyphens, dots, apostrophes
-  if (!/^[a-zA-Z\s\-.\''ąćęłńóśźżА-Яа-я0-9]+$/.test(nama)) {
+  if (!/^[a-zA-Z\s\-.''ąćęłńóśźżА-Яа-я0-9]+$/.test(nama)) {
     return 'Nama hanya boleh mengandung huruf, angka, spasi, dan karakter (-.\')';
   }
 
@@ -47,7 +47,7 @@ export const validateNomorWA = (nomor) => {
   }
 
   // Remove spaces and dashes
-  const cleaned = nomor.replace(/[\s\-]/g, '');
+  const cleaned = nomor.replace(/[\s-]/g, '');
 
   // Check format: must be valid Indonesian phone
   // 62 or 0 prefix, followed by 9-12 digits
@@ -149,9 +149,9 @@ export const validateAlamat = (alamat) => {
     return 'Alamat maksimal 500 karakter';
   }
 
-// Validasi karakter yang diizinkan setelah dibersihkan
-  if (!/^[a-zA-Z0-9\s\-.,#no\/\\()]+$/.test(cleanedAlamat)) {
-    return 'Alamat masih mengandung karakter yang tidak diizinkan';
+  // Allow letters, numbers, spaces, and common address chars
+  if (!/^[a-zA-Z0-9\s\-.,#no/\\()ąćęłńóśźżА-Яа-я]+$/.test(alamat)) {
+    return 'Alamat mengandung karakter yang tidak diizinkan';
   }
 
   return null;
@@ -176,7 +176,7 @@ export const validateResi = (resi) => {
   }
 
   // Allow alphanumeric and dashes
-  if (!/^[a-zA-Z0-9\-]+$/.test(cleaned)) {
+  if (!/^[a-zA-Z0-9-]+$/.test(cleaned)) {
     return 'Nomor resi hanya boleh mengandung huruf, angka, dan strip (-)';
   }
 
