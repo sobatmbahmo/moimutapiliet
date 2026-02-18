@@ -13,13 +13,19 @@ const PrintArea = ({ printData, printType }) => {
     <div id="printable-area" className="hidden">
       <style>{`
         @media print {
+          body * {
+            visibility: hidden !important;
+          }
+          #printable-area,
+          #printable-area * {
+            visibility: visible !important;
+          }
           #printable-area {
             display: block !important;
-            width: 100vw;
-            height: 100vh;
             position: absolute;
             top: 0;
             left: 0;
+            width: 100%;
             background: white;
             z-index: 9999;
             padding: 0;
@@ -32,9 +38,6 @@ const PrintArea = ({ printData, printType }) => {
             box-sizing: border-box;
             background: white;
             padding: 16mm;
-          }
-          body *:not(#printable-area) {
-            display: none !important;
           }
         }
       `}</style>
