@@ -21,6 +21,7 @@ import { handleError, safeApiCall } from '../lib/errorHandler';
 // sendAdminNotification imported above if needed
 
 // Import Dashboard Modular Components
+import PrintArea from './PrintArea';
 import AddCustomerModal from './dashboard/AddCustomerModal';
 import OfflineOrderForm from './dashboard/OfflineOrderForm';
 import ShippingModal from './dashboard/ShippingModal';
@@ -86,6 +87,8 @@ export default function Dashboard({ user, onLogout }) {
   const [showPrintResiModal, setShowPrintResiModal] = useState(false);
   const [selectedOrderForPrintResi, setSelectedOrderForPrintResi] = useState(null);
   const [expeditionRequestCode, setExpeditionRequestCode] = useState('');
+  const [printData, setPrintData] = useState(null);
+  const [printType, setPrintType] = useState('resi');
 
   // Handler untuk kirim ulang notifikasi ke affiliator
   const handleResendAffiliatorNotification = async (affiliator) => {
@@ -992,12 +995,40 @@ export default function Dashboard({ user, onLogout }) {
         .eq('id', selectedOrderForPrintResi.id);
 
       if (error) throw error;
-      
+
+      // Prepare print data untuk PrintArea
+      const order = selectedOrderForPrintResi;
+      const resiCode = `${order.courier_name || order.resi?.split('-')[0] || 'EXPEDISI'}-${expeditionRequestCode}`;
+      const itemsDetail = (order.order_items || []).map(item => ({
+        name: item.products?.name || item.nama_produk || 'Produk',
+        qty: item.qty || 1,
+        price: item.harga_satuan || 0,
+        note: item.varian || ''
+      }));
+
+      setPrintData({
+        receipt_number: resiCode,
+        customer_name: order.users?.nama || order.nama_pembeli || '',
+        customer_phone: order.users?.nomor_wa || order.nomor_wa || '',
+        customer_address: order.alamat || '',
+        expedition: order.courier_name || order.resi?.split('-')[0] || 'EXPEDISI',
+        items_detail: itemsDetail,
+        total_price: order.total_produk || 0,
+        shipping_cost: order.shipping_cost || 0,
+        created_at: order.created_at
+      });
+      setPrintType('resi');
+
       setSuccessMsg(isReprint ? 'Resi berhasil diupdate!' : 'Resi berhasil disimpan! Order dalam perjalanan.');
       setShowPrintResiModal(false);
       setSelectedOrderForPrintResi(null);
       setExpeditionRequestCode('');
       loadInitialData();
+
+      // Trigger print dialog setelah render
+      setTimeout(() => {
+        window.print();
+      }, 500);
     } catch (err) {
       setErrorMsg('Gagal menyimpan resi: ' + err.message);
     } finally {
@@ -2188,6 +2219,9 @@ export default function Dashboard({ user, onLogout }) {
           onEditCustomer={handleEditCustomer}
           formatRupiah={formatRupiah}
         />
+
+        {/* Print Area - hidden on screen, visible on print */}
+        <PrintArea printData={printData} printType={printType} />
       </div>
     </div>
   );
