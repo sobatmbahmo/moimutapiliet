@@ -1100,7 +1100,6 @@ export default function Dashboard({ user, onLogout }) {
 
       // Send invoice notification to customer dengan link
       if (selectedOrder.users?.nomor_wa) {
-        const baseUrl = window.location.origin;
         await safeApiCall(
           () => sendInvoiceNotification(
             selectedOrder.users.nomor_wa,
@@ -1108,7 +1107,6 @@ export default function Dashboard({ user, onLogout }) {
             selectedOrder.users.nama,
             updatedTotalProduk,
             shippingAmount,
-            baseUrl,
             couriername
           ),
           { context: 'Mengirim notifikasi invoice ke customer' }

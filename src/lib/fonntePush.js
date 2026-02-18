@@ -416,7 +416,6 @@ export const testFontneConnection = async (phoneNumber = '6289xxx1234') => {
  * @param {string} customerName - Customer name
  * @param {number} subtotal - Product subtotal
  * @param {number} shippingCost - Shipping cost
- * @param {string} baseUrl - Base URL for invoice link (e.g., http://localhost:5175)
  * @param {string} courierName - Courier name (e.g., JNE, Tiki)
  * @returns {Promise}
  */
@@ -426,11 +425,9 @@ export const sendInvoiceNotification = async (
   customerName,
   subtotal,
   shippingCost,
-  baseUrl = 'http://localhost:5175',
   courierName = 'Pengiriman'
 ) => {
   const total = subtotal + shippingCost;
-  const invoiceLink = `${baseUrl}/invoice/${orderNumber}`;
 
   let message = `*Pesanan Dikonfirmasi! ✅*\n\n`;
   message += `Halo ${customerName},\n\n`;
