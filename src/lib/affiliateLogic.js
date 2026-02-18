@@ -253,14 +253,14 @@ export const getAffiliatorDashboardSummary = async (affiliatorId) => {
     }
 
     // Get customer binding count
-    const { data: bindings, error: bindingsError } = await supabase
+    const { data: bindings } = await supabase
       .from('customer_binding')
       .select('id')
       .eq('affiliator_id', affiliatorId)
       .eq('status', 'active');
 
     // Get order count (delivered)
-    const { data: orders, error: ordersError } = await supabase
+    const { data: orders } = await supabase
       .from('orders')
       .select('total_bayar')
       .eq('affiliator_id', affiliatorId)
@@ -274,7 +274,7 @@ export const getAffiliatorDashboardSummary = async (affiliatorId) => {
     });
 
     // Get pending withdrawals
-    const { data: withdrawals, error: withdrawalsError } = await supabase
+    const { data: withdrawals } = await supabase
       .from('withdrawals')
       .select('id, nominal')
       .eq('affiliator_id', affiliatorId)

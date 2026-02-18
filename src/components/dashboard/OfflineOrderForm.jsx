@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Plus, Trash, Edit, MessageSquare, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { parseWAMessage, formatAddressString, detectPaymentMethod, normalizeRTRW } from '../../lib/addressParser';
+import { parseWAMessage, detectPaymentMethod, normalizeRTRW } from '../../lib/addressParser';
 import { validateAddress, formatValidatedAddress } from '../../lib/indonesiaAddress';
 
 /**

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { X, ShoppingCart, ExternalLink, Copy, ShoppingBag, Check } from 'lucide-react';
 
 const formatRupiah = (number) => {
@@ -10,22 +10,28 @@ const formatRupiah = (number) => {
 const VARIANTS = ['GGSA', 'INL', 'RHS', 'JRM', 'BB', 'MLB', 'SMP', 'DJS', 'PLN', 'APLN', 'KPLN'];
 
 export default function ProductModal({ product, isOpen, onClose, mode, onAddToCart }) {
-  if (!isOpen || !product) return null;
-
   const [qty, setQty] = useState(1);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showVariant, setShowVariant] = useState(false);
   const [selectedVariant, setSelectedVariant] = useState('');
   const isTikTokMode = mode === 'tiktok';
+  const prevIsOpenRef = useRef(false);
 
-  // Reset state saat modal dibuka/ditutup
+  // Reset state saat modal dibuka (track previous open state)
   useEffect(() => {
-    if (isOpen) {
-      setQty(1);
-      setShowVariant(false);
-      setSelectedVariant('');
+    if (isOpen && !prevIsOpenRef.current) {
+      // Modal just opened - reset state via callback
+      const timer = setTimeout(() => {
+        setQty(1);
+        setShowVariant(false);
+        setSelectedVariant('');
+      }, 0);
+      return () => clearTimeout(timer);
     }
+    prevIsOpenRef.current = isOpen;
   }, [isOpen, product]);
+
+  if (!isOpen || !product) return null;
 
   const handleCopyCode = () => {
     navigator.clipboard.writeText(product.kode_produk);

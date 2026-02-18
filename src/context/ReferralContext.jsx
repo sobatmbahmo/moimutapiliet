@@ -1,5 +1,6 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const ReferralContext = createContext();
 
 export function ReferralProvider({ children }) {
@@ -100,6 +101,7 @@ export function ReferralProvider({ children }) {
 }
 
 // Custom hook untuk menggunakan referral context
+// eslint-disable-next-line react-refresh/only-export-components
 export const useReferral = () => {
   const context = React.useContext(ReferralContext);
   

@@ -104,10 +104,8 @@ export const formatOrderForWA = async (orderId) => {
     message += `Status: ${getOrderStatusLabel(order.status)}\n\n`;
 
     message += `*Produk:*\n`;
-    let subtotal = 0;
     order.order_items.forEach((item, index) => {
       const itemTotal = item.quantity * item.harga_satuan;
-      subtotal += itemTotal;
       message += `${index + 1}. ${item.products.nama}${
         item.varian ? ` (${item.varian})` : ''
       }\n`;

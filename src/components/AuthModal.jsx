@@ -30,7 +30,7 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
   const [confirmPassword, setConfirmPassword] = useState('');
   const [nama, setNama] = useState('');
   const [nomorWA, setNomorWA] = useState('');
-  const [pin, setPin] = useState('');
+  const [_pin, setPin] = useState('');
   const [accountNumber, setAccountNumber] = useState('');
   const [bankName, setBankName] = useState('');
 
@@ -285,7 +285,7 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
       }
 
       // Check if email already exists
-      const { data: existing, error: checkError } = await supabase
+      const { data: existing } = await supabase
         .from('affiliators')
         .select('id')
         .eq('email', email.toLowerCase())

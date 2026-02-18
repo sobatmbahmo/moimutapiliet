@@ -20,6 +20,7 @@ export default function InvoicePage() {
 
   useEffect(() => {
     loadInvoice();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [orderNumber]);
 
   const loadInvoice = async () => {

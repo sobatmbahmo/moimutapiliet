@@ -6,19 +6,19 @@ import {
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { 
-  getUserOrders, createOrder, addOrderItems, updateOrderStatus, deleteOrder,
+  createOrder, addOrderItems, updateOrderStatus, deleteOrder,
   createWithdrawal, getAffiliatorWithdrawals,
-  getAffiliatorByEmail, updateAffiliator, updateProduct, deleteAffiliator, reorderProduct,
-  searchCustomers, upsertCustomer, setAffiliatorProductLink, getAffiliatorProductLink,
+  updateAffiliator, updateProduct, deleteAffiliator, reorderProduct,
+  upsertCustomer, setAffiliatorProductLink, getAffiliatorProductLink,
   createOrGetUser, getAllCustomers, deleteCustomer
 } from '../lib/supabaseQueries';
-import { getAffiliatorDashboardSummary, validateWithdrawalRequest, getTopAffiliators } from '../lib/affiliateLogic';
+import { getAffiliatorDashboardSummary, validateWithdrawalRequest } from '../lib/affiliateLogic';
 import { getAffiliatorBindings } from '../lib/bindingLogic';
-import { generateOrderNumber, calculateOrderTotal, formatOrderForWA } from '../lib/orderUtils';
-import { sendOrderConfirmation, sendInvoice, sendResiNotification, sendInvoiceNotification, sendAffiliatorApprovalNotification } from '../lib/fonntePush';
+import { generateOrderNumber } from '../lib/orderUtils';
+import { sendOrderConfirmation, sendResiNotification, sendInvoiceNotification, sendAffiliatorApprovalNotification } from '../lib/fonntePush';
 import { validateOngkir, validateResi, validateNomorWA, validateAlamat, validateNama } from '../lib/validation';
-import { handleError, safeApiCall, withTimeout } from '../lib/errorHandler';
-import { sendAdminNotification } from '../lib/fonntePush';
+import { handleError, safeApiCall } from '../lib/errorHandler';
+// sendAdminNotification imported above if needed
 
 // Import Dashboard Modular Components
 import AddCustomerModal from './dashboard/AddCustomerModal';
@@ -151,8 +151,7 @@ export default function Dashboard({ user, onLogout }) {
   const [reorderDestination, setReorderDestination] = useState('');
 
   // Customer Autocomplete & Add/Edit Modal
-  const [customerSearchResults, setCustomerSearchResults] = useState([]);
-  const [showCustomerSearchDropdown, setShowCustomerSearchDropdown] = useState(false);
+  const [, setShowCustomerSearchDropdown] = useState(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
   const [editingCustomer, setEditingCustomer] = useState(null); // null = add mode, customer object = edit mode
   const [newCustomerForm, setNewCustomerForm] = useState({
@@ -206,6 +205,7 @@ export default function Dashboard({ user, onLogout }) {
   // ======================
   useEffect(() => {
     loadInitialData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeTab, user.id, user.type]);
 
   const loadInitialData = async () => {
@@ -275,19 +275,7 @@ export default function Dashboard({ user, onLogout }) {
   // ======================
   // ADMIN: ORDER MANAGEMENT
   // ======================
-  const handleApproveOrder = async (orderId) => {
-    try {
-      const result = await updateOrderStatus(orderId, 'processing');
-      if (result.success) {
-        setSuccessMsg('Order disetujui dan sedang diproses');
-        loadInitialData();
-      } else {
-        setErrorMsg(result.error);
-      }
-    } catch (err) {
-      setErrorMsg(err.message);
-    }
-  };
+  // handleApproveOrder moved to AdminOrdersPanel
 
   const handlePrintLabel = async (orderId) => {
     try {
@@ -314,10 +302,7 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  const handleRePrintLabel = (order) => {
-    setSelectedOrderForLabel(order);
-    setShowPrintLabel(true);
-  };
+  // handleRePrintLabel functionality handled in AdminOrdersPanel
 
   const handleEditProduct = (product) => {
     setEditingProduct(product);
@@ -359,58 +344,9 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  const handleUpdateSortOrder = async (productId, newSortOrder) => {
-    try {
-      const result = await updateProduct(productId, { sort_order: newSortOrder });
-      if (result.success) {
-        loadInitialData();
-      } else {
-        setErrorMsg('Error: ' + result.error);
-      }
-    } catch (err) {
-      setErrorMsg('Error: ' + err.message);
-    }
-  };
+  // handleUpdateSortOrder functionality handled in AdminProductsPanel
 
-  // ===== CUSTOMER AUTOCOMPLETE HANDLERS =====
-  const handleCustomerNameChange = async (value) => {
-    setOfflineOrder({ ...offlineOrder, customer_name: value });
-    
-    if (value.trim().length > 1) {
-      const result = await searchCustomers(value);
-      if (result.success) {
-        setCustomerSearchResults(result.customers);
-        setShowCustomerSearchDropdown(true);
-      }
-    } else {
-      setShowCustomerSearchDropdown(false);
-    }
-  };
-
-  const handleCustomerPhoneChange = async (value) => {
-    setOfflineOrder({ ...offlineOrder, customer_phone: value });
-    
-    if (value.trim().length > 2) {
-      const result = await searchCustomers(value);
-      if (result.success) {
-        setCustomerSearchResults(result.customers);
-        setShowCustomerSearchDropdown(true);
-      }
-    } else {
-      setShowCustomerSearchDropdown(false);
-    }
-  };
-
-  const handleSelectCustomer = (customer) => {
-    setOfflineOrder({
-      ...offlineOrder,
-      customer_name: customer.nama,
-      customer_phone: customer.nomor_wa,
-      customer_address: customer.alamat || offlineOrder.customer_address
-    });
-    setShowCustomerSearchDropdown(false);
-    setCustomerSearchResults([]);
-  };
+  // ===== CUSTOMER AUTOCOMPLETE HANDLERS (moved to OfflineOrderForm) =====
 
   const handleEditCustomer = (customer) => {
     setEditingCustomer(customer);
@@ -763,7 +699,7 @@ export default function Dashboard({ user, onLogout }) {
   const handleBulkEditOpen = () => {
     const initialForm = {};
     selectedProducts.forEach(productId => {
-      const product = products.find(p => p.id === productId);
+      products.find(p => p.id === productId); // lookup for validation
       initialForm[productId] = '';
     });
     setBulkEditForm(initialForm);
@@ -942,7 +878,7 @@ export default function Dashboard({ user, onLogout }) {
 
     try {
       // Update order with resi
-      const { data, error } = await supabase
+      const { error: updateError } = await supabase
         .from('orders')
         .update({
           resi: resiNumber,
@@ -954,7 +890,7 @@ export default function Dashboard({ user, onLogout }) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
       // Send resi notification to customer
       const order = orders.find(o => o.id === orderId);
@@ -1107,7 +1043,7 @@ export default function Dashboard({ user, onLogout }) {
       }
 
       // Update order utama
-      const { data, error } = await supabase
+      const { error: orderUpdateError } = await supabase
         .from('orders')
         .update({
           shipping_cost: shippingAmount,
@@ -1122,7 +1058,7 @@ export default function Dashboard({ user, onLogout }) {
         .select()
         .single();
 
-      if (error) throw error;
+      if (orderUpdateError) throw orderUpdateError;
 
       // Send invoice notification to customer dengan link
       if (selectedOrder.users?.nomor_wa) {
@@ -1215,19 +1151,8 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   // ======================
-  // ADMIN: OFFLINE ORDER INPUT
+  // ADMIN: OFFLINE ORDER INPUT (handlers moved to OfflineOrderForm)
   // ======================
-  const handleAddOfflineItem = () => {
-    setOfflineOrder({
-      ...offlineOrder,
-      items: [...offlineOrder.items, { product_id: '', quantity: 1, price: 0, varian: '', satuan: '100gr' }]
-    });
-  };
-
-  const handleRemoveOfflineItem = (index) => {
-    const newItems = offlineOrder.items.filter((_, i) => i !== index);
-    setOfflineOrder({ ...offlineOrder, items: newItems });
-  };
 
   const handleSubmitOfflineOrder = async () => {
     // 🔒 STRICT VALIDATION

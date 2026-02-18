@@ -10,7 +10,7 @@ export default function Header({
   onLoginClick, 
   onRegisterClick 
 }) {
-  const { hasReferral, referralData, getShareLink } = useReferral();
+  const { hasReferral, getShareLink } = useReferral();
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
 
   const handleShareLink = () => {

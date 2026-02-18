@@ -11,8 +11,9 @@ export default function ShippingModal({
   setSelectedOrder,
   couriername,
   setCourierName,
-  couriersWithBill,
-  billOrder,
+  // couriersWithBill and billOrder reserved for future use
+  couriersWithBill: _couriersWithBill = null, // eslint-disable-line no-unused-vars
+  billOrder: _billOrder = null, // eslint-disable-line no-unused-vars
   setBillOrder,
   shippingCost,
   errorMsg,

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { X, Send, MapPin, ChevronDown, Info, Edit3, CreditCard } from 'lucide-react';
 import { useReferral } from '../context/ReferralContext';
-import { supabase } from '../lib/supabaseClient';
 import { createOrder, addOrderItems, createOrGetUser } from '../lib/supabaseQueries';
 import { generateOrderNumber } from '../lib/orderUtils';
 
@@ -28,6 +27,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
       fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
         .then(response => response.json()).then(data => setProvinces(data));
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isOpen]);
 
   const handleProvChange = (e) => {
