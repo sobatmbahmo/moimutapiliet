@@ -24,6 +24,7 @@ DEPLOYMENT_GUIDE.md
 *BLUEPRINT*.txt
 *.md
 !README.md
+!BLUEPRINT.md
 
 # Editor directories and files
 .vscode/*
