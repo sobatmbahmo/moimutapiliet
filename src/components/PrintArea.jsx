@@ -1,4 +1,5 @@
 import React from 'react';
+import Barcode from 'react-barcode';
 
 const formatRupiah = (number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -114,11 +115,23 @@ const PrintArea = ({ printData, printType }) => {
             {/* === SEPARATOR === */}
             <div style={{ borderBottom: '1.5px solid black' }} />
 
-            {/* === BARIS 2: EXPEDISI + KODE REQUEST === */}
+            {/* === BARIS 2: EXPEDISI + KODE REQUEST + BARCODE === */}
             <div className="text-center" style={{ padding: '2mm 0' }}>
               <span style={{ fontSize: '9px' }} className="font-bold">{printData.expedition || 'KURIR'}</span>
               <div style={{ fontSize: '0', lineHeight: '0' }}>&nbsp;</div>
               <span style={{ fontSize: '20px', lineHeight: '1', wordBreak: 'break-all', display: 'block', fontWeight: '900', letterSpacing: '1px' }}>{printData.request_code || printData.receipt_number}</span>
+              <div style={{ marginTop: '1mm' }}>
+                <Barcode
+                  value={printData.request_code || printData.receipt_number || '000'}
+                  format="CODE128"
+                  width={1.5}
+                  height={28}
+                  displayValue={false}
+                  margin={0}
+                  background="#ffffff"
+                  lineColor="#000000"
+                />
+              </div>
             </div>
 
             {/* === SEPARATOR === */}
