@@ -6,6 +6,15 @@ const formatRupiah = (number) => {
   }).format(number);
 };
 
+const wrapText = (text, maxLen = 30) => {
+  if (!text) return '';
+  const lines = [];
+  for (let i = 0; i < text.length; i += maxLen) {
+    lines.push(text.substring(i, i + maxLen));
+  }
+  return lines;
+};
+
 const PrintArea = ({ printData, printType }) => {
   if (!printData) return null;
 
@@ -96,9 +105,9 @@ const PrintArea = ({ printData, printType }) => {
         ) : (
           <div className="text-black uppercase" style={{ fontSize: '9px', height: '146mm', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
-            {/* === BARIS 1: NO RESI + TANGGAL === */}
+            {/* === BARIS 1: NO INVOICE + TANGGAL === */}
             <div className="flex justify-between items-center" style={{ padding: '1mm 0' }}>
-              <span style={{ fontSize: '9px' }} className="font-black">{printData.receipt_number}</span>
+              <span style={{ fontSize: '9px' }} className="font-black">{printData.invoice_id || printData.receipt_number}</span>
               <span style={{ fontSize: '8px' }} className="font-normal">{new Date().toLocaleDateString('id-ID')}</span>
             </div>
 
@@ -119,9 +128,13 @@ const PrintArea = ({ printData, printType }) => {
             <div style={{ padding: '1.5mm 0' }}>
               <div className="flex justify-between items-baseline">
                 <span style={{ fontSize: '12px', lineHeight: '1.1' }} className="font-black">{printData.customer_name}</span>
-                <span style={{ fontSize: '9px' }} className="font-normal font-mono shrink-0 ml-2">{printData.customer_phone}</span>
+                <span style={{ fontSize: '11px' }} className="font-bold font-mono shrink-0 ml-2">{printData.customer_phone}</span>
               </div>
-              <div style={{ fontSize: '8px', lineHeight: '1.3', wordBreak: 'break-word', marginTop: '1mm' }} className="font-normal">{printData.customer_address}</div>
+              <div style={{ fontSize: '9px', lineHeight: '1.4', marginTop: '1mm' }} className="font-normal">
+                {wrapText(printData.customer_address, 30).map((line, idx) => (
+                  <div key={idx}>{line}</div>
+                ))}
+              </div>
             </div>
 
             {/* === SEPARATOR === */}

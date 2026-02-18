@@ -1013,6 +1013,7 @@ export default function Dashboard({ user, onLogout }) {
 
       setPrintData({
         receipt_number: resiCode,
+        invoice_id: order.invoice_id || order.id?.substring(0, 8)?.toUpperCase() || '',
         request_code: expeditionRequestCode,
         customer_name: order.users?.nama || order.nama_pembeli || '',
         customer_phone: order.users?.nomor_wa || order.nomor_wa || '',
