@@ -93,13 +93,13 @@ export default function InstallPrompt() {
                 <Smartphone size={20} className="text-[#D4AF37]" />
               </div>
               <div>
-                <h3 className="text-white font-bold text-base leading-tight">Install Moi Mutapiliet</h3>
-                <p className="text-[#D4AF37] text-xs font-medium">Jamaah Linitingiyah</p>
+                <h3 className="text-white font-bold text-base leading-tight">Install Jamaah Lintingiyah</h3>
+                <p className="text-[#D4AF37] text-xs font-medium">Jamaah Lintingiyah</p>
               </div>
             </div>
 
             <p className="text-gray-300 text-sm leading-relaxed">
-              Pasang aplikasi ini di HP Anda untuk kemudahan berbelanja dan menjadi pelanggan setia <span className="text-[#D4AF37] font-semibold">Jamaah Linitingiyah</span>.
+              Pasang aplikasi ini di HP Anda untuk kemudahan berbelanja dan menjadi pelanggan setia <span className="text-[#D4AF37] font-semibold">Jamaah Lintingiyah</span>.
             </p>
           </div>
 

@@ -10,9 +10,9 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['logo.svg', 'logo192.png', 'logo512.png'],
       manifest: {
-        name: 'Moi Mutapiliet - Jamaah Linitingiyah',
-        short_name: 'MoiMutapiliet',
-        description: 'Toko online resmi Jamaah Linitingiyah',
+        name: 'Jamaah Lintingiyah',
+        short_name: 'Jamaah Lintingiyah',
+        description: 'Toko online resmi Jamaah Lintingiyah',
         theme_color: '#000000',
         background_color: '#042f2e',
         display: 'standalone',
