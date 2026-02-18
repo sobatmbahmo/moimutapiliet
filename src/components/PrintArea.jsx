@@ -94,40 +94,47 @@ const PrintArea = ({ printData, printType }) => {
             </div>
           </div>
         ) : (
-          <div className="text-black uppercase font-black" style={{ fontSize: '9px' }}>
-            <div className="flex justify-between items-center border-b border-black pb-0.5 mb-1">
-              <span style={{ fontSize: '8px' }} className="font-bold uppercase">Resi Penghantaran</span>
-              <span style={{ fontSize: '7px' }} className="italic uppercase">Dicetak: {new Date().toLocaleString('id-ID')}</span>
-            </div>
-            <div className="text-center mb-1.5">
-              <p style={{ fontSize: '8px' }} className="border border-black px-1 inline-block py-0.5 font-bold">NO. RESI / REQUEST:</p>
-              <h1 style={{ fontSize: '18px' }} className="font-black tracking-tight break-all leading-none mt-0.5">{printData.receipt_number}</h1>
-            </div>
-            <div className="flex justify-between items-start mb-1.5 gap-1">
-              <div className="flex-1 border-r border-black pr-1">
-                <p style={{ fontSize: '8px' }} className="border border-black px-0.5 inline-block mb-0.5 font-bold uppercase">KEPADA:</p>
-                <p style={{ fontSize: '14px' }} className="font-black leading-none uppercase">{printData.customer_name}</p>
-                <p style={{ fontSize: '11px' }} className="font-bold mb-0.5 font-mono">{printData.customer_phone}</p>
-                <div style={{ fontSize: '8px' }} className="leading-tight italic font-normal uppercase">{printData.customer_address}</div>
+          <div className="text-black uppercase font-black" style={{ fontSize: '9px', height: '146mm', display: 'flex', flexDirection: 'column' }}>
+            {/* === BAGIAN ATAS 50%: DATA RESI === */}
+            <div style={{ height: '50%', borderBottom: '2px solid black', paddingBottom: '1mm', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+              <div className="flex justify-between items-center border-b border-black pb-0.5">
+                <span style={{ fontSize: '7px' }} className="font-bold uppercase">Resi Penghantaran</span>
+                <span style={{ fontSize: '6px' }} className="italic uppercase">{new Date().toLocaleDateString('id-ID')}</span>
               </div>
-              <div className="w-1/4 text-center self-center">
-                <p style={{ fontSize: '8px' }} className="font-bold border-b border-black mb-0.5">KURIR:</p>
-                <p style={{ fontSize: '14px' }} className="font-black italic">{printData.expedition || 'KURIR'}</p>
+              <div className="text-center">
+                <p style={{ fontSize: '7px' }} className="border border-black px-1 inline-block py-0.5 font-bold">NO. RESI / REQUEST:</p>
+                <h1 style={{ fontSize: '16px' }} className="font-black tracking-tight break-all leading-none mt-0.5">{printData.receipt_number}</h1>
               </div>
-            </div>
-            <div className="border-y border-black text-center py-0.5 mb-1 font-black uppercase" style={{ fontSize: '9px' }}>ISI PAKET</div>
-            <div className={`grid ${printData.items_detail.length > 5 ? 'grid-cols-2 gap-x-2' : 'grid-cols-1'}`}>
-              {printData.items_detail.map((i, idx) => (
-                <div key={idx} className="border-b border-black py-0.5 flex flex-col last:border-0">
-                  <div className="flex gap-1 items-center">
-                    <span style={{ fontSize: '14px' }} className="font-black shrink-0">[{i.qty}]</span>
-                    <span style={{ fontSize: '11px' }} className="leading-none font-black uppercase">{i.name}</span>
-                  </div>
-                  {i.note && <div className="ml-6 border-l-2 border-black pl-1 italic font-bold mt-0.5 uppercase" style={{ fontSize: '8px' }}>* {i.note}</div>}
+              <div className="flex justify-between items-start gap-1" style={{ flex: 1, marginTop: '1mm' }}>
+                <div className="flex-1 border-r border-black pr-1" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <p style={{ fontSize: '7px' }} className="border border-black px-0.5 inline-block mb-0.5 font-bold uppercase w-fit">KEPADA:</p>
+                  <p style={{ fontSize: '13px', lineHeight: '1.1' }} className="font-black uppercase">{printData.customer_name}</p>
+                  <p style={{ fontSize: '10px' }} className="font-bold font-mono">{printData.customer_phone}</p>
+                  <div style={{ fontSize: '7px', lineHeight: '1.2' }} className="italic font-normal uppercase">{printData.customer_address}</div>
                 </div>
-              ))}
+                <div className="text-center self-center" style={{ width: '22mm' }}>
+                  <p style={{ fontSize: '7px' }} className="font-bold border-b border-black mb-0.5">KURIR:</p>
+                  <p style={{ fontSize: '13px' }} className="font-black italic">{printData.expedition || 'KURIR'}</p>
+                </div>
+              </div>
             </div>
-            <div className="mt-2 pt-1 border-t border-black text-center opacity-30 uppercase tracking-widest font-bold" style={{ fontSize: '7px' }}>TOKONEMBAHMO SURABAYA</div>
+
+            {/* === BAGIAN BAWAH 50%: ISI PAKET === */}
+            <div style={{ height: '50%', paddingTop: '1mm', display: 'flex', flexDirection: 'column' }}>
+              <div className="border-b border-black text-center py-0.5 font-black uppercase" style={{ fontSize: '8px' }}>ISI PAKET (CATATAN PACKING)</div>
+              <div style={{ flex: 1, overflow: 'hidden', marginTop: '1mm' }} className={`grid ${printData.items_detail.length > 4 ? 'grid-cols-2 gap-x-2' : 'grid-cols-1'} content-start`}>
+                {printData.items_detail.map((i, idx) => (
+                  <div key={idx} className="border-b border-black py-0.5 flex flex-col last:border-0">
+                    <div className="flex gap-1 items-center">
+                      <span style={{ fontSize: '16px' }} className="font-black shrink-0">[{i.qty}]</span>
+                      <span style={{ fontSize: '12px', lineHeight: '1.1' }} className="font-black uppercase">{i.name}</span>
+                    </div>
+                    {i.note && <div className="ml-6 border-l-2 border-black pl-1 italic font-bold uppercase" style={{ fontSize: '8px' }}>* {i.note}</div>}
+                  </div>
+                ))}
+              </div>
+              <div className="pt-0.5 border-t border-black text-center opacity-30 uppercase tracking-widest font-bold" style={{ fontSize: '6px' }}>TOKONEMBAHMO SURABAYA</div>
+            </div>
           </div>
         )}
       </div>
