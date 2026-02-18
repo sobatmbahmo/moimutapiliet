@@ -50,9 +50,17 @@
           </div>
         </div>
 
+        <!-- Tombol Buka di Browser (langsung) -->
+        <button id="open-browser-btn" style="width:100%;padding:14px;background:#D4AF37;color:#000;font-weight:700;font-size:15px;border:none;border-radius:10px;cursor:pointer;margin-bottom:10px;display:flex;align-items:center;justify-content:center;gap:8px;">
+          🌐 Buka di Browser
+        </button>
+
+        <!-- Atau salin link manual -->
+        <p style="color:#6b7280;font-size:11px;margin:0 0 8px;">Jika tombol di atas tidak berfungsi:</p>
+
         <!-- Copy link button -->
-        <button id="copy-btn" style="width:100%;padding:13px;background:#D4AF37;color:#000;font-weight:700;font-size:14px;border:none;border-radius:10px;cursor:pointer;margin-bottom:8px;">
-          📋 Salin Link
+        <button id="copy-btn" style="width:100%;padding:12px;background:rgba(255,255,255,0.08);color:#D4AF37;font-weight:600;font-size:13px;border:1px solid rgba(212,175,55,0.3);border-radius:10px;cursor:pointer;margin-bottom:8px;">
+          📋 Salin Link & Buka di Chrome
         </button>
         <p id="copy-feedback" style="display:none;color:#4ade80;font-size:12px;margin:4px 0 8px;">✅ Link tersalin! Buka Chrome, paste di address bar</p>
 
@@ -101,16 +109,58 @@
 
         if (isInApp) {
           var overlay = document.getElementById('inapp-overlay');
+          var isAndroid = /Android/i.test(ua);
+          var isIOS = /iPhone|iPad|iPod/i.test(ua);
+          var url = window.location.href;
+
           if (overlay) {
             overlay.style.display = 'flex';
+
+            // "Buka di Browser" button — tries multiple methods
+            var openBtn = document.getElementById('open-browser-btn');
+            if (openBtn) {
+              openBtn.addEventListener('click', function() {
+                if (isAndroid) {
+                  // Method 1: intent:// tanpa package constraint (buka browser default)
+                  var intentUrl = 'intent://' + url.replace(/https?:\/\//, '') 
+                    + '#Intent;scheme=https;action=android.intent.action.VIEW;end';
+                  window.location.href = intentUrl;
+                  
+                  // Method 2: fallback setelah 500ms — coba window.open
+                  setTimeout(function() {
+                    window.open(url, '_system');
+                  }, 500);
+                  
+                  // Method 3: fallback setelah 1s — coba <a target=_blank> click
+                  setTimeout(function() {
+                    var a = document.createElement('a');
+                    a.href = url;
+                    a.target = '_blank';
+                    a.rel = 'noopener noreferrer';
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }, 1000);
+                } else if (isIOS) {
+                  // iOS: coba Safari via x-safari-https://
+                  window.location.href = 'x-safari-' + url;
+                  
+                  setTimeout(function() {
+                    window.open(url, '_blank');
+                  }, 500);
+                } else {
+                  window.open(url, '_blank');
+                }
+              });
+            }
 
             // Copy button
             var copyBtn = document.getElementById('copy-btn');
             if (copyBtn) {
               copyBtn.addEventListener('click', function() {
-                var url = window.location.href;
+                var copyUrl = window.location.href;
                 if (navigator.clipboard && navigator.clipboard.writeText) {
-                  navigator.clipboard.writeText(url).then(function() {
+                  navigator.clipboard.writeText(copyUrl).then(function() {
                     document.getElementById('copy-feedback').style.display = 'block';
                     copyBtn.textContent = '✅ Tersalin!';
                     copyBtn.style.background = '#22c55e';
@@ -118,7 +168,7 @@
                 } else {
                   // Fallback for older WebViews
                   var ta = document.createElement('textarea');
-                  ta.value = url;
+                  ta.value = copyUrl;
                   ta.style.position = 'fixed';
                   ta.style.left = '-9999px';
                   document.body.appendChild(ta);
