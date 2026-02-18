@@ -7,6 +7,37 @@
     <meta name="description" content="TOKONEMBAHMO - Toko Makanan Ringan Online Terpercaya" />
     <meta name="theme-color" content="#D4AF37" />
     <title>TOKONEMBAHMO - Toko Makanan Ringan</title>
+
+    <!-- Force open in external browser (escape TikTok/IG/FB in-app browser) -->
+    <script type="text/javascript">
+      (function() {
+        var ua = navigator.userAgent || navigator.vendor || '';
+        // Deteksi in-app browser: TikTok, Instagram, Facebook, Line, dll
+        var isInApp = /FBAN|FBAV|Instagram|Line\/|TikTok|Snapchat|BytedanceWebview|musical_ly/i.test(ua);
+        
+        if (isInApp) {
+          var url = window.location.href;
+          var isAndroid = /Android/i.test(ua);
+          var isIOS = /iPhone|iPad|iPod/i.test(ua);
+
+          if (isAndroid) {
+            // Android: gunakan intent:// untuk buka di Chrome/browser default
+            var intentUrl = 'intent://' + url.replace(/https?:\/\//, '') 
+              + '#Intent;scheme=https;package=com.android.chrome;end';
+            window.location.href = intentUrl;
+          } else if (isIOS) {
+            // iOS: buka via googlechrome:// scheme, fallback ke Safari x-safari
+            var chromeUrl = url.replace('https://', 'googlechrome://');
+            window.location.href = chromeUrl;
+            // Fallback: jika Chrome tidak terinstall, buka di Safari
+            setTimeout(function() {
+              window.location.href = 'x-safari-' + url;
+            }, 500);
+          }
+        }
+      })();
+    </script>
+
     <!-- SPA redirect for GitHub Pages -->
     <script type="text/javascript">
       (function(l) {
