@@ -259,6 +259,31 @@ export default function AdminOrdersPanel({
         </button>
       </div>
 
+      {/* Summary Stat Cards - always visible overview */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+        {[
+          { key: 'pending', label: 'Menunggu', count: counts.pending, icon: <Clock size={18} />, bg: 'from-yellow-500/20 to-yellow-600/10', border: 'border-yellow-500/30', text: 'text-yellow-300', dot: 'bg-yellow-500' },
+          { key: 'process', label: 'Proses', count: counts.process, icon: <DollarSign size={18} />, bg: 'from-blue-500/20 to-blue-600/10', border: 'border-blue-500/30', text: 'text-blue-300', dot: 'bg-blue-500' },
+          { key: 'shipped', label: 'Dikirim', count: counts.shipped, icon: <Truck size={18} />, bg: 'from-purple-500/20 to-purple-600/10', border: 'border-purple-500/30', text: 'text-purple-300', dot: 'bg-purple-500' },
+          { key: 'delivered', label: 'Terkirim', count: counts.delivered, icon: <CheckCircle size={18} />, bg: 'from-green-500/20 to-green-600/10', border: 'border-green-500/30', text: 'text-green-300', dot: 'bg-green-500' },
+        ].map(s => (
+          <button
+            key={s.key}
+            onClick={() => setStatusFilter(statusFilter === s.key ? 'all' : s.key)}
+            className={`relative bg-gradient-to-br ${s.bg} border ${s.border} rounded-xl p-3 sm:p-4 text-left transition-all hover:scale-[1.02] ${
+              statusFilter === s.key ? 'ring-2 ring-white/20 scale-[1.02]' : ''
+            }`}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className={`${s.text} opacity-70`}>{s.icon}</span>
+              <div className={`w-2 h-2 rounded-full ${s.dot} ${s.count > 0 ? 'animate-pulse' : 'opacity-30'}`} />
+            </div>
+            <p className="text-white font-bold text-xl sm:text-2xl">{s.count}</p>
+            <p className={`${s.text} text-[10px] sm:text-xs font-medium`}>{s.label}</p>
+          </button>
+        ))}
+      </div>
+
       {/* Status Filter Pills - scrollable on mobile */}
       <div className="flex overflow-x-auto scrollbar-hide gap-2 pb-1 -mx-1 px-1">
         {STATUS_FILTERS.map(f => {
