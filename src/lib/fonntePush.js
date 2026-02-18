@@ -178,7 +178,6 @@ export const sendResiNotification = async (
 
   message += `No Resi: *${resi}*\n`;
   message += `Kurir: ${courierName}\n\n`;
-  message += `Silakan cek status pengiriman di aplikasi ${courierName} atau website mereka.\n`;
   message += `Terus pantau perkembangan paket Anda ya!\n\n`;
   message += `Terima kasih 🙏`;
 
@@ -440,9 +439,6 @@ export const sendInvoiceNotification = async (
   message += `Subtotal: Rp${subtotal.toLocaleString('id-ID')}\n`;
   message += `Ongkos Kirim (${courierName}): Rp${shippingCost.toLocaleString('id-ID')}\n`;
   message += `*Total: Rp${total.toLocaleString('id-ID')}*\n\n`;
-  message += `Silakan klik link di bawah untuk melihat detail dan konfirmasi pembayaran:\n\n`;
-  message += `*${invoiceLink}*\n\n`;
-  message += `Atau salin link jika tombol tidak bekerja.\n\n`;
   message += `Terima kasih telah berbelanja! 🙏`;
 
   return sendFonntMessage(phone, message);
