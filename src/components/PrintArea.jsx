@@ -41,6 +41,11 @@ const PrintArea = ({ printData, printType }) => {
           #printable-area * {
             visibility: visible !important;
           }
+          #printable-area svg,
+          #printable-area svg * {
+            visibility: visible !important;
+            display: inline !important;
+          }
           #printable-area {
             display: block !important;
             position: absolute;
