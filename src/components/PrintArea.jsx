@@ -152,8 +152,8 @@ const PrintArea = ({ printData, printType }) => {
                 <span style={{ fontSize: '12px', lineHeight: '1.1' }} className="font-black">{printData.customer_name}</span>
                 <span style={{ fontSize: '11px' }} className="font-bold font-mono shrink-0 ml-2">{printData.customer_phone}</span>
               </div>
-              <div style={{ fontSize: '9px', lineHeight: '1.4', marginTop: '1mm' }} className="font-normal">
-                {wrapText(printData.customer_address, 30).map((line, idx) => (
+              <div style={{ fontSize: '12px', lineHeight: '1.3', marginTop: '1mm' }} className="font-normal">
+                {wrapText(printData.customer_address, 40).map((line, idx) => (
                   <div key={idx}>{line}</div>
                 ))}
               </div>
@@ -164,24 +164,24 @@ const PrintArea = ({ printData, printType }) => {
 
             {/* === BARIS 4: TABEL BARANG === */}
             <div style={{ flex: 1, paddingTop: '1mm', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '8px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
                 <thead>
                   <tr style={{ borderBottom: '1px solid black' }}>
-                    <th style={{ textAlign: 'left', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '7px' }}>NAMA BARANG</th>
-                    <th style={{ textAlign: 'left', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '7px' }}>KODE</th>
-                    <th style={{ textAlign: 'center', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '7px' }}>SATUAN</th>
-                    <th style={{ textAlign: 'center', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '7px' }}>QTY</th>
+                    <th style={{ textAlign: 'left', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '9px' }}>NAMA BARANG</th>
+                    <th style={{ textAlign: 'left', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '9px' }}>KODE</th>
+                    <th style={{ textAlign: 'center', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '9px' }}>SATUAN</th>
+                    <th style={{ textAlign: 'center', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '9px' }}>QTY</th>
                   </tr>
                 </thead>
                 <tbody>
                   {printData.items_detail.map((i, idx) => (
                     <tr key={idx} style={{ borderBottom: '0.5px solid #ccc' }}>
-                      <td style={{ padding: '0.8mm 1mm', fontWeight: '700', fontSize: '9px', lineHeight: '1.2' }}>
+                      <td style={{ padding: '0.8mm 1mm', fontWeight: '700', fontSize: '12px', lineHeight: '1.2' }}>
                         {i.name}
-                        {i.note && <div style={{ fontSize: '7px', fontWeight: '400', fontStyle: 'italic' }}>({i.note})</div>}
+                        {i.note && <div style={{ fontSize: '9px', fontWeight: '400', fontStyle: 'italic' }}>({i.note})</div>}
                       </td>
-                      <td style={{ padding: '0.8mm 1mm', fontSize: '8px', fontFamily: 'monospace' }}>{i.product_code}</td>
-                      <td style={{ padding: '0.8mm 1mm', fontSize: '8px', textAlign: 'center' }}>{i.satuan}</td>
+                      <td style={{ padding: '0.8mm 1mm', fontSize: '12px', fontFamily: 'monospace' }}>{i.product_code}</td>
+                      <td style={{ padding: '0.8mm 1mm', fontSize: '12px', textAlign: 'center' }}>{i.satuan}</td>
                       <td style={{ padding: '0.8mm 1mm', fontSize: '12px', textAlign: 'center', fontWeight: '900' }}>{i.qty}</td>
                     </tr>
                   ))}
