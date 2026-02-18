@@ -13,6 +13,17 @@ const PrintArea = ({ printData, printType }) => {
     <div id="printable-area" className="hidden">
       <style>{`
         @media print {
+          @page {
+            size: A4 portrait;
+            margin: 10mm;
+          }
+          html, body {
+            width: 210mm;
+            height: auto;
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden !important;
+          }
           body * {
             visibility: hidden !important;
           }
@@ -26,22 +37,25 @@ const PrintArea = ({ printData, printType }) => {
             top: 0;
             left: 0;
             width: 100%;
+            height: auto;
             background: white;
             z-index: 9999;
             padding: 0;
             margin: 0;
           }
           #printable-area > div {
-            width: 210mm;
-            min-height: 297mm;
-            margin: 0 auto;
+            width: 100%;
+            height: auto;
+            margin: 0;
             box-sizing: border-box;
             background: white;
-            padding: 16mm;
+            padding: 5mm;
+            page-break-after: avoid;
+            page-break-inside: avoid;
           }
         }
       `}</style>
-      <div style={{ width: '210mm', minHeight: '297mm', margin: '0 auto', background: 'white', boxSizing: 'border-box', padding: '16mm' }}>
+      <div style={{ width: '100%', margin: '0 auto', background: 'white', boxSizing: 'border-box', padding: '5mm' }}>
         {printType === 'invoice' ? (
           <div className="text-black uppercase font-black">
             <div className="text-center border-b-2 border-black pb-2 mb-4">
