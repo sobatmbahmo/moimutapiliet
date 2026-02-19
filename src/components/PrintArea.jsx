@@ -33,26 +33,31 @@ const PrintArea = ({ printData, printType }) => {
           *, *::before, *::after {
             box-sizing: border-box !important;
           }
-          html {
-            width: ${isResi ? '100mm' : '210mm'};
-            height: ${isResi ? '150mm' : 'auto'};
+          html, body {
+            width: ${isResi ? '100mm' : '210mm'} !important;
+            height: ${isResi ? '150mm' : 'auto'} !important;
             margin: 0 !important;
             padding: 0 !important;
             overflow: hidden !important;
           }
-          body {
-            width: ${isResi ? '100mm' : '210mm'};
-            height: ${isResi ? '150mm' : 'auto'};
+          /* Sembunyikan SEMUA elemen */
+          body * {
+            visibility: hidden !important;
             margin: 0 !important;
             padding: 0 !important;
+            height: 0 !important;
+            width: 0 !important;
             overflow: hidden !important;
+            line-height: 0 !important;
+            font-size: 0 !important;
+            border: none !important;
+            float: none !important;
+            position: static !important;
           }
-          /* Sembunyikan SEMUA elemen lain */
-          body > *:not(#printable-area) {
-            display: none !important;
-          }
+          /* Tampilkan HANYA printable-area */
           #printable-area {
             display: block !important;
+            visibility: visible !important;
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
@@ -64,10 +69,23 @@ const PrintArea = ({ printData, printType }) => {
             padding: 0 !important;
             margin: 0 !important;
             overflow: hidden !important;
+            font-size: initial !important;
+            line-height: normal !important;
+            border: none !important;
           }
-          #printable-area,
-          #printable-area * {
+          #printable-area *,
+          #printable-area *::before,
+          #printable-area *::after {
             visibility: visible !important;
+            height: auto !important;
+            width: auto !important;
+            overflow: visible !important;
+            line-height: normal !important;
+            font-size: inherit !important;
+            border: initial !important;
+            margin: initial !important;
+            padding: initial !important;
+            position: static !important;
             font-family: 'Poppins', sans-serif !important;
           }
           #printable-area svg,
@@ -75,6 +93,7 @@ const PrintArea = ({ printData, printType }) => {
             visibility: visible !important;
             display: inline !important;
           }
+          /* Override container utama resi */
           #printable-area > div {
             width: ${isResi ? '100mm' : '100%'} !important;
             height: ${isResi ? '150mm' : 'auto'} !important;
@@ -87,11 +106,11 @@ const PrintArea = ({ printData, printType }) => {
             break-after: avoid !important;
             break-inside: avoid !important;
           }
-          /* Resi inner container */
           #printable-area > div > div {
             height: ${isResi ? '150mm' : 'auto'} !important;
             max-height: ${isResi ? '150mm' : 'none'} !important;
             overflow: hidden !important;
+            padding: ${isResi ? '3mm' : '0'} !important;
           }
         }
       `}</style>
