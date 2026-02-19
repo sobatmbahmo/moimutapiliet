@@ -25,6 +25,7 @@ const PrintArea = ({ printData, printType }) => {
     <div id="printable-area" className="hidden">
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap');
         @media print {
           @page {
             size: ${isResi ? '100mm 150mm' : 'A4 portrait'};
@@ -183,8 +184,8 @@ const PrintArea = ({ printData, printType }) => {
             {/* === BARIS 3: NAMA + NO HP + ALAMAT === */}
             <div style={{ padding: '1.5mm 0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                <span style={{ fontSize: '3.2mm', lineHeight: '1.1', fontWeight: '900' }}>{printData.customer_name}</span>
-                <span style={{ fontSize: '3.2mm', fontWeight: '900', flexShrink: 0, marginLeft: '2mm' }}>{printData.customer_phone}</span>
+                <span style={{ fontSize: '3.2mm', lineHeight: '1.1', fontWeight: '700', fontFamily: "'Bebas Neue', sans-serif" }}>{printData.customer_name}</span>
+                <span style={{ fontSize: '3.2mm', fontWeight: '700', fontFamily: "'Bebas Neue', sans-serif", flexShrink: 0, marginLeft: '2mm' }}>{printData.customer_phone}</span>
               </div>
               <div style={{ fontSize: '3mm', lineHeight: '1.3', marginTop: '1mm', fontWeight: '400' }}>
                 {wrapText(printData.customer_address, 40).map((line, idx) => (
