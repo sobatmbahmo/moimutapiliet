@@ -134,13 +134,13 @@ const PrintArea = ({ printData, printType }) => {
             fontFamily: "'Poppins', sans-serif",
           }}>
 
-            {/* === BARIS 1: INVOICE | TANGGAL | TOKO === */}
-            <div style={{ display: 'flex', alignItems: 'center', padding: '1mm 0', fontSize: '2.2mm', fontWeight: '600' }}>
+            {/* === BARIS 1: INVOICE | HARI, TANGGAL | TOKO === */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '1mm 0', fontSize: '2.2mm', fontWeight: '600' }}>
               <span style={{ fontWeight: '900' }}>{printData.invoice_id || printData.receipt_number}</span>
               <span style={{ margin: '0 1.5mm', opacity: 0.4 }}>|</span>
-              <span>{new Date().toLocaleDateString('id-ID')}</span>
+              <span>{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</span>
               <span style={{ margin: '0 1.5mm', opacity: 0.4 }}>|</span>
-              <span>TOKONEMBAHMO&nbsp;&nbsp;I&nbsp;&nbsp;085700800278</span>
+              <span>TOKONEMBAHMO I 085700800278</span>
             </div>
 
             {/* === SEPARATOR === */}
