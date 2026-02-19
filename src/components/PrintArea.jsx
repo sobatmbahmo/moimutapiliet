@@ -56,19 +56,23 @@ const PrintArea = ({ printData, printType }) => {
             top: 0;
             left: 0;
             width: ${isResi ? '100mm' : '100%'};
-            min-height: ${isResi ? '150mm' : 'auto'};
+            height: ${isResi ? '150mm' : 'auto'};
+            max-height: ${isResi ? '150mm' : 'none'};
             background: white;
             z-index: 9999;
             padding: 0;
             margin: 0;
+            overflow: ${isResi ? 'hidden' : 'visible'} !important;
           }
           #printable-area > div {
             width: 100%;
-            min-height: ${isResi ? '150mm' : 'auto'};
+            height: ${isResi ? '150mm' : 'auto'};
+            max-height: ${isResi ? '150mm' : 'none'};
             margin: 0;
             box-sizing: border-box;
             background: white;
             padding: 0;
+            overflow: ${isResi ? 'hidden' : 'visible'} !important;
             page-break-after: ${isResi ? 'avoid' : 'auto'};
             page-break-inside: ${isResi ? 'avoid' : 'auto'};
           }
@@ -114,16 +118,17 @@ const PrintArea = ({ printData, printType }) => {
         ) : (
           <div style={{
             fontSize: '2.5mm',
-            minHeight: '150mm',
+            height: '150mm',
+            maxHeight: '150mm',
             width: '100mm',
             display: 'flex',
             flexDirection: 'column',
             boxSizing: 'border-box',
             padding: '3mm',
-            border: '0.4mm solid black',
             color: 'black',
             textTransform: 'uppercase',
             background: 'white',
+            overflow: 'hidden',
           }}>
 
             {/* === BARIS 1: NO INVOICE + TANGGAL === */}
