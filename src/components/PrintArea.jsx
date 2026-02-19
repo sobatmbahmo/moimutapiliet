@@ -24,6 +24,7 @@ const PrintArea = ({ printData, printType }) => {
   return (
     <div id="printable-area" className="hidden">
       <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap');
         @media print {
           @page {
             size: ${isResi ? '100mm 150mm' : 'A4 portrait'};
@@ -44,6 +45,7 @@ const PrintArea = ({ printData, printType }) => {
           #printable-area,
           #printable-area * {
             visibility: visible !important;
+            font-family: 'Poppins', sans-serif !important;
           }
           #printable-area svg,
           #printable-area svg * {
@@ -129,6 +131,7 @@ const PrintArea = ({ printData, printType }) => {
             textTransform: 'uppercase',
             background: 'white',
             overflow: 'hidden',
+            fontFamily: "'Poppins', sans-serif",
           }}>
 
             {/* === BARIS 1: NO INVOICE + TANGGAL === */}
@@ -167,7 +170,7 @@ const PrintArea = ({ printData, printType }) => {
             <div style={{ padding: '1.5mm 0' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
                 <span style={{ fontSize: '3.2mm', lineHeight: '1.1', fontWeight: '900' }}>{printData.customer_name}</span>
-                <span style={{ fontSize: '3.2mm', fontWeight: '900', fontFamily: 'monospace', flexShrink: 0, marginLeft: '2mm' }}>{printData.customer_phone}</span>
+                <span style={{ fontSize: '3.2mm', fontWeight: '900', flexShrink: 0, marginLeft: '2mm' }}>{printData.customer_phone}</span>
               </div>
               <div style={{ fontSize: '3mm', lineHeight: '1.3', marginTop: '1mm', fontWeight: '400' }}>
                 {wrapText(printData.customer_address, 40).map((line, idx) => (
@@ -197,7 +200,7 @@ const PrintArea = ({ printData, printType }) => {
                         {i.name}
                         {i.note && <div style={{ fontSize: '2.2mm', fontWeight: '400', fontStyle: 'italic' }}>({i.note})</div>}
                       </td>
-                      <td style={{ padding: '0.8mm 1mm', fontSize: '3mm', fontFamily: 'monospace' }}>{i.product_code}</td>
+                      <td style={{ padding: '0.8mm 1mm', fontSize: '3mm' }}>{i.product_code}</td>
                       <td style={{ padding: '0.8mm 1mm', fontSize: '3mm', textAlign: 'center' }}>{i.satuan}</td>
                       <td style={{ padding: '0.8mm 1mm', fontSize: '3mm', textAlign: 'center', fontWeight: '900' }}>{i.qty}</td>
                     </tr>
