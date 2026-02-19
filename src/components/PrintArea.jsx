@@ -134,13 +134,13 @@ const PrintArea = ({ printData, printType }) => {
             fontFamily: "'Poppins', sans-serif",
           }}>
 
-            {/* === BARIS 1: NO INVOICE + TANGGAL === */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1mm 0' }}>
-              <span style={{ fontSize: '2.5mm', fontWeight: '900' }}>{printData.invoice_id || printData.receipt_number}</span>
-              <span style={{ fontSize: '2mm', fontWeight: '400' }}>{new Date().toLocaleDateString('id-ID')}</span>
-            </div>
-            <div style={{ fontSize: '2.2mm', fontWeight: '600', letterSpacing: '0.2mm', paddingBottom: '1mm' }}>
-              TOKONEMBAHMO&nbsp;&nbsp;I&nbsp;&nbsp;085700800278
+            {/* === BARIS 1: INVOICE | TANGGAL | TOKO === */}
+            <div style={{ display: 'flex', alignItems: 'center', padding: '1mm 0', fontSize: '2.2mm', fontWeight: '600' }}>
+              <span style={{ fontWeight: '900' }}>{printData.invoice_id || printData.receipt_number}</span>
+              <span style={{ margin: '0 1.5mm', opacity: 0.4 }}>|</span>
+              <span>{new Date().toLocaleDateString('id-ID')}</span>
+              <span style={{ margin: '0 1.5mm', opacity: 0.4 }}>|</span>
+              <span>TOKONEMBAHMO&nbsp;&nbsp;I&nbsp;&nbsp;085700800278</span>
             </div>
 
             {/* === SEPARATOR === */}
