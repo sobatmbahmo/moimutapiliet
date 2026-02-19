@@ -532,6 +532,7 @@ export default function OfflineOrderForm({
                 type="number"
                 value={offlineOrder.shipping_cost}
                 onChange={(e) => setOfflineOrder({ ...offlineOrder, shipping_cost: parseInt(e.target.value) || 0 })}
+                onFocus={(e) => e.target.select()}
                 className="w-full pl-8 pr-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white text-sm"
                 placeholder="0"
               />
