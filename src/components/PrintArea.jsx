@@ -19,20 +19,24 @@ const wrapText = (text, maxLen = 30) => {
 const PrintArea = ({ printData, printType }) => {
   if (!printData) return null;
 
+  const isResi = printType === 'resi';
+
   return (
     <div id="printable-area" className="hidden">
       <style>{`
         @media print {
           @page {
-            size: ${printType === 'resi' ? '100mm 150mm' : 'A4 portrait'};
-            margin: ${printType === 'resi' ? '3mm 4mm' : '10mm'};
+            size: ${isResi ? '100mm 150mm' : 'A4 portrait'};
+            margin: ${isResi ? '0' : '10mm'};
+          }
+          *, *::before, *::after {
+            box-sizing: border-box !important;
           }
           html, body {
-            width: ${printType === 'resi' ? '100mm' : '210mm'};
-            height: ${printType === 'resi' ? '150mm' : 'auto'};
+            width: ${isResi ? '100mm' : '210mm'};
+            height: ${isResi ? '150mm' : 'auto'};
             margin: 0 !important;
             padding: 0 !important;
-            overflow: hidden !important;
           }
           body * {
             visibility: hidden !important;
@@ -51,31 +55,26 @@ const PrintArea = ({ printData, printType }) => {
             position: absolute;
             top: 0;
             left: 0;
-            width: ${printType === 'resi' ? '92mm' : '100%'};
-            height: ${printType === 'resi' ? '144mm' : 'auto'};
-            max-height: ${printType === 'resi' ? '144mm' : 'none'};
+            width: ${isResi ? '100mm' : '100%'};
+            min-height: ${isResi ? '150mm' : 'auto'};
             background: white;
             z-index: 9999;
             padding: 0;
             margin: 0;
-            overflow: hidden !important;
           }
           #printable-area > div {
             width: 100%;
-            height: ${printType === 'resi' ? '144mm' : 'auto'};
-            max-height: ${printType === 'resi' ? '144mm' : 'none'};
+            min-height: ${isResi ? '150mm' : 'auto'};
             margin: 0;
             box-sizing: border-box;
             background: white;
-            padding: ${printType === 'resi' ? '1mm' : '5mm'};
-            page-break-after: ${printType === 'resi' ? 'avoid' : 'auto'};
-            page-break-inside: ${printType === 'resi' ? 'avoid' : 'auto'};
-            page-break-before: ${printType === 'resi' ? 'avoid' : 'auto'};
-            overflow: hidden !important;
+            padding: 0;
+            page-break-after: ${isResi ? 'avoid' : 'auto'};
+            page-break-inside: ${isResi ? 'avoid' : 'auto'};
           }
         }
       `}</style>
-      <div style={{ width: printType === 'resi' ? '92mm' : '100%', margin: '0 auto', background: 'white', boxSizing: 'border-box', padding: printType === 'resi' ? '1mm' : '5mm' }}>
+      <div style={{ width: isResi ? '100mm' : '100%', margin: '0 auto', background: 'white', boxSizing: 'border-box', padding: 0 }}>
         {printType === 'invoice' ? (
           <div className="text-black uppercase font-black">
             <div className="text-center border-b-2 border-black pb-2 mb-4">
@@ -113,23 +112,36 @@ const PrintArea = ({ printData, printType }) => {
             </div>
           </div>
         ) : (
-          <div className="text-black uppercase" style={{ fontSize: '9px', height: '144mm', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+          <div style={{
+            fontSize: '2.5mm',
+            minHeight: '150mm',
+            width: '100mm',
+            display: 'flex',
+            flexDirection: 'column',
+            boxSizing: 'border-box',
+            padding: '3mm',
+            border: '0.4mm solid black',
+            color: 'black',
+            textTransform: 'uppercase',
+            background: 'white',
+          }}>
 
             {/* === BARIS 1: NO INVOICE + TANGGAL === */}
-            <div className="flex justify-between items-center" style={{ padding: '1mm 0' }}>
-              <span style={{ fontSize: '9px' }} className="font-black">{printData.invoice_id || printData.receipt_number}</span>
-              <span style={{ fontSize: '8px' }} className="font-normal">{new Date().toLocaleDateString('id-ID')}</span>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1mm 0' }}>
+              <span style={{ fontSize: '2.5mm', fontWeight: '900' }}>{printData.invoice_id || printData.receipt_number}</span>
+              <span style={{ fontSize: '2mm', fontWeight: '400' }}>{new Date().toLocaleDateString('id-ID')}</span>
             </div>
 
             {/* === SEPARATOR === */}
-            <div style={{ borderBottom: '1.5px solid black' }} />
+            <div style={{ borderBottom: '0.4mm solid black' }} />
 
             {/* === BARIS 2: EXPEDISI + KODE REQUEST + BARCODE === */}
-            <div className="text-center" style={{ padding: '2mm 0' }}>
-              <span style={{ fontSize: '9px' }} className="font-bold">{printData.expedition || 'KURIR'}</span>
-              <div style={{ fontSize: '0', lineHeight: '0' }}>&nbsp;</div>
-              <span style={{ fontSize: '20px', lineHeight: '1', wordBreak: 'break-all', display: 'block', fontWeight: '900', letterSpacing: '1px' }}>{printData.request_code || printData.receipt_number}</span>
-              <div style={{ marginTop: '1mm' }}>
+            <div style={{ textAlign: 'center', padding: '2mm 0' }}>
+              <span style={{ fontSize: '2.5mm', fontWeight: '700' }}>{printData.expedition || 'KURIR'}</span>
+              <div style={{ fontSize: '5.5mm', lineHeight: '1.1', wordBreak: 'break-all', fontWeight: '900', letterSpacing: '0.3mm', marginTop: '1mm' }}>
+                {printData.request_code || printData.receipt_number}
+              </div>
+              <div style={{ marginTop: '1.5mm' }}>
                 <Barcode
                   value={printData.request_code || printData.receipt_number || '000'}
                   format="CODE128"
@@ -144,15 +156,15 @@ const PrintArea = ({ printData, printType }) => {
             </div>
 
             {/* === SEPARATOR === */}
-            <div style={{ borderBottom: '1.5px solid black' }} />
+            <div style={{ borderBottom: '0.4mm solid black' }} />
 
             {/* === BARIS 3: NAMA + NO HP + ALAMAT === */}
             <div style={{ padding: '1.5mm 0' }}>
-              <div className="flex justify-between items-baseline">
-                <span style={{ fontSize: '12px', lineHeight: '1.1' }} className="font-black">{printData.customer_name}</span>
-                <span style={{ fontSize: '13px' }} className="font-black font-mono shrink-0 ml-2">{printData.customer_phone}</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                <span style={{ fontSize: '3.2mm', lineHeight: '1.1', fontWeight: '900' }}>{printData.customer_name}</span>
+                <span style={{ fontSize: '3.2mm', fontWeight: '900', fontFamily: 'monospace', flexShrink: 0, marginLeft: '2mm' }}>{printData.customer_phone}</span>
               </div>
-              <div style={{ fontSize: '12px', lineHeight: '1.3', marginTop: '1mm' }} className="font-normal">
+              <div style={{ fontSize: '3mm', lineHeight: '1.3', marginTop: '1mm', fontWeight: '400' }}>
                 {wrapText(printData.customer_address, 40).map((line, idx) => (
                   <div key={idx}>{line}</div>
                 ))}
@@ -160,29 +172,29 @@ const PrintArea = ({ printData, printType }) => {
             </div>
 
             {/* === SEPARATOR === */}
-            <div style={{ borderBottom: '1.5px solid black' }} />
+            <div style={{ borderBottom: '0.4mm solid black' }} />
 
-            {/* === BARIS 4: TABEL BARANG === */}
-            <div style={{ flex: 1, paddingTop: '1mm', overflow: 'hidden' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+            {/* === BARIS 4: TABEL BARANG (flex-grow agar border samping terus ke bawah) === */}
+            <div style={{ flexGrow: 1, paddingTop: '1mm' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ borderBottom: '1px solid black' }}>
-                    <th style={{ textAlign: 'left', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '9px' }}>NAMA BARANG</th>
-                    <th style={{ textAlign: 'left', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '9px' }}>KODE</th>
-                    <th style={{ textAlign: 'center', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '9px' }}>SATUAN</th>
-                    <th style={{ textAlign: 'center', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '9px' }}>QTY</th>
+                  <tr style={{ borderBottom: '0.3mm solid black' }}>
+                    <th style={{ textAlign: 'left', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '2.5mm' }}>NAMA BARANG</th>
+                    <th style={{ textAlign: 'left', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '2.5mm' }}>KODE</th>
+                    <th style={{ textAlign: 'center', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '2.5mm' }}>SATUAN</th>
+                    <th style={{ textAlign: 'center', padding: '0.5mm 1mm', fontWeight: '900', fontSize: '2.5mm' }}>QTY</th>
                   </tr>
                 </thead>
                 <tbody>
                   {printData.items_detail.map((i, idx) => (
-                    <tr key={idx} style={{ borderBottom: '0.5px solid #ccc' }}>
-                      <td style={{ padding: '0.8mm 1mm', fontWeight: '700', fontSize: '12px', lineHeight: '1.2' }}>
+                    <tr key={idx} style={{ borderBottom: '0.15mm solid #ccc' }}>
+                      <td style={{ padding: '0.8mm 1mm', fontWeight: '700', fontSize: '3mm', lineHeight: '1.2' }}>
                         {i.name}
-                        {i.note && <div style={{ fontSize: '9px', fontWeight: '400', fontStyle: 'italic' }}>({i.note})</div>}
+                        {i.note && <div style={{ fontSize: '2.2mm', fontWeight: '400', fontStyle: 'italic' }}>({i.note})</div>}
                       </td>
-                      <td style={{ padding: '0.8mm 1mm', fontSize: '12px', fontFamily: 'monospace' }}>{i.product_code}</td>
-                      <td style={{ padding: '0.8mm 1mm', fontSize: '12px', textAlign: 'center' }}>{i.satuan}</td>
-                      <td style={{ padding: '0.8mm 1mm', fontSize: '12px', textAlign: 'center', fontWeight: '900' }}>{i.qty}</td>
+                      <td style={{ padding: '0.8mm 1mm', fontSize: '3mm', fontFamily: 'monospace' }}>{i.product_code}</td>
+                      <td style={{ padding: '0.8mm 1mm', fontSize: '3mm', textAlign: 'center' }}>{i.satuan}</td>
+                      <td style={{ padding: '0.8mm 1mm', fontSize: '3mm', textAlign: 'center', fontWeight: '900' }}>{i.qty}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -190,7 +202,9 @@ const PrintArea = ({ printData, printType }) => {
             </div>
 
             {/* === FOOTER === */}
-            <div className="text-center" style={{ borderTop: '1px solid black', paddingTop: '0.5mm', fontSize: '6px', opacity: 0.3, letterSpacing: '2px', fontWeight: '700' }}>TOKONEMBAHMO SURABAYA</div>
+            <div style={{ borderTop: '0.3mm solid black', paddingTop: '1mm', fontSize: '1.8mm', textAlign: 'center', opacity: 0.3, letterSpacing: '0.5mm', fontWeight: '700' }}>
+              TOKONEMBAHMO SURABAYA
+            </div>
           </div>
         )}
       </div>
