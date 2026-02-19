@@ -139,6 +139,9 @@ const PrintArea = ({ printData, printType }) => {
               <span style={{ fontSize: '2.5mm', fontWeight: '900' }}>{printData.invoice_id || printData.receipt_number}</span>
               <span style={{ fontSize: '2mm', fontWeight: '400' }}>{new Date().toLocaleDateString('id-ID')}</span>
             </div>
+            <div style={{ fontSize: '2.2mm', fontWeight: '600', letterSpacing: '0.2mm', paddingBottom: '1mm' }}>
+              TOKONEMBAHMO&nbsp;&nbsp;I&nbsp;&nbsp;085700800278
+            </div>
 
             {/* === SEPARATOR === */}
             <div style={{ borderBottom: '0.4mm solid black' }} />
