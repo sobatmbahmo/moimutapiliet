@@ -3,6 +3,7 @@ import { X, Send, MapPin, ChevronDown, Info, Edit3, CreditCard } from 'lucide-re
 import { useReferral } from '../context/ReferralContext';
 import { createOrder, addOrderItems, createOrGetUser } from '../lib/supabaseQueries';
 import { generateOrderNumber } from '../lib/orderUtils';
+import { createOrUpdateBinding } from '../lib/bindingLogic'; // Tambahan untuk Binding
 
 const formatRupiah = (number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -98,6 +99,14 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
 
       const createResult = await createOrder(userId, orderData);
       if (!createResult.success) throw new Error(createResult.error);
+
+      // --- TAMBAHAN BINDING LOGIC ---
+      // Ikat customer ke affiliator jika checkout menggunakan link referral
+      if (referralData.affiliatorId) {
+        await createOrUpdateBinding(userId, referralData.affiliatorId);
+        console.log('✅ Customer berhasil di-binding ke affiliator:', referralData.affiliatorId);
+      }
+      // ------------------------------
 
       // Add order items
       const itemsToAdd = cartItems.map(item => ({
