@@ -201,7 +201,7 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
         nama: affiliator.nama,
         email: affiliator.email,
         nomor_wa: affiliator.nomor_wa,
-        balance: affiliator.balance,
+        balance: affiliator.current_balance || 0,
         role: 'affiliator',
         type: 'affiliator'
       });
@@ -298,15 +298,14 @@ export default function AuthModal({ isOpen, onClose, initialMode, role, onLoginS
       }
 
       // Create new affiliator (with sanitized inputs)
-      const result = await createAffiliator(
-        sanitizeInput(nama.trim()),
-        sanitizeInput(nomorWA.trim()),
-        email.toLowerCase(),
-        password, // In production, use proper bcrypt
-        [], // akun_tiktok - empty for now
-        sanitizeInput(accountNumber.trim()),
-        sanitizeInput(bankName.trim())
-      );
+      const result = await createAffiliator({
+        nama: sanitizeInput(nama.trim()),
+        nomor_wa: sanitizeInput(nomorWA.trim()),
+        email: email.toLowerCase(),
+        password: password,
+        account_number: sanitizeInput(accountNumber.trim()),
+        bank_name: sanitizeInput(bankName.trim())
+      });
 
       if (!result.success) {
         setErrorMessage('Pendaftaran gagal: ' + (result.error || 'Unknown error'));
