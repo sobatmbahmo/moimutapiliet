@@ -616,3 +616,24 @@ pending → active (disetujui admin) → suspended / rejected
 ---
 
 *Dokumen ini di-generate pada 18 Februari 2026. Update berkala saat ada perubahan major.*
+
+---
+
+## 14. CHANGELOG
+
+### 20 Februari 2026
+- **Fix: Affiliator Register** — `createAffiliator()` dipanggil dengan 7 parameter terpisah, seharusnya 1 object `{ nama, nomor_wa, email, password, account_number, bank_name }`. Pendaftaran affiliator sebelumnya selalu gagal karena semua field menjadi `undefined`.
+- **Fix: Affiliator Login** — Field `affiliator.balance` tidak ada di database (kolom sebenarnya `current_balance`). Setelah login, saldo mitra selalu tampil 0/undefined.
+- **Redesign: Order Manual (OfflineOrderForm.jsx)** — Layout diubah ke 2 kolom profesional untuk desktop: kolom kiri (2/5) Data Customer + Pengiriman & Pembayaran, kolom kanan (3/5) Produk Dipesan + Ringkasan Total. Tetap responsif single-column di mobile. Ditambahkan section icons (User, Truck, Package, CreditCard), tabel produk dengan header kolom, dan summary card real-time.
+- **UX: Auto-select ongkir** — Input ongkir di order manual otomatis ter-select saat diklik (onFocus select), admin tinggal ketik angka baru.
+
+### 19 Februari 2026
+- **Style: Font Bebas Neue** — Nama pelanggan dan no HP di label resi menggunakan font Bebas Neue Bold (Google Fonts), elemen lain tetap Poppins.
+- **Fix: Print Resi multi-halaman** — Resi selalu mencetak 3-4 halaman. Root cause: `visibility: hidden` pada `body *` menyembunyikan elemen tapi tetap menempati ruang DOM. Fix: collapse `#root` dengan `height: 0; overflow: hidden; visibility: hidden`, lalu `#printable-area` menggunakan `position: fixed` di atas semua konten. CSS print juga menambahkan `page-break-inside: avoid` dan constraint `max-height: 150mm` di setiap level container.
+- **Style: Print Resi Header** — Header resi diformat menjadi satu baris terpusat: `INVOICE | Hari, Tanggal | TOKONEMBAHMO I 085700800278`.
+- **Style: Print Resi Font Poppins** — Seluruh label resi menggunakan font Poppins (Google Fonts @import).
+
+### 18 Februari 2026
+- **PWA Implementation** — Installed `vite-plugin-pwa`, configured manifest dengan nama "Jamaah Lintingiyah", service worker auto-update, created `InstallPrompt.jsx` custom install banner dengan branding, created SVG/PNG icons.
+- **In-app Browser Overlay** — Deteksi WebView (TikTok, IG, FB, dll) di `index.html`. Menampilkan overlay dengan instruksi "Cara 1: Titik tiga → Buka di Browser" dan "Cara 2: Salin Link".
+- **Dashboard Mobile Redesign** — Layout admin dashboard diubah ke responsive grid, professional styling.
