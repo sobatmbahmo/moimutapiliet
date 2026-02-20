@@ -18,7 +18,6 @@ import { generateOrderNumber } from '../lib/orderUtils';
 import { sendOrderConfirmation, sendResiNotification, sendInvoiceNotification, sendAffiliatorApprovalNotification } from '../lib/fonntePush';
 import { validateOngkir, validateResi, validateNomorWA, validateAlamat, validateNama } from '../lib/validation';
 import { handleError, safeApiCall } from '../lib/errorHandler';
-// sendAdminNotification imported above if needed
 
 // Import Dashboard Modular Components
 import PrintArea from './PrintArea';
@@ -51,7 +50,7 @@ export default function Dashboard({ user, onLogout }) {
   // ======================
   const [activeTab, setActiveTab] = useState(isAdmin ? 'orders' : 'dashboard');
   const [loading, setLoading] = useState(false);
-  const [deletingOrderId, setDeletingOrderId] = useState(null); // State spesifik untuk delete operation
+  const [deletingOrderId, setDeletingOrderId] = useState(null); 
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -84,14 +83,12 @@ export default function Dashboard({ user, onLogout }) {
   const [selectedOrderForResiNotif, setSelectedOrderForResiNotif] = useState(null);
   const [resiNotifNumber, setResiNotifNumber] = useState('');
 
-  // State untuk Print Resi Modal
   const [showPrintResiModal, setShowPrintResiModal] = useState(false);
   const [selectedOrderForPrintResi, setSelectedOrderForPrintResi] = useState(null);
   const [expeditionRequestCode, setExpeditionRequestCode] = useState('');
   const [printData, setPrintData] = useState(null);
   const [printType, setPrintType] = useState('resi');
 
-  // Handler untuk kirim ulang notifikasi ke affiliator
   const handleResendAffiliatorNotification = async (affiliator) => {
     setLoading(true);
     try {
@@ -112,10 +109,9 @@ export default function Dashboard({ user, onLogout }) {
       setLoading(false);
     }
   };
-  // Couriers that require bill order
+  
   const couriersWithBill = ['J&T', 'WAHANA', 'ID Express', 'Indah Cargo'];
 
-  // Offline order form
   const [offlineOrder, setOfflineOrder] = useState({
     customer_name: '',
     customer_phone: '',
@@ -127,7 +123,6 @@ export default function Dashboard({ user, onLogout }) {
     notes: ''
   });
 
-  // Withdrawal form
   const [withdrawalForm, setWithdrawalForm] = useState({
     nominal: '',
     bank_name: '',
@@ -135,7 +130,6 @@ export default function Dashboard({ user, onLogout }) {
     account_number: ''
   });
 
-  // Product Edit Modal
   const [showEditProductModal, setShowEditProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [editProductForm, setEditProductForm] = useState({
@@ -149,22 +143,19 @@ export default function Dashboard({ user, onLogout }) {
     sort_order: 0
   });
 
-  // Product Reorder Modal
   const [showReorderModal, setShowReorderModal] = useState(false);
   const [reorderingProduct, setReorderingProduct] = useState(null);
   const [reorderDestination, setReorderDestination] = useState('');
 
-  // Customer Autocomplete & Add/Edit Modal
   const [, setShowCustomerSearchDropdown] = useState(false);
   const [showAddCustomerModal, setShowAddCustomerModal] = useState(false);
-  const [editingCustomer, setEditingCustomer] = useState(null); // null = add mode, customer object = edit mode
+  const [editingCustomer, setEditingCustomer] = useState(null); 
   const [newCustomerForm, setNewCustomerForm] = useState({
     nama: '',
     nomor_wa: '',
     alamat: ''
   });
 
-  // Affiliator Edit Modal
   const [showEditAffiliatorModal, setShowEditAffiliatorModal] = useState(false);
   const [editingAffiliator, setEditingAffiliator] = useState(null);
   const [editAffiliatorForm, setEditAffiliatorForm] = useState({
@@ -181,24 +172,20 @@ export default function Dashboard({ user, onLogout }) {
     account_number: ''
   });
 
-  // Edit Product Link Modal (for Affiliator)
   const [showEditProductLinkModal, setShowEditProductLinkModal] = useState(false);
   const [editingProductForLink, setEditingProductForLink] = useState(null);
   const [productLinkForm, setProductLinkForm] = useState({
     tiktok_shop: ''
   });
 
-  // Share Product Link Modal (for Affiliator)
   const [showShareProductModal, setShowShareProductModal] = useState(false);
   const [sharingProduct, setSharingProduct] = useState(null);
 
-  // Bulk Edit TikTok Links (for Affiliator)
   const [selectedProducts, setSelectedProducts] = useState([]);
   const [showBulkEditModal, setShowBulkEditModal] = useState(false);
   const [bulkEditForm, setBulkEditForm] = useState({});
-  const [bulkLinkInput, setBulkLinkInput] = useState(''); // Single link to apply to all
+  const [bulkLinkInput, setBulkLinkInput] = useState(''); 
 
-  // Bulk Edit TikTok Links (for Admin) - edit default_link on products table
   const [selectedAdminProducts, setSelectedAdminProducts] = useState([]);
   const [showAdminBulkEditModal, setShowAdminBulkEditModal] = useState(false);
   const [adminBulkEditForm, setAdminBulkEditForm] = useState({});
@@ -241,16 +228,29 @@ export default function Dashboard({ user, onLogout }) {
         const customersResult = await getAllCustomers();
         if (customersResult.success) {
           setCustomers(customersResult.customers || []);
-        } else {
-          console.error('Failed to load customers:', customersResult.error);
         }
       } else if (isAffiliator) {
-        // Affiliator: Load products for all to display
+        // --- PERBAIKAN 1: LOAD LINK TIKTOK & GABUNGKAN KE PRODUCT ---
         const { data: productsData } = await supabase
           .from('products')
           .select('*')
           .order('sort_order', { ascending: true });
-        setProducts(productsData || []);
+        
+        const { data: linksData } = await supabase
+          .from('affiliator_product_links')
+          .select('product_id, tiktok_link')
+          .eq('affiliator_id', user.id);
+
+        const productsWithLinks = (productsData || []).map(p => {
+          const customLink = (linksData || []).find(l => l.product_id === p.id);
+          return {
+            ...p,
+            afiliasi_tiktok: customLink ? customLink.tiktok_link : null
+          };
+        });
+        
+        setProducts(productsWithLinks);
+        // -------------------------------------------------------------
 
         // Load their dashboard summary
         const summaryResult = await getAffiliatorDashboardSummary(user.id);
@@ -279,12 +279,8 @@ export default function Dashboard({ user, onLogout }) {
   // ======================
   // ADMIN: ORDER MANAGEMENT
   // ======================
-  // handleApproveOrder moved to AdminOrdersPanel
-
   const handlePrintLabel = async (orderId) => {
     try {
-      // Update order status ke 'processing' saat membuka print label
-      // (Belum 'shipped' karena masih dalam proses pengiriman)
       const { error } = await supabase
         .from('orders')
         .update({
@@ -295,18 +291,15 @@ export default function Dashboard({ user, onLogout }) {
 
       if (error) throw error;
 
-      // Trigger browser print dialog
       window.print();
       
       setSuccessMsg('Status order berubah ke Processing. Silakan print label dan input resi.');
-      loadInitialData(); // Refresh data
+      loadInitialData();
     } catch (err) {
       setErrorMsg('Error updating status: ' + err.message);
       console.error(err);
     }
   };
-
-  // handleRePrintLabel functionality handled in AdminOrdersPanel
 
   const handleEditProduct = (product) => {
     setEditingProduct(product);
@@ -348,10 +341,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // handleUpdateSortOrder functionality handled in AdminProductsPanel
-
-  // ===== CUSTOMER AUTOCOMPLETE HANDLERS (moved to OfflineOrderForm) =====
-
   const handleEditCustomer = (customer) => {
     setEditingCustomer(customer);
     setNewCustomerForm({
@@ -364,8 +353,6 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const handleAddNewCustomer = async () => {
-    console.log('handleAddNewCustomer called with form:', newCustomerForm);
-    
     if (!newCustomerForm.nama?.trim()) {
       setErrorMsg('Nama customer harus diisi');
       return;
@@ -379,23 +366,14 @@ export default function Dashboard({ user, onLogout }) {
       setLoading(true);
       setErrorMsg('');
       
-      console.log('Calling upsertCustomer with:', {
-        nama: newCustomerForm.nama,
-        nomor_wa: newCustomerForm.nomor_wa,
-        alamat: newCustomerForm.alamat || null
-      });
-      
       const result = await upsertCustomer(
         newCustomerForm.nama,
         newCustomerForm.nomor_wa,
         newCustomerForm.alamat || null
       );
 
-      console.log('upsertCustomer result:', result);
-
       if (result.success) {
         setSuccessMsg(editingCustomer ? 'Customer berhasil diupdate' : 'Customer berhasil ditambahkan');
-        // Auto-fill offline order form hanya jika sedang di tab orders/offline form
         if (activeTab === 'orders') {
           setOfflineOrder({
             ...offlineOrder,
@@ -409,24 +387,20 @@ export default function Dashboard({ user, onLogout }) {
         setEditingCustomer(null);
         setErrorMsg('');
         
-        // Refresh customers list
         const customersResult = await getAllCustomers();
         if (customersResult.success) {
           setCustomers(customersResult.customers || []);
         }
       } else {
-        console.error('upsertCustomer failed:', result.error);
         setErrorMsg('Error: ' + result.error);
       }
     } catch (err) {
-      console.error('handleAddNewCustomer error:', err);
       setErrorMsg('Error: ' + err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle delete customer
   const handleDeleteCustomer = async (customerId) => {
     try {
       setLoading(true);
@@ -438,7 +412,6 @@ export default function Dashboard({ user, onLogout }) {
         setEditingCustomer(null);
         setNewCustomerForm({ nama: '', nomor_wa: '', alamat: '' });
         
-        // Refresh customers list
         const customersResult = await getAllCustomers();
         if (customersResult.success) {
           setCustomers(customersResult.customers || []);
@@ -453,7 +426,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // Handle intelligent product reordering
   const handleReorderProduct = async (productId, destinationPosition) => {
     try {
       setLoading(true);
@@ -478,7 +450,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // ===== AFFILIATOR HANDLERS =====
   const handleEditAffiliator = (affiliator) => {
     setEditingAffiliator(affiliator);
     setEditAffiliatorForm({
@@ -506,7 +477,6 @@ export default function Dashboard({ user, onLogout }) {
 
     try {
       setLoading(true);
-      // Send all updatable fields from affiliators table
       const updateData = {
         nama: editAffiliatorForm.nama,
         nomor_wa: editAffiliatorForm.nomor_wa,
@@ -519,12 +489,10 @@ export default function Dashboard({ user, onLogout }) {
         account_number: editAffiliatorForm.account_number
       };
 
-      // Only include password if it's provided
       if (editAffiliatorForm.password_hash.trim()) {
         updateData.password_hash = editAffiliatorForm.password_hash;
       }
 
-      // Convert TikTok accounts string to array
       if (editAffiliatorForm.akun_tiktok.trim()) {
         updateData.akun_tiktok = editAffiliatorForm.akun_tiktok.split(',').map(acc => acc.trim()).filter(acc => acc.length > 0);
       } else {
@@ -580,7 +548,6 @@ export default function Dashboard({ user, onLogout }) {
     try {
       setLoading(true);
       
-      // 1. Get full affiliator data before updating
       const { data: affiliatorData, error: fetchError } = await supabase
         .from('affiliators')
         .select('*')
@@ -593,12 +560,9 @@ export default function Dashboard({ user, onLogout }) {
         return;
       }
 
-      // 2. Update status to active
       const result = await updateAffiliator(affiliatorId, { status: 'active' });
       if (result.success) {
-        // 3. Send WhatsApp approval notification
         try {
-          // Kirim password ke affiliator (gunakan password_hash jika plain password tidak tersedia)
           let password = affiliatorData.password_hash || 'Password Anda (hubungi admin jika lupa)';
           if (affiliatorData.plain_password) password = affiliatorData.plain_password;
           await sendAffiliatorApprovalNotification(
@@ -612,7 +576,6 @@ export default function Dashboard({ user, onLogout }) {
           setSuccessMsg(`✅ Mitra ${affiliatorName} diaktifkan & notifikasi WhatsApp terkirim!`);
         } catch (notificationError) {
           console.error('Notification send error:', notificationError);
-          // Still show success even if notification fails
           setSuccessMsg(`✅ Mitra ${affiliatorName} berhasil diaktifkan! (Notifikasi gagal terkirim)`);
         }
         
@@ -627,7 +590,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // Handle Edit Product Link (for Affiliator)
   const handleEditProductLink = async (product) => {
     setEditingProductForLink(product);
     const result = await getAffiliatorProductLink(user.id, product.id);
@@ -658,6 +620,16 @@ export default function Dashboard({ user, onLogout }) {
         setSuccessMsg(`✅ Link TikTok untuk ${editingProductForLink.name} berhasil disimpan!`);
         setShowEditProductLinkModal(false);
         setProductLinkForm({ tiktok_shop: '' });
+        
+        // --- PERBAIKAN 2: UPDATE STATE LOCAL AGAR TAMPILAN LANGSUNG BERUBAH ---
+        setProducts(prevProducts => 
+          prevProducts.map(p => 
+            p.id === editingProductForLink.id 
+              ? { ...p, afiliasi_tiktok: productLinkForm.tiktok_shop } 
+              : p
+          )
+        );
+        // ---------------------------------------------------------------------
       } else {
         setErrorMsg('Error: ' + result.error);
       }
@@ -668,7 +640,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // Handle Share Product Link (for Affiliator)
   const handleShareProduct = (product) => {
     setSharingProduct(product);
     setShowShareProductModal(true);
@@ -693,7 +664,6 @@ export default function Dashboard({ user, onLogout }) {
     window.open(`https://wa.me/?text=${encodedMessage}`, '_blank');
   };
 
-  // Bulk Edit TikTok Links for Affiliator
   const toggleProductSelection = (productId) => {
     setSelectedProducts(prev =>
       prev.includes(productId)
@@ -705,15 +675,14 @@ export default function Dashboard({ user, onLogout }) {
   const handleBulkEditOpen = () => {
     const initialForm = {};
     selectedProducts.forEach(productId => {
-      products.find(p => p.id === productId); // lookup for validation
+      products.find(p => p.id === productId); 
       initialForm[productId] = '';
     });
     setBulkEditForm(initialForm);
-    setBulkLinkInput(''); // Reset bulk input
+    setBulkLinkInput(''); 
     setShowBulkEditModal(true);
   };
 
-  // Apply same link to all selected products
   const applyLinkToAll = () => {
     if (!bulkLinkInput.trim()) {
       setErrorMsg('Masukkan link terlebih dahulu');
@@ -755,12 +724,9 @@ export default function Dashboard({ user, onLogout }) {
         setBulkEditForm({});
         setBulkLinkInput('');
         
-        // Reload products to refresh links
-        const { data: productsData } = await supabase
-          .from('products')
-          .select('*')
-          .order('sort_order', { ascending: true });
-        setProducts(productsData || []);
+        // --- PERBAIKAN 3: RELOAD INITIAL DATA ---
+        await loadInitialData();
+        // ----------------------------------------
       } else {
         setErrorMsg('Tidak ada link yang diisi');
       }
@@ -772,7 +738,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // Admin Bulk Edit TikTok Links (edit default_link in products table)
   const toggleAdminProductSelection = (productId) => {
     setSelectedAdminProducts(prev =>
       prev.includes(productId)
@@ -835,7 +800,6 @@ export default function Dashboard({ user, onLogout }) {
         setAdminBulkEditForm({});
         setAdminBulkLinkInput('');
         
-        // Reload products
         const { data: productsData } = await supabase
           .from('products')
           .select('*')
@@ -853,7 +817,6 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const handleDeleteOrder = async (orderId, orderNumber) => {
-    // Confirmation dialog
     const confirmed = window.confirm(
       `⚠️  Apakah Anda yakin ingin menghapus order ${orderNumber}?\n\nTindakan ini tidak dapat dibatalkan!`
     );
@@ -883,7 +846,6 @@ export default function Dashboard({ user, onLogout }) {
     }
 
     try {
-      // Update order with resi
       const { error: updateError } = await supabase
         .from('orders')
         .update({
@@ -898,7 +860,6 @@ export default function Dashboard({ user, onLogout }) {
 
       if (updateError) throw updateError;
 
-      // Send resi notification to customer
       const order = orders.find(o => o.id === orderId);
       if (order?.users?.nomor_wa) {
         await sendResiNotification(
@@ -933,7 +894,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // Handler untuk konfirmasi pembayaran (WAITING_PAYMENT -> PAID)
   const handleConfirmPayment = async (orderId) => {
     try {
       setLoading(true);
@@ -955,13 +915,10 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // Handler untuk buka modal print resi
   const handleOpenPrintResiModal = (order) => {
     setSelectedOrderForPrintResi(order);
-    // Pre-fill kode rikues jika sudah ada (untuk reprint)
     const isReprint = order.status === 'SHIPPED' || order.status === 'shipped';
     if (isReprint && order.resi && order.resi.includes('-')) {
-      // Extract kode rikues dari format "EXPEDISI-KODE"
       const parts = order.resi.split('-');
       setExpeditionRequestCode(parts.slice(1).join('-') || '');
     } else {
@@ -970,7 +927,6 @@ export default function Dashboard({ user, onLogout }) {
     setShowPrintResiModal(true);
   };
 
-  // Handler untuk submit print resi dengan kode rikues
   const handleSubmitPrintResi = async () => {
     if (!expeditionRequestCode.trim()) {
       setErrorMsg('Kode rikues expedisi wajib diisi');
@@ -981,13 +937,11 @@ export default function Dashboard({ user, onLogout }) {
       setLoading(true);
       const isReprint = selectedOrderForPrintResi.status === 'SHIPPED' || selectedOrderForPrintResi.status === 'shipped';
       
-      // Update resi dengan kode rikues
       const updateData = { 
         resi: `${selectedOrderForPrintResi.courier_name || selectedOrderForPrintResi.resi?.split('-')[0] || 'EXPEDISI'}-${expeditionRequestCode}`,
         updated_at: new Date().toISOString()
       };
       
-      // Hanya ubah status ke SHIPPED jika bukan reprint
       if (!isReprint) {
         updateData.status = 'SHIPPED';
       }
@@ -999,7 +953,6 @@ export default function Dashboard({ user, onLogout }) {
 
       if (error) throw error;
 
-      // Prepare print data untuk PrintArea
       const order = selectedOrderForPrintResi;
       const resiCode = `${order.courier_name || order.resi?.split('-')[0] || 'EXPEDISI'}-${expeditionRequestCode}`;
       const itemsDetail = (order.order_items || []).map(item => ({
@@ -1032,7 +985,6 @@ export default function Dashboard({ user, onLogout }) {
       setExpeditionRequestCode('');
       loadInitialData();
 
-      // Trigger print dialog setelah render
       setTimeout(() => {
         window.print();
       }, 500);
@@ -1045,7 +997,6 @@ export default function Dashboard({ user, onLogout }) {
 
   const handleOpenShippingModal = (order) => {
     setSelectedOrder(order);
-    // Pre-fill with existing data jika sudah ada (offline orders)
     setShippingCost(order.shipping_cost || '');
     setCourierName(order.courier_name || 'J&T');
     setBillOrder('');
@@ -1053,7 +1004,6 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const handleConfirmShipping = async () => {
-    // 🔒 STRICT VALIDATION
     const ongkirError = validateOngkir(shippingCost);
     if (ongkirError) {
       setErrorMsg(ongkirError);
@@ -1068,11 +1018,9 @@ export default function Dashboard({ user, onLogout }) {
     try {
       setLoading(true);
       const shippingAmount = parseInt(shippingCost);
-      // Hitung ulang total_produk dari order_items (harga bisa diedit)
       const updatedTotalProduk = selectedOrder.order_items.reduce((sum, i) => sum + (i.qty * i.harga_satuan), 0);
       const newTotal = updatedTotalProduk + shippingAmount;
 
-      // Update order_items harga_satuan (diskon per order)
       for (const item of selectedOrder.order_items) {
         await supabase
           .from('order_items')
@@ -1080,7 +1028,6 @@ export default function Dashboard({ user, onLogout }) {
           .eq('id', item.id);
       }
 
-      // Update order utama
       const { error: orderUpdateError } = await supabase
         .from('orders')
         .update({
@@ -1098,7 +1045,6 @@ export default function Dashboard({ user, onLogout }) {
 
       if (orderUpdateError) throw orderUpdateError;
 
-      // Send invoice notification to customer dengan link
       if (selectedOrder.users?.nomor_wa) {
         await safeApiCall(
           () => sendInvoiceNotification(
@@ -1127,7 +1073,6 @@ export default function Dashboard({ user, onLogout }) {
   };
 
   const handleSendResiNotification = async () => {
-    // 🔒 STRICT VALIDATION
     const resiError = validateResi(resiNotifNumber);
     if (resiError) {
       setErrorMsg(resiError);
@@ -1144,7 +1089,6 @@ export default function Dashboard({ user, onLogout }) {
         return;
       }
 
-      // Send resi notification via WhatsApp
       const result = await safeApiCall(
         () => sendResiNotification(
           phoneNumber,
@@ -1161,7 +1105,6 @@ export default function Dashboard({ user, onLogout }) {
         return;
       }
 
-      // Update order status to 'shipped'
       const { error: updateError } = await supabase
         .from('orders')
         .update({
@@ -1186,12 +1129,7 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // ======================
-  // ADMIN: OFFLINE ORDER INPUT (handlers moved to OfflineOrderForm)
-  // ======================
-
   const handleSubmitOfflineOrder = async () => {
-    // 🔒 STRICT VALIDATION
     if (!offlineOrder.customer_name.trim()) {
       setErrorMsg('Nama customer harus diisi');
       return;
@@ -1233,7 +1171,6 @@ export default function Dashboard({ user, onLogout }) {
     try {
       setLoading(true);
 
-      // Auto-save customer jika belum ada di database
       const customerResult = await safeApiCall(
         () => upsertCustomer(
           offlineOrder.customer_name,
@@ -1247,14 +1184,10 @@ export default function Dashboard({ user, onLogout }) {
         console.warn('⚠️ Customer tidak berhasil di-save, lanjut dengan order');
       }
 
-      // Generate order number (call directly, no wrapper)
       const orderNumResult = await generateOrderNumber();
       if (!orderNumResult.success) throw new Error('Gagal membuat nomor pesanan');
       const orderNumber = orderNumResult.orderNumber;
 
-      console.log('✅ Generated order number:', orderNumber);
-
-      // Create or get user for offline order (user_id is required)
       const userResult = await createOrGetUser(
         offlineOrder.customer_name,
         offlineOrder.customer_phone,
@@ -1263,21 +1196,10 @@ export default function Dashboard({ user, onLogout }) {
       );
       if (!userResult.success) throw new Error('Gagal membuat/mendapatkan data user: ' + userResult.error);
       const userId = userResult.user.id;
-      console.log('✅ User ID for order:', userId);
 
-      // Calculate totals
       const subtotal = offlineOrder.items.reduce((sum, i) => sum + (i.quantity * i.price), 0);
       const total = subtotal + offlineOrder.shipping_cost;
 
-      console.log('📋 Creating order with:', {
-        order_number: orderNumber,
-        total_produk: subtotal,
-        total_bayar: total,
-        alamat: offlineOrder.customer_address,
-        nomor_wa: offlineOrder.customer_phone
-      });
-
-      // Create order with valid user_id
       const createOrderResult = await createOrder(userId, {
         order_number: orderNumber,
         metode_bayar: offlineOrder.payment_method,
@@ -1295,9 +1217,6 @@ export default function Dashboard({ user, onLogout }) {
 
       if (!createOrderResult.success) throw new Error(createOrderResult.error);
 
-      console.log('✅ Order created with ID:', createOrderResult.order.id);
-
-      // Add order items
       const itemsToAdd = offlineOrder.items.map(item => ({
         product_id: item.product_id,
         qty: item.quantity,
@@ -1313,7 +1232,6 @@ export default function Dashboard({ user, onLogout }) {
       );
       if (!addItemsResult.success) throw new Error(addItemsResult.error);
 
-      // Build items data with product names for WhatsApp message
       const itemsForMessage = offlineOrder.items.map(item => {
         const product = products.find(p => p.id === item.product_id);
         return {
@@ -1324,7 +1242,6 @@ export default function Dashboard({ user, onLogout }) {
         };
       });
 
-      // Send confirmation with total payment (subtotal + shipping)
       await safeApiCall(
         () => sendOrderConfirmation(
           offlineOrder.customer_phone,
@@ -1365,9 +1282,6 @@ export default function Dashboard({ user, onLogout }) {
     });
   };
 
-  // ======================
-  // AFFILIATOR: WITHDRAWAL
-  // ======================
   const handleRequestWithdrawal = async () => {
     if (!withdrawalForm.nominal || !withdrawalForm.bank_name || !withdrawalForm.account_name || !withdrawalForm.account_number) {
       setErrorMsg('Semua field harus diisi');
@@ -1414,9 +1328,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  // ======================
-  // RENDER: PRINT LABEL MODAL (A5 Format - Split Label & Packing List)
-  // ======================
   if (showPrintLabel && selectedOrderForLabel) {
     const order = selectedOrderForLabel;
     const courierName = order.resi?.split('-')[0] || 'PENDING';
@@ -1427,25 +1338,19 @@ export default function Dashboard({ user, onLogout }) {
     return (
       <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
         <div className="bg-white w-full max-w-3xl max-h-[95vh] overflow-y-auto print-container">
-          {/* ===== BAGIAN ATAS: LABEL TEMPEL ===== */}
+          {/* LABEL CETAK (Tetap Sama) */}
           <div className="relative border-b-4 border-black p-2 text-black label-section">
-            {/* Header Ekspedisi - Full Width */}
             <div className="mb-0 pb-0 border-b-2 border-black">
               <p className="text-xs text-gray-600 mb-0 font-bold">EKSPEDISI</p>
               <p className="text-4xl font-black leading-none">{courierName}</p>
             </div>
-
-            {/* Nomor Resi - Full Width & Besar */}
             <div className="mb-2 pb-1 border-b-3 border-black">
               <p className="text-xs text-gray-600 mb-0 font-bold">NO. RESI / KODE BOOKING</p>
               <p className="font-mono font-black text-2xl break-words leading-tight">
                 {resiNumber}
               </p>
             </div>
-
-            {/* Data Penerima (70%) & Invoice (30%) */}
             <div className="grid gap-2" style={{ gridTemplateColumns: '70% 30%' }}>
-              {/* Sisi Kiri: Data Penerima */}
               <div className="border-2 border-black p-1.5">
                 <h3 className="font-bold text-xs mb-1 pb-0.5 border-b-2 border-black">PENERIMA</h3>
                 <div className="space-y-0.5 text-xs leading-tight">
@@ -1464,8 +1369,6 @@ export default function Dashboard({ user, onLogout }) {
                   </div>
                 </div>
               </div>
-
-              {/* Sisi Kanan: Invoice & Tanggal */}
               <div className="flex flex-col justify-between gap-0.5">
                 <div className="border-2 border-black p-0.5 bg-gray-100">
                   <p className="text-xs text-gray-700 font-bold mb-0">NO. INVOICE</p>
@@ -1478,27 +1381,19 @@ export default function Dashboard({ user, onLogout }) {
               </div>
             </div>
           </div>
-
-          {/* ===== GARIS PUTUS-PUTUS (Untuk Dipotong) ===== */}
           <div className="flex items-center px-2 py-0.5 bg-gray-100">
             <div className="flex-1 border-t-2 border-dashed border-black"></div>
             <p className="px-1 text-xs font-bold text-gray-600">POTONG</p>
             <div className="flex-1 border-t-2 border-dashed border-black"></div>
           </div>
-
-          {/* ===== BAGIAN BAWAH: PACKING LIST ===== */}
           <div className="p-1 text-black packing-section">
-            {/* Header */}
             <div className="mb-0 pb-0 border-b-2 border-black">
               <h2 className="text-base font-black leading-tight">DETAIL PACKING</h2>
               <p className="text-xs text-gray-700 mt-0">Invoice: <span className="font-bold font-mono text-xs">{order.order_number}</span></p>
             </div>
-
-            {/* Items List - Flexible Sizing berdasarkan jumlah item */}
             <div className={`${isMultiColumn ? 'grid grid-cols-2 gap-1' : 'block space-y-1'}`}>
               {order.order_items && order.order_items.length > 0 ? (
                 order.order_items.map((item, idx) => {
-                  // Flexible font sizing - ADAPTIVE berdasarkan jumlah item
                   let containerPadding = 'p-1';
                   let nameSize = 'text-sm';
                   let skuSize = 'text-xs';
@@ -1506,48 +1401,25 @@ export default function Dashboard({ user, onLogout }) {
                   let qtySize = 'text-lg';
                   
                   if (itemCount <= 3) {
-                    // Sedikit item: besar
-                    nameSize = 'text-lg';
-                    qtySize = 'text-2xl';
-                    containerPadding = 'p-1.5';
+                    nameSize = 'text-lg'; qtySize = 'text-2xl'; containerPadding = 'p-1.5';
                   } else if (itemCount <= 5) {
-                    // Sedang: normal
-                    nameSize = 'text-base';
-                    qtySize = 'text-lg';
-                    containerPadding = 'p-1';
+                    nameSize = 'text-base'; qtySize = 'text-lg'; containerPadding = 'p-1';
                   } else if (itemCount <= 8) {
-                    // Banyak: yang lebih kecil
-                    nameSize = 'text-sm';
-                    qtySize = 'text-base';
-                    containerPadding = 'p-1';
+                    nameSize = 'text-sm'; qtySize = 'text-base'; containerPadding = 'p-1';
                   } else if (itemCount <= 12) {
-                    // Sangat banyak: lebih kecil lagi
-                    nameSize = 'text-xs';
-                    skuSize = 'text-xs';
-                    qtySize = 'text-sm';
-                    containerPadding = 'p-0.5';
+                    nameSize = 'text-xs'; skuSize = 'text-xs'; qtySize = 'text-sm'; containerPadding = 'p-0.5';
                   } else {
-                    // Ekstrim banyak: minimal tapi tetap terbaca
-                    nameSize = 'text-xs';
-                    skuSize = 'text-xs';
-                    qtyLabelSize = 'text-xs';
-                    qtySize = 'text-xs';
-                    containerPadding = 'p-0.5';
+                    nameSize = 'text-xs'; skuSize = 'text-xs'; qtyLabelSize = 'text-xs'; qtySize = 'text-xs'; containerPadding = 'p-0.5';
                   }
                   
                   return (
                     <div key={item.id || idx} className={`border border-gray-400 ${containerPadding}`}>
-                      {/* Nama Produk */}
                       <p className={`font-bold text-black mb-0 ${nameSize}`}>
                         {item.products?.name || 'Produk Tidak Ditemukan'}
                       </p>
-
-                      {/* Kode Produk */}
                       <p className={`${skuSize} text-gray-700 mb-0`}>
                         SKU: <span className="font-mono font-semibold">{item.products?.id?.substring(0, 8) || 'N/A'}</span>
                       </p>
-
-                      {/* Quantity */}
                       <div className="border-t border-gray-300 pt-0.5 mt-0.5">
                         <p className={`${qtyLabelSize} text-gray-700 leading-none`}>Qty</p>
                         <p className={`font-bold ${qtySize} leading-tight`}>{item.qty}x</p>
@@ -1559,8 +1431,6 @@ export default function Dashboard({ user, onLogout }) {
                 <p className="text-gray-600">Tidak ada item untuk ditampilkan</p>
               )}
             </div>
-
-            {/* Total & Catatan */}
             <div className="mt-0.5 pt-0.5 border-t-2 border-black space-y-0">
               <div className="grid grid-cols-2 gap-0.5">
                 <div className="bg-gray-100 p-0.5 border border-black">
@@ -1584,23 +1454,17 @@ export default function Dashboard({ user, onLogout }) {
                   }`}>{order.order_items?.reduce((sum, item) => sum + item.qty, 0) || 0}</p>
                 </div>
               </div>
-
-              {/* Catatan */}
               {order.catatan && (
                 <div className="bg-yellow-100 border-2 border-orange-400 p-1">
                   <p className="text-xs font-bold mb-0">⚠️ CATATAN:</p>
                   <p className="text-xs leading-tight">{order.catatan}</p>
                 </div>
               )}
-
-              {/* Footer */}
               <div className="text-center text-xs text-gray-600 pt-0.5">
                 <p className="leading-none">Dicetak: {new Date().toLocaleString('id-ID')}</p>
               </div>
             </div>
           </div>
-
-          {/* ===== PRINT CONTROLS ===== */}
           <div className="bg-gray-200 border-t-2 border-gray-400 p-4 flex gap-3 sticky bottom-0 no-print">
             <button
               onClick={() => handlePrintLabel(selectedOrderForLabel.id)}
@@ -1623,9 +1487,6 @@ export default function Dashboard({ user, onLogout }) {
     );
   }
 
-  // ======================
-  // RENDER: AFFILIATOR DASHBOARD
-  // ======================
   if (isAffiliator) {
     return (
       <AffiliatorDashboard
@@ -1640,13 +1501,11 @@ export default function Dashboard({ user, onLogout }) {
         errorMsg={errorMsg}
         setSuccessMsg={setSuccessMsg}
         setErrorMsg={setErrorMsg}
-        // Withdrawal form
         showWithdrawalForm={showWithdrawalForm}
         setShowWithdrawalForm={setShowWithdrawalForm}
         withdrawalForm={withdrawalForm}
         setWithdrawalForm={setWithdrawalForm}
         handleRequestWithdrawal={handleRequestWithdrawal}
-        // Product link
         showEditProductLinkModal={showEditProductLinkModal}
         editingProductForLink={editingProductForLink}
         productLinkForm={productLinkForm}
@@ -1654,7 +1513,6 @@ export default function Dashboard({ user, onLogout }) {
         handleEditProductLink={handleEditProductLink}
         handleSaveProductLink={handleSaveProductLink}
         setShowEditProductLinkModal={setShowEditProductLinkModal}
-        // Share product
         showShareProductModal={showShareProductModal}
         sharingProduct={sharingProduct}
         handleShareProduct={handleShareProduct}
@@ -1663,7 +1521,6 @@ export default function Dashboard({ user, onLogout }) {
         generateAffiliatorLink={generateAffiliatorLink}
         copyLinkToClipboard={copyLinkToClipboard}
         shareToWhatsApp={shareToWhatsApp}
-        // Bulk edit
         selectedProducts={selectedProducts}
         toggleProductSelection={toggleProductSelection}
         showBulkEditModal={showBulkEditModal}
@@ -1675,17 +1532,11 @@ export default function Dashboard({ user, onLogout }) {
         setBulkLinkInput={setBulkLinkInput}
         applyLinkToAll={applyLinkToAll}
         handleBulkEditSave={handleBulkEditSave}
-        // Edit affiliator
         handleEditAffiliator={handleEditAffiliator}
       />
     );
   }
 
-  // ======================
-  // RENDER: ADMIN DASHBOARD
-  // ======================
-
-  // Tab config with icons & labels
   const adminTabs = [
     { key: 'orders', label: 'Orders', icon: <Package size={18} />, count: orders.length },
     { key: 'products', label: 'Produk', icon: <BarChart3 size={18} />, count: products.length },
@@ -1695,7 +1546,6 @@ export default function Dashboard({ user, onLogout }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#042f2e] to-[#022c22] text-white">
-      {/* ====== TOP HEADER BAR ====== */}
       <div className="sticky top-0 z-40 bg-[#042f2e]/95 backdrop-blur-md border-b border-white/10">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex justify-between items-center">
           <div className="min-w-0">
@@ -1719,7 +1569,6 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         </div>
 
-        {/* ====== TAB NAVIGATION ====== */}
         <div className="max-w-7xl mx-auto px-3 sm:px-6">
           <div className="flex overflow-x-auto scrollbar-hide -mb-px">
             {adminTabs.map(tab => (
@@ -1747,9 +1596,7 @@ export default function Dashboard({ user, onLogout }) {
         </div>
       </div>
 
-      {/* ====== MAIN CONTENT ====== */}
       <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
-        {/* Messages */}
         {successMsg && (
           <div className="p-3 sm:p-4 bg-green-500/10 border border-green-500/30 rounded-lg flex gap-2 items-center animate-fade-in">
             <CheckCircle2 size={18} className="text-green-400 shrink-0" />
@@ -1763,7 +1610,6 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         )}
 
-        {/* Orders Tab */}
         {activeTab === 'orders' && (
           <AdminOrdersPanel
             orders={orders}
@@ -1785,7 +1631,6 @@ export default function Dashboard({ user, onLogout }) {
           />
         )}
 
-        {/* Products Tab */}
         {activeTab === 'products' && (
           <AdminProductsPanel
             products={products}
@@ -1800,7 +1645,6 @@ export default function Dashboard({ user, onLogout }) {
           />
         )}
 
-        {/* Affiliators Tab */}
         {activeTab === 'affiliators' && (
           <AdminAffiliatorsPanel
             affiliators={affiliators}
@@ -1826,7 +1670,6 @@ export default function Dashboard({ user, onLogout }) {
           />
         )}
 
-        {/* MODAL: EDIT PRODUCT */}
         {showEditProductModal && editingProduct && (
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
             <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-2xl max-h-screen overflow-y-auto p-6 space-y-4">
@@ -1840,9 +1683,7 @@ export default function Dashboard({ user, onLogout }) {
                 </button>
               </div>
 
-              {/* Form Fields */}
               <div className="space-y-4">
-                {/* Nama Produk */}
                 <div className="space-y-2">
                   <label className="text-[#D4AF37] font-bold text-sm">Nama Produk *</label>
                   <input
@@ -1854,7 +1695,6 @@ export default function Dashboard({ user, onLogout }) {
                   />
                 </div>
 
-                {/* Kode Produk */}
                 <div className="space-y-2">
                   <label className="text-[#D4AF37] font-bold text-sm">Kode Produk</label>
                   <input
@@ -1866,7 +1706,6 @@ export default function Dashboard({ user, onLogout }) {
                   />
                 </div>
 
-                {/* Harga & Komisi (2 kolom) */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label className="text-[#D4AF37] font-bold text-sm">Harga (Rp)</label>
@@ -1891,7 +1730,6 @@ export default function Dashboard({ user, onLogout }) {
                   </div>
                 </div>
 
-                {/* URL Foto */}
                 <div className="space-y-2">
                   <label className="text-[#D4AF37] font-bold text-sm">URL Foto Produk</label>
                   <input
@@ -1906,7 +1744,6 @@ export default function Dashboard({ user, onLogout }) {
                   )}
                 </div>
 
-                {/* Link TikTok Shop */}
                 <div className="space-y-2">
                   <label className="text-[#D4AF37] font-bold text-sm">Link TikTok Shop</label>
                   <input
@@ -1918,7 +1755,6 @@ export default function Dashboard({ user, onLogout }) {
                   />
                 </div>
 
-                {/* Deskripsi */}
                 <div className="space-y-2">
                   <label className="text-[#D4AF37] font-bold text-sm">Deskripsi Produk</label>
                   <textarea
@@ -1929,7 +1765,6 @@ export default function Dashboard({ user, onLogout }) {
                   />
                 </div>
 
-                {/* Buttons */}
                 <div className="flex gap-2 pt-4">
                   <button
                     onClick={handleSaveProduct}
@@ -1950,7 +1785,6 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         )}
 
-        {/* MODAL: REORDER PRODUCT */}
         {showReorderModal && reorderingProduct && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-gradient-to-b from-[#042f2e] to-[#022c22] border border-white/20 rounded-lg p-6 max-w-md w-full space-y-4">
@@ -2017,7 +1851,6 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         )}
 
-        {/* MODAL: EDIT AFFILIATOR */}
         <EditAffiliatorModal
           isOpen={showEditAffiliatorModal && !!editingAffiliator}
           onClose={() => setShowEditAffiliatorModal(false)}
@@ -2027,14 +1860,12 @@ export default function Dashboard({ user, onLogout }) {
           loading={loading}
         />
 
-        {/* MODAL: ADMIN BULK EDIT TikTok LINKS */}
         {showAdminBulkEditModal && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 overflow-y-auto">
             <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-2xl p-6 space-y-4 my-8">
               <h2 className="text-2xl font-bold text-white">📝 Edit Batch - Link TikTok Default</h2>
               <p className="text-sm text-gray-400">Edit link TikTok Shop default untuk {selectedAdminProducts.length} produk yang dipilih</p>
 
-              {/* Apply to All Section */}
               <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 space-y-3">
                 <label className="text-green-300 font-bold text-sm">🚀 Terapkan Link yang Sama ke Semua Produk</label>
                 <div className="flex gap-2">
@@ -2055,7 +1886,6 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Product List with Link Inputs */}
               <div>
                 <label className="text-[#D4AF37] font-bold text-sm mb-3 block">⬇️ Edit Manual per Produk (opsional)</label>
                 <div className="space-y-3 max-h-96 overflow-y-auto">
@@ -2082,7 +1912,6 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               </div>
 
-              {/* Action Buttons */}
               <div className="flex gap-3 pt-4">
                 <button
                   onClick={handleAdminBulkEditSave}
@@ -2102,7 +1931,6 @@ export default function Dashboard({ user, onLogout }) {
                 </button>
               </div>
 
-              {/* Info */}
               <div className="p-3 bg-blue-500/10 border border-blue-500/30 rounded text-blue-300 text-xs">
                 <p>💡 <strong>Tips:</strong> Gunakan "Apply" untuk mengisi semua otomatis, atau edit manual untuk produk tertentu</p>
               </div>
@@ -2110,7 +1938,6 @@ export default function Dashboard({ user, onLogout }) {
           </div>
         )}
 
-        {/* MODULAR MODALS */}
         <AddCustomerModal
           isOpen={showAddCustomerModal}
           onClose={() => {
@@ -2147,7 +1974,6 @@ export default function Dashboard({ user, onLogout }) {
           formatRupiah={formatRupiah}
         />
 
-        {/* Print Resi Modal */}
         {showPrintResiModal && selectedOrderForPrintResi && (
           <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80">
             <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-md p-6 space-y-4">
@@ -2169,7 +1995,6 @@ export default function Dashboard({ user, onLogout }) {
                 </button>
               </div>
 
-              {/* Reprint Notice */}
               {(selectedOrderForPrintResi.status === 'SHIPPED' || selectedOrderForPrintResi.status === 'shipped') && (
                 <div className="p-3 bg-purple-500/20 border border-purple-500/30 rounded-lg text-purple-300 text-sm">
                   <Printer size={16} className="inline mr-2" />
@@ -2177,7 +2002,6 @@ export default function Dashboard({ user, onLogout }) {
                 </div>
               )}
 
-              {/* Order Info */}
               <div className="bg-black/30 border border-white/10 rounded-lg p-3 space-y-1">
                 <p className="font-bold text-white">{selectedOrderForPrintResi.order_number}</p>
                 <p className="text-sm text-gray-400">
@@ -2189,7 +2013,6 @@ export default function Dashboard({ user, onLogout }) {
                 </p>
               </div>
 
-              {/* Kode Request Input */}
               <div className="space-y-2">
                 <label className="block text-sm font-bold text-[#D4AF37]">
                   Kode Request Expedisi <span className="text-red-400">*</span>
@@ -2206,14 +2029,12 @@ export default function Dashboard({ user, onLogout }) {
                 </p>
               </div>
 
-              {/* Error Message */}
               {errorMsg && (
                 <div className="p-3 bg-red-500/20 border border-red-500/30 rounded text-red-300 text-sm">
                   {errorMsg}
                 </div>
               )}
 
-              {/* Buttons */}
               <div className="flex gap-3">
                 <button
                   onClick={handleSubmitPrintResi}
@@ -2270,10 +2091,8 @@ export default function Dashboard({ user, onLogout }) {
           formatRupiah={formatRupiah}
         />
 
-        {/* Print Area - hidden on screen, visible on print */}
         <PrintArea printData={printData} printType={printType} />
       </div>
     </div>
   );
 }
-
