@@ -1968,6 +1968,7 @@ export default function Dashboard({ user, onLogout }) {
           billOrder={billOrder}
           setBillOrder={setBillOrder}
           shippingCost={shippingCost}
+          setShippingCost={setShippingCost}
           errorMsg={errorMsg}
           loading={loading}
           onConfirm={handleConfirmShipping}
