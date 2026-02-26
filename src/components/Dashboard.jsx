@@ -925,7 +925,7 @@ export default function Dashboard({ user, onLogout }) {
       setExpeditionRequestCode('');
     }
     setShowPrintResiModal(true);
-  };
+ };
 
   const handleSubmitPrintResi = async () => {
     if (!expeditionRequestCode.trim()) {
@@ -1017,6 +1017,7 @@ export default function Dashboard({ user, onLogout }) {
 
     try {
       setLoading(true);
+      // Baris ini memastikan meskipun ada titik/koma, tetap terbaca sebagai angka bersih
       const shippingAmount = parseInt(String(shippingCost || '0').replace(/\D/g, ''), 10);
       const updatedTotalProduk = selectedOrder.order_items.reduce((sum, i) => sum + (i.qty * i.harga_satuan), 0);
       const newTotal = updatedTotalProduk + shippingAmount;
@@ -1968,6 +1969,7 @@ export default function Dashboard({ user, onLogout }) {
           billOrder={billOrder}
           setBillOrder={setBillOrder}
           shippingCost={shippingCost}
+          setShippingCost={setShippingCost} 
           errorMsg={errorMsg}
           loading={loading}
           onConfirm={handleConfirmShipping}
