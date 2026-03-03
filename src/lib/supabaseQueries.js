@@ -543,7 +543,7 @@ export const setAffiliatorProductLink = async (affiliatorId, productId, tiktokLi
         })
         .eq('id', existing.id)
         .select()
-        .single();
+        .maybeSingle();
 
       if (error) return { success: false, error: error.message };
       return { success: true, link: data };
