@@ -590,55 +590,48 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  const handleEditProductLink = async (product) => {
-    setEditingProductForLink(product);
-    const result = await getAffiliatorProductLink(user.id, product.id);
-    if (result.success && result.link) {
-      setProductLinkForm({
-        tiktok_shop: result.link.tiktok_link || ''
-      });
-    } else {
+const handleEditProductLink = async (product) => {
+  setEditingProductForLink(product);
+  const result = await getAffiliatorProductLink(user.id, product.id);
+  if (result.success && result.link) {
+    setProductLinkForm({
+      tiktok_shop: result.link.tiktok_link || ''
+    });
+  } else {
+    setProductLinkForm({ tiktok_shop: '' });  // ✅ Set ke empty jika tidak ada
+  }
+  setShowEditProductLinkModal(true);
+};
+
+const handleSaveProductLink = async () => {
+  if (!productLinkForm.tiktok_shop.trim()) {
+    setErrorMsg('Link TikTok tidak boleh kosong');
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const result = await setAffiliatorProductLink(
+      user.id,
+      editingProductForLink.id,
+      productLinkForm.tiktok_shop
+    );
+    if (result.success) {
+      setSuccessMsg(`✅ Link TikTok untuk ${editingProductForLink.name} berhasil disimpan!`);
+      setShowEditProductLinkModal(false);
       setProductLinkForm({ tiktok_shop: '' });
+      
+      // ✅ UPDATE: Reload data agar tampilan fresh
+      await loadInitialData();
+    } else {
+      setErrorMsg('Error: ' + result.error);
     }
-    setShowEditProductLinkModal(true);
-  };
-
-  const handleSaveProductLink = async () => {
-    if (!productLinkForm.tiktok_shop.trim()) {
-      setErrorMsg('Link TikTok tidak boleh kosong');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const result = await setAffiliatorProductLink(
-        user.id,
-        editingProductForLink.id,
-        productLinkForm.tiktok_shop
-      );
-      if (result.success) {
-        setSuccessMsg(`✅ Link TikTok untuk ${editingProductForLink.name} berhasil disimpan!`);
-        setShowEditProductLinkModal(false);
-        setProductLinkForm({ tiktok_shop: '' });
-        
-        // --- PERBAIKAN 2: UPDATE STATE LOCAL AGAR TAMPILAN LANGSUNG BERUBAH ---
-        setProducts(prevProducts => 
-          prevProducts.map(p => 
-            p.id === editingProductForLink.id 
-              ? { ...p, afiliasi_tiktok: productLinkForm.tiktok_shop } 
-              : p
-          )
-        );
-        // ---------------------------------------------------------------------
-      } else {
-        setErrorMsg('Error: ' + result.error);
-      }
-    } catch (err) {
-      setErrorMsg('Error: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  } catch (err) {
+    setErrorMsg('Error: ' + err.message);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const handleShareProduct = (product) => {
     setSharingProduct(product);
