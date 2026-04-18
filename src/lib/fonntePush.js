@@ -14,13 +14,9 @@ if (!FONNTE_TOKEN) {
 
 /**
  * Helper function untuk send WhatsApp message via Fonnte API
- * @param {string} phone - Nomor WA tujuan (format: 628xxx)
- * @param {string} message - Isi pesan
- * @returns {Promise<{success: boolean, data?: object, error?: string}>}
  */
 const sendFonntMessage = async (phone, message) => {
   try {
-    // Normalize nomor jika dimulai dengan +62
     let normalizedPhone = phone;
     if (normalizedPhone.startsWith('+62')) {
       normalizedPhone = normalizedPhone.replace('+62', '62');
@@ -60,10 +56,8 @@ const sendFonntMessage = async (phone, message) => {
 
 /**
  * Send order confirmation message with detailed items and total payment
- * Template: Order diterima + detail produk + ongkir + total + metode bayar + konfirmasi
  */
 export const sendOrderConfirmation = async (phoneNumber, customerName, orderNumber, items, subtotal, shippingCost, totalPayment, courierName, paymentMethod) => {
-  // Build item list for message
   let itemsText = '';
   if (items && Array.isArray(items)) {
     items.forEach((item, index) => {
@@ -95,11 +89,11 @@ ${itemsText}
 
 ${paymentMethod === 'transfer' ? `*Pembayaran Order di Toko Kami Hanya Melalui Nomor Rekening Berikut:*
 
-a/n AGUS MUNIB ABDULLAH
+*a/n AGUS MUNIB ABDULLAH*
 
-BRI: 313501022627531
-BCA: 3240615851
-SeaBank: 901504027451
+*BRI:* 313501022627531
+*BCA:* 3240615851
+*SeaBank:* 901504027451
 
 ` : ''}
 *Mohon segera melakukan pembayaran agar pesanan Anda dapat langsung masuk ke antrean proses hari ini.*
@@ -116,7 +110,6 @@ Terima kasih telah berbelanja! 🙏
 
 /**
  * Send invoice dengan detail pembelian
- * Template: Invoice lengkap dengan item, total, metode bayar
  */
 export const sendInvoice = async (phoneNumber, orderData) => {
   let message = `*Invoice Pesanan Anda*\n\n`;
@@ -148,7 +141,11 @@ export const sendInvoice = async (phoneNumber, orderData) => {
 
   if (orderData.paymentMethod === 'transfer') {
     message += `*Metode Pembayaran: Transfer Bank*\n`;
-    message += `Silakan transfer sesuai total di atas ke rekening yang sudah diberikan.\n`;
+    message += `*Transfer ke Rekening:* \n`;
+    message += `*a/n AGUS MUNIB ABDULLAH*\n`;
+    message += `BRI: 313501022627531\n`;
+    message += `BCA: 3240615851\n`;
+    message += `SeaBank: 901504027451\n\n`;
     message += `Pesanan akan diproses setelah pembayaran dikonfirmasi.\n`;
   } else {
     message += `*Metode Pembayaran: COD (Bayar saat diterima)*\n`;
@@ -162,31 +159,19 @@ export const sendInvoice = async (phoneNumber, orderData) => {
 
 /**
  * Send resi/tracking number
- * Template: Paket sudah dikirim + nomor resi + nama kurir
  */
-export const sendResiNotification = async (
-  phoneNumber,
-  resi,
-  courierName = 'JNE',
-  orderNumber = null
-) => {
+export const sendResiNotification = async (phoneNumber, resi, courierName = 'JNE', orderNumber = null) => {
   let message = `*Paket Anda Sudah Dikirim! 📦*\n\n`;
-
-  if (orderNumber) {
-    message += `No Pesanan: ${orderNumber}\n`;
-  }
-
+  if (orderNumber) message += `No Pesanan: ${orderNumber}\n`;
   message += `No Resi: *${resi}*\n`;
   message += `Kurir: ${courierName}\n\n`;
   message += `Terus pantau perkembangan paket Anda ya!\n\n`;
   message += `Terima kasih 🙏`;
-
   return sendFonntMessage(phoneNumber, message);
 };
 
 /**
  * Send payment confirmation
- * Template: Pembayaran diterima + akan dikirim soon
  */
 export const sendPaymentConfirmation = async (phoneNumber, orderNumber) => {
   const message = `
@@ -201,20 +186,13 @@ Anda akan menerima notifikasi lagi ketika paket dikirim beserta nomor resi.
 
 🙏
 `.trim();
-
   return sendFonntMessage(phoneNumber, message);
 };
 
 /**
  * Send withdrawal approval notification
- * Template: Penarikan dana sudah disetujui
  */
-export const sendWithdrawalApprovalNotification = async (
-  phoneNumber,
-  nominal,
-  accountName,
-  bankName
-) => {
+export const sendWithdrawalApprovalNotification = async (phoneNumber, nominal, accountName, bankName) => {
   const message = `
 *Pencairan Dana Disetujui* ✓
 
@@ -226,19 +204,13 @@ Dana akan masuk ke rekening Anda dalam 1-3 hari kerja.
 
 Terima kasih atas kerja sama yang luar biasa! 🙏
 `.trim();
-
   return sendFonntMessage(phoneNumber, message);
 };
 
 /**
  * Send withdrawal rejection notification
- * Template: Penarikan dana ditolak + alasan
  */
-export const sendWithdrawalRejectionNotification = async (
-  phoneNumber,
-  nominal,
-  reason = 'Data tidak lengkap'
-) => {
+export const sendWithdrawalRejectionNotification = async (phoneNumber, nominal, reason = 'Data tidak lengkap') => {
   const message = `
 *Pencairan Dana Ditolak*
 
@@ -249,19 +221,13 @@ Silakan periksa kembali data rekening bank Anda dan mencoba lagi.
 
 Hubungi admin jika ada pertanyaan.
 `.trim();
-
   return sendFonntMessage(phoneNumber, message);
 };
 
 /**
  * Send affiliator assignment notification
- * Template: Customer berhasil di-binding ke affiliator
  */
-export const sendAffiliatorAssignmentNotification = async (
-  phoneNumber,
-  affiliatorName,
-  affiliatorPhone
-) => {
+export const sendAffiliatorAssignmentNotification = async (phoneNumber, affiliatorName, affiliatorPhone) => {
   const message = `
 *Narahubung Anda*
 
@@ -270,17 +236,13 @@ No WA: ${affiliatorPhone}
 
 Untuk informasi tentang produk dan tanya-jawab, silakan hubungi narahubung Anda.
 
-Anda terikat dengan narahubung ini untuk 90 hari ke depan.
-
 Terima kasih 🙏
 `.trim();
-
   return sendFonntMessage(phoneNumber, message);
 };
 
 /**
  * Send binding expiry reminder
- * Template: Pengingat jika binding mau habis (7 hari sebelum)
  */
 export const sendBindingExpiryReminder = async (phoneNumber, daysLeft, affiliatorName) => {
   const message = `
@@ -290,23 +252,15 @@ Narahubung: ${affiliatorName}
 
 Masa binding Anda akan berakhir dalam ${daysLeft} hari lagi.
 
-Setelah habis, Anda bebas memilih narahubung yang baru. 😊
-
 Terima kasih 🙏
 `.trim();
-
   return sendFonntMessage(phoneNumber, message);
 };
 
 /**
  * Send order cancellation notification
- * Template: Pesanan dibatalkan + alasan
  */
-export const sendOrderCancellationNotification = async (
-  phoneNumber,
-  orderNumber,
-  reason = 'Dibatalkan oleh sistem'
-) => {
+export const sendOrderCancellationNotification = async (phoneNumber, orderNumber, reason = 'Dibatalkan oleh sistem') => {
   const message = `
 *Pesanan Dibatalkan*
 
@@ -315,65 +269,39 @@ Alasan: ${reason}
 
 Pesanan Anda tidak akan diproses lebih lanjut.
 
-Jika ada pertanyaan, hubungi admin kami.
-
 Terima kasih 🙏
 `.trim();
-
   return sendFonntMessage(phoneNumber, message);
 };
 
 /**
  * Send general admin notification (internal)
- * Template: Notifikasi untuk admin tentang event penting
  */
 export const sendAdminNotification = async (adminPhone, subject, details) => {
   let message = `*${subject}*\n\n`;
   message += details;
-
   return sendFonntMessage(adminPhone, message);
 };
 
 /**
  * Send new order alert to affiliator/admin
- * Template: Order baru dari customer via affiliator
  */
-export const sendNewOrderAlertToAdmin = async (
-  adminPhone,
-  orderNumber,
-  customerName,
-  customerPhone,
-  total,
-  affiliatorName = null
-) => {
+export const sendNewOrderAlertToAdmin = async (adminPhone, orderNumber, customerName, customerPhone, total, affiliatorName = null) => {
   let message = `*Order Baru! 📦*\n\n`;
   message += `No Pesanan: ${orderNumber}\n`;
   message += `Customer: ${customerName}\n`;
   message += `No WA: ${customerPhone}\n`;
-
-  if (affiliatorName) {
-    message += `Narahubung: ${affiliatorName}\n`;
-  }
-
+  if (affiliatorName) message += `Narahubung: ${affiliatorName}\n`;
   message += `Total: Rp${total.toLocaleString('id-ID')}\n`;
   message += `Waktu: ${new Date().toLocaleString('id-ID')}\n\n`;
   message += `Silakan proses order ini.`;
-
   return sendFonntMessage(adminPhone, message);
 };
 
 /**
  * Send affiliator registration approval notification
- * Sent when admin approves new affiliator registration
  */
-export const sendAffiliatorApprovalNotification = async (
-  phoneNumber,
-  affiliatorName,
-  email,
-  bankName,
-  accountNumber,
-  password
-) => {
+export const sendAffiliatorApprovalNotification = async (phoneNumber, affiliatorName, email, bankName, accountNumber, password) => {
   const message = `
 *Pendaftaran Anda Disetujui! 🎉*
 
@@ -388,16 +316,8 @@ Password: ${password}
 Bank: ${bankName}
 No. Rekening: ${accountNumber}
 
-*LANGKAH SELANJUTNYA:*
-1. Login ke dashboard dengan email & password di atas
-2. Lengkapi profil TikTok Anda (jika ada)
-3. Mulai membagikan produk dan dapatkan komisi! 💰
-
-Butuh bantuan? Hubungi tim support kami.
-
 Terima kasih telah bergabung! 🙏
 `.trim();
-
   return sendFonntMessage(phoneNumber, message);
 };
 
@@ -411,13 +331,6 @@ export const testFontneConnection = async (phoneNumber = '6289xxx1234') => {
 
 /**
  * Send invoice notification to customer with approval link
- * @param {string} phone - Customer phone number
- * @param {string} orderNumber - Order number
- * @param {string} customerName - Customer name
- * @param {number} subtotal - Product subtotal
- * @param {number} shippingCost - Shipping cost
- * @param {string} courierName - Courier name (e.g., JNE, Tiki)
- * @returns {Promise}
  */
 export const sendInvoiceNotification = async (
   phone,
@@ -436,6 +349,18 @@ export const sendInvoiceNotification = async (
   message += `Subtotal: Rp${subtotal.toLocaleString('id-ID')}\n`;
   message += `Ongkos Kirim (${courierName}): Rp${shippingCost.toLocaleString('id-ID')}\n`;
   message += `*Total: Rp${total.toLocaleString('id-ID')}*\n\n`;
+  
+  message += `---
+*Pembayaran Order di Toko Kami Hanya Melalui Nomor Rekening Berikut:*
+
+*a/n AGUS MUNIB ABDULLAH*
+
+*BRI:* 313501022627531
+*BCA:* 3240615851
+*SeaBank:* 901504027451
+---
+
+`;
   message += `Terima kasih telah berbelanja! 🙏`;
 
   return sendFonntMessage(phone, message);
