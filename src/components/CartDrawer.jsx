@@ -91,8 +91,17 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
   }, [cartItems]);
 
   const totalBayar = useMemo(() => {
+    if (paymentMethod === 'cod') return subtotal + Math.round(subtotal * 0.05);
     return subtotal + (shippingRate ? shippingRate.price : 0);
-  }, [subtotal, shippingRate]);
+  }, [subtotal, shippingRate, paymentMethod]);
+
+  // Revert payment method to transfer if subtotal exceeds 200k and cod is selected
+  useEffect(() => {
+    if (paymentMethod === 'cod' && subtotal > 200000) {
+      alert('Total pesanan Anda melebihi Rp 200.000, metode COD telah dinonaktifkan secara otomatis.');
+      setPaymentMethod('transfer');
+    }
+  }, [subtotal, paymentMethod]);
 
   // === FUNGSI KIRIM KE WHATSAPP DAN SIMPAN KE DATABASE ===
   const handleCheckout = async () => {
@@ -122,7 +131,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
         order_number: orderNumResult.orderNumber,
         metode_bayar: paymentMethod,
         total_produk: subtotal,
-        total_bayar: paymentMethod === 'transfer' && shippingRate ? totalBayar : subtotal,
+        total_bayar: paymentMethod === 'transfer' && shippingRate ? totalBayar : (paymentMethod === 'cod' ? totalBayar : subtotal),
         shipping_cost: paymentMethod === 'transfer' && shippingRate ? shippingRate.price : 0,
         courier_name: paymentMethod === 'transfer' && shippingRate ? shippingRate.courier_name.toUpperCase() : null,
         alamat: fullAddress,
@@ -173,8 +182,9 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
         message += `Ongkos Kirim (${shippingRate.courier_name.toUpperCase()} - ${shippingRate.courier_service_name}): ${formatRupiah(shippingRate.price)}\n`;
         message += `*Total: ${formatRupiah(totalBayar)}*\n\n`;
       } else {
+        message += `Biaya Layanan COD (5%): ${formatRupiah(Math.round(subtotal * 0.05))}\n`;
         message += `Ongkos Kirim: *belum ditentukan (mohon dikonfirmasi karena COD)*\n`;
-        message += `*Total: ${formatRupiah(subtotal)} (belum termasuk ongkir)*\n\n`;
+        message += `*Total: ${formatRupiah(totalBayar)} (belum termasuk ongkir)*\n\n`;
       }
 
       message += `👤 *DATA PENERIMA*\n`;
@@ -312,10 +322,16 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
                   <label className="flex items-center p-3 bg-black/30 border border-white/10 rounded-lg cursor-pointer hover:bg-black/50 transition-all"
                     style={{ borderColor: paymentMethod === 'cod' ? '#D4AF37' : 'rgba(255,255,255,0.1)' }}>
                     <input type="radio" name="payment" value="cod" checked={paymentMethod === 'cod'} 
-                      onChange={(e) => setPaymentMethod(e.target.value)} className="w-4 h-4" />
+                      onChange={(e) => {
+                        if (e.target.value === 'cod' && subtotal > 200000) {
+                          alert('Metode COD hanya diperbolehkan untuk pesanan dengan Nilai Barang maksimal Rp 200.000');
+                          return;
+                        }
+                        setPaymentMethod(e.target.value);
+                      }} className="w-4 h-4" />
                     <div className="ml-3 flex-1">
                       <p className="font-semibold text-white text-sm">🚚 COD (Bayar Nanti)</p>
-                      <p className="text-xs text-gray-400">Ongkir & Total akan dihitung manual oleh admin</p>
+                      <p className="text-xs text-gray-400">Untuk Pembayaran COD, proses selanjutnya akan diproses admin secara manual melalui Whatsapp. (Biaya Layanan 5%)</p>
                     </div>
                   </label>
                 </div>
@@ -359,16 +375,31 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
               </div>
             )}
             
-            <div className="border-t border-white/20 pt-3 flex items-center justify-between">
-              <span className="text-white font-bold text-lg">Total Pembayaran</span>
-              <span className="font-extrabold text-[#D4AF37] text-lg">
-                {paymentMethod === 'transfer' && shippingRate ? formatRupiah(totalBayar) : formatRupiah(subtotal)}
-              </span>
-            </div>
-            {paymentMethod === 'cod' && (
-              <div className="text-right text-xs text-yellow-400 mt-[-8px]">
-                *Belum termasuk ongkir (dihitung admin)
+            {paymentMethod === 'transfer' && (
+              <div className="border-t border-white/20 pt-3 flex items-center justify-between">
+                <span className="text-white font-bold text-lg">Total Pembayaran</span>
+                <span className="font-extrabold text-[#D4AF37] text-lg">
+                  {shippingRate ? formatRupiah(totalBayar) : formatRupiah(subtotal)}
+                </span>
               </div>
+            )}
+            
+            {paymentMethod === 'cod' && (
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Biaya Layanan COD (5%)</span>
+                  <span className="font-bold text-white">{formatRupiah(Math.round(subtotal * 0.05))}</span>
+                </div>
+                <div className="border-t border-white/20 pt-3 flex items-center justify-between">
+                  <span className="text-white font-bold text-lg">Total Pembayaran</span>
+                  <span className="font-extrabold text-[#D4AF37] text-lg">
+                    {formatRupiah(totalBayar)}
+                  </span>
+                </div>
+                <div className="text-right text-xs text-yellow-400 mt-[-8px]">
+                  *Belum termasuk ongkir (dihitung admin)
+                </div>
+              </>
             )}
             
             <button onClick={handleCheckout} disabled={isSaving} className="w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] hover:shadow-[#D4AF37]/30 text-black font-extrabold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95 mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
