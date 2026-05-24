@@ -380,6 +380,82 @@ export const reorderProduct = async (productId, newSortOrder) => {
   }
 };
 
+/**
+ * Create new product
+ */
+export const createProduct = async (productData) => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .insert([{
+        name: productData.name,
+        price: productData.price,
+        description: productData.description || '',
+        product_code: productData.product_code || '',
+        image_url: productData.image_url || '',
+        default_link: productData.default_link || '',
+        commission_rate: productData.commission_rate || 10,
+        sort_order: productData.sort_order || 0,
+        berat_produk: productData.berat_produk || 200,
+        variants: productData.variants || []
+      }])
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, product: data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Delete product by ID
+ */
+export const deleteProduct = async (productId) => {
+  try {
+    const { error } = await supabase
+      .from('products')
+      .delete()
+      .eq('id', productId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Upload product image to Supabase Storage and get public URL
+ */
+export const uploadProductImage = async (file) => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    // Upload to public "product-images" bucket
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, file, {
+        cacheControl: '3600',
+        upsert: false
+      });
+
+    if (error) return { success: false, error: error.message };
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    return { success: true, publicUrl };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 // ================================================================
 // CUSTOMER QUERIES
 // ================================================================

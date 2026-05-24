@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Package } from 'lucide-react';
+import { Edit, Package, Trash } from 'lucide-react';
 
 const formatRupiah = (number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -14,6 +14,8 @@ export default function AdminProductsPanel({
   toggleAdminProductSelection,
   handleAdminBulkEditOpen,
   handleEditProduct,
+  handleCreateProductClick,
+  handleDeleteProduct,
   setReorderingProduct,
   setReorderDestination,
   setShowReorderModal
@@ -26,14 +28,22 @@ export default function AdminProductsPanel({
           <h3 className="text-base sm:text-lg font-bold text-white">Daftar Produk</h3>
           <p className="text-xs text-gray-500">{products.length} produk terdaftar</p>
         </div>
-        {selectedAdminProducts.length > 0 && (
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           <button
-            onClick={handleAdminBulkEditOpen}
-            className="flex items-center gap-2 px-4 py-2.5 bg-[#D4AF37] text-black text-sm font-bold rounded-lg hover:bg-[#F4D03F] transition w-full sm:w-auto justify-center"
+            onClick={handleCreateProductClick}
+            className="flex items-center gap-2 px-4 py-2.5 bg-green-600 hover:bg-green-500 text-white text-sm font-bold rounded-lg transition w-full sm:w-auto justify-center shadow-lg active:scale-95"
           >
-            <Edit size={16} /> Edit Batch ({selectedAdminProducts.length})
+            <Package size={16} /> Tambah Produk
           </button>
-        )}
+          {selectedAdminProducts.length > 0 && (
+            <button
+              onClick={handleAdminBulkEditOpen}
+              className="flex items-center gap-2 px-4 py-2.5 bg-[#D4AF37] text-black text-sm font-bold rounded-lg hover:bg-[#F4D03F] transition w-full sm:w-auto justify-center shadow-lg active:scale-95"
+            >
+              <Edit size={16} /> Edit Batch ({selectedAdminProducts.length})
+            </button>
+          )}
+        </div>
       </div>
       
       {loading ? (
@@ -120,13 +130,21 @@ export default function AdminProductsPanel({
                       )}
                     </div>
 
-                    {/* Edit Button */}
-                    <button
-                      onClick={() => handleEditProduct(p)}
-                      className="flex items-center justify-center gap-1.5 px-3 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded-lg hover:bg-[#D4AF37]/40 transition w-full mt-2"
-                    >
-                      <Edit size={13} /> Edit
-                    </button>
+                    {/* Actions Grid */}
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                      <button
+                        onClick={() => handleEditProduct(p)}
+                        className="flex items-center justify-center gap-1 px-2 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded-lg hover:bg-[#D4AF37]/40 hover:text-white transition w-full active:scale-95"
+                      >
+                        <Edit size={12} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteProduct(p.id)}
+                        className="flex items-center justify-center gap-1 px-2 py-2 bg-red-500/20 text-red-400 text-xs font-bold rounded-lg hover:bg-red-500/40 hover:text-white transition w-full active:scale-95"
+                      >
+                        <Trash size={12} /> Hapus
+                      </button>
+                    </div>
                   </div>
                 </div>
               );

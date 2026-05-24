@@ -9,6 +9,7 @@ import {
   createOrder, addOrderItems, updateOrderStatus, deleteOrder,
   createWithdrawal, getAffiliatorWithdrawals,
   updateAffiliator, updateProduct, deleteAffiliator, reorderProduct,
+  createProduct, deleteProduct, uploadProductImage,
   upsertCustomer, setAffiliatorProductLink, getAffiliatorProductLink,
   createOrGetUser, getAllCustomers, deleteCustomer
 } from '../lib/supabaseQueries';
@@ -132,6 +133,7 @@ export default function Dashboard({ user, onLogout }) {
 
   const [showEditProductModal, setShowEditProductModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [editProductForm, setEditProductForm] = useState({
     name: '',
     description: '',
@@ -301,6 +303,22 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
+  const handleCreateProductClick = () => {
+    setEditingProduct({ id: 'new' });
+    setEditProductForm({
+      name: '',
+      description: '',
+      price: 0,
+      image_url: '',
+      product_code: '',
+      commission_rate: 10,
+      default_link: '',
+      sort_order: products.length + 1
+    });
+    setErrorMsg('');
+    setShowEditProductModal(true);
+  };
+
   const handleEditProduct = (product) => {
     setEditingProduct(product);
     setEditProductForm({
@@ -325,9 +343,17 @@ export default function Dashboard({ user, onLogout }) {
 
     try {
       setLoading(true);
-      const result = await updateProduct(editingProduct.id, editProductForm);
+      setErrorMsg('');
+      
+      let result;
+      if (editingProduct.id === 'new') {
+        result = await createProduct(editProductForm);
+      } else {
+        result = await updateProduct(editingProduct.id, editProductForm);
+      }
+
       if (result.success) {
-        setSuccessMsg('Produk berhasil diupdate');
+        setSuccessMsg(editingProduct.id === 'new' ? 'Produk baru berhasil ditambahkan' : 'Produk berhasil diupdate');
         setShowEditProductModal(false);
         setEditingProduct(null);
         loadInitialData();
@@ -338,6 +364,71 @@ export default function Dashboard({ user, onLogout }) {
       setErrorMsg('Error: ' + err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteProduct = async (productId) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    if (!window.confirm(`Apakah Anda yakin ingin menghapus produk "${product.name}"?`)) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setErrorMsg('');
+      setSuccessMsg('');
+      
+      const result = await deleteProduct(productId);
+      if (result.success) {
+        setSuccessMsg(`Produk "${product.name}" berhasil dihapus.`);
+        loadInitialData();
+      } else {
+        if (result.error?.includes('foreign key constraint') || result.error?.includes('violates foreign key')) {
+          setErrorMsg(`Gagal menghapus: Produk "${product.name}" tidak dapat dihapus karena sudah pernah dipesan oleh pelanggan. Silakan ubah nama atau deskripsinya saja.`);
+        } else {
+          setErrorMsg('Gagal menghapus produk: ' + result.error);
+        }
+      }
+    } catch (err) {
+      setErrorMsg('Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setErrorMsg('File harus berupa gambar (JPEG/PNG)');
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      setErrorMsg('Ukuran gambar maksimal adalah 5MB');
+      return;
+    }
+
+    try {
+      setIsUploadingImage(true);
+      setErrorMsg('');
+      const result = await uploadProductImage(file);
+      if (result.success) {
+        setEditProductForm(prev => ({
+          ...prev,
+          image_url: result.publicUrl
+        }));
+        setSuccessMsg('Gambar berhasil diunggah!');
+      } else {
+        setErrorMsg('Gagal mengunggah gambar: ' + result.error);
+      }
+    } catch (err) {
+      setErrorMsg('Error upload gambar: ' + err.message);
+    } finally {
+      setIsUploadingImage(false);
     }
   };
 
@@ -1633,6 +1724,8 @@ const handleSaveProductLink = async () => {
             toggleAdminProductSelection={toggleAdminProductSelection}
             handleAdminBulkEditOpen={handleAdminBulkEditOpen}
             handleEditProduct={handleEditProduct}
+            handleCreateProductClick={handleCreateProductClick}
+            handleDeleteProduct={handleDeleteProduct}
             setReorderingProduct={setReorderingProduct}
             setReorderDestination={setReorderDestination}
             setShowReorderModal={setShowReorderModal}
@@ -1668,7 +1761,9 @@ const handleSaveProductLink = async () => {
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80">
             <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-2xl max-h-screen overflow-y-auto p-6 space-y-4">
               <div className="flex justify-between items-center mb-4">
-                <h2 className="text-2xl font-bold text-white">Edit Produk</h2>
+                <h2 className="text-2xl font-bold text-white">
+                  {editingProduct.id === 'new' ? 'Tambah Produk Baru' : 'Edit Produk'}
+                </h2>
                 <button
                   onClick={() => setShowEditProductModal(false)}
                   className="text-gray-400 hover:text-white"
@@ -1724,17 +1819,77 @@ const handleSaveProductLink = async () => {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <label className="text-[#D4AF37] font-bold text-sm">URL Foto Produk</label>
-                  <input
-                    type="url"
-                    value={editProductForm.image_url}
-                    onChange={(e) => setEditProductForm({ ...editProductForm, image_url: e.target.value })}
-                    className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-                    placeholder="https://..."
-                  />
+                <div className="space-y-3 bg-black/20 p-4 rounded-xl border border-white/5">
+                  <label className="text-[#D4AF37] font-bold text-sm block">Foto Produk</label>
+                  
+                  {/* Pilihan 1: Upload File Manual */}
+                  <div className="space-y-1.5">
+                    <span className="text-xs text-gray-400 font-medium">Cara 1: Unggah Foto Manual (.jpg, .png, .jpeg)</span>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleImageUpload}
+                        disabled={isUploadingImage}
+                        id="image-file-upload"
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="image-file-upload"
+                        className={`flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg border border-dashed text-xs font-bold cursor-pointer transition ${
+                          isUploadingImage
+                            ? 'bg-white/5 border-white/10 text-gray-500 cursor-not-allowed'
+                            : 'bg-[#D4AF37]/10 border-[#D4AF37]/40 text-[#D4AF37] hover:bg-[#D4AF37]/20 active:scale-95'
+                        }`}
+                      >
+                        <Download size={14} className="rotate-180" />
+                        {isUploadingImage ? 'Mengunggah gambar...' : 'Pilih & Unggah File Foto'}
+                      </label>
+                      {isUploadingImage && (
+                        <span className="text-xs text-[#D4AF37] animate-pulse">Mengunggah file ke Supabase Storage...</span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Pembatas */}
+                  <div className="flex items-center my-2">
+                    <hr className="flex-1 border-white/10" />
+                    <span className="px-2 text-[10px] text-gray-500 uppercase tracking-widest">Atau</span>
+                    <hr className="flex-1 border-white/10" />
+                  </div>
+
+                  {/* Pilihan 2: Input URL langsung */}
+                  <div className="space-y-1.5">
+                    <span className="text-xs text-gray-400 font-medium">Cara 2: Masukkan URL Tautan Gambar</span>
+                    <input
+                      type="url"
+                      value={editProductForm.image_url}
+                      onChange={(e) => setEditProductForm({ ...editProductForm, image_url: e.target.value })}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white text-xs outline-none focus:border-[#D4AF37]"
+                      placeholder="https://example.com/gambar-produk.jpg"
+                    />
+                  </div>
+
+                  {/* Preview Gambar */}
                   {editProductForm.image_url && (
-                    <img src={editProductForm.image_url} alt="Preview" className="w-32 h-32 object-cover rounded-lg mt-2" />
+                    <div className="mt-3">
+                      <p className="text-xs text-gray-400 mb-1.5 font-medium">Pratinjau Gambar:</p>
+                      <div className="relative w-36 h-36 border border-white/10 rounded-xl overflow-hidden group">
+                        <img 
+                          src={editProductForm.image_url} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover" 
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setEditProductForm(prev => ({ ...prev, image_url: '' }))}
+                          className="absolute top-1 right-1 p-1 bg-red-600 text-white rounded-full hover:bg-red-500 opacity-80 hover:opacity-100 transition shadow-lg"
+                          title="Hapus foto"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    </div>
                   )}
                 </div>
 
@@ -1762,10 +1917,10 @@ const handleSaveProductLink = async () => {
                 <div className="flex gap-2 pt-4">
                   <button
                     onClick={handleSaveProduct}
-                    disabled={loading}
+                    disabled={loading || isUploadingImage}
                     className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition disabled:opacity-50"
                   >
-                    {loading ? 'Menyimpan...' : 'Simpan Perubahan'}
+                    {loading ? 'Menyimpan...' : (editingProduct.id === 'new' ? 'Tambah Produk' : 'Simpan Perubahan')}
                   </button>
                   <button
                     onClick={() => setShowEditProductModal(false)}
