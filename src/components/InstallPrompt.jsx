@@ -14,21 +14,16 @@ export default function InstallPrompt() {
       return;
     }
 
-    // Cek apakah user sudah pernah dismiss (jangan tampilkan lagi selama 3 hari)
+    // Cek apakah user sudah pernah dismiss (jangan tampilkan lagi)
     const dismissed = localStorage.getItem('pwa_install_dismissed');
-    if (dismissed) {
-      const dismissedDate = new Date(dismissed);
-      const now = new Date();
-      const diffDays = (now - dismissedDate) / (1000 * 60 * 60 * 24);
-      if (diffDays < 3) return; // Jangan tampilkan jika masih dalam 3 hari
-    }
+    if (dismissed) return;
 
     // Tangkap event beforeinstallprompt
     const handler = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      // Tampilkan banner setelah 3 detik (tidak langsung, agar user sempat lihat halaman dulu)
-      setTimeout(() => setShowBanner(true), 3000);
+      // Tampilkan banner setelah 15 detik (tidak langsung, agar user sempat lihat halaman dulu)
+      setTimeout(() => setShowBanner(true), 15000);
     };
 
     window.addEventListener('beforeinstallprompt', handler);

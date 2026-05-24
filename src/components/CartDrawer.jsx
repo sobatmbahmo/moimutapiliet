@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { X, Send, MapPin, ChevronDown, Info, Edit3, CreditCard } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { X, Send, MapPin, ChevronDown, Info, Edit3, CreditCard, Search, Loader2 } from 'lucide-react';
 import { useReferral } from '../context/ReferralContext';
 import { createOrder, addOrderItems, createOrGetUser } from '../lib/supabaseQueries';
 import { generateOrderNumber } from '../lib/orderUtils';
-import { createOrUpdateBinding } from '../lib/bindingLogic'; // Tambahan untuk Binding
+import { createOrUpdateBinding } from '../lib/bindingLogic';
+import { searchBiteshipAreas, getBiteshipRates } from '../lib/biteshipAPI';
 
 const formatRupiah = (number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -16,53 +17,87 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
   const [formData, setFormData] = useState({ name: '', phone: '', detailAddress: '' });
   const [paymentMethod, setPaymentMethod] = useState('transfer'); // 'transfer' or 'cod'
   const [isSaving, setIsSaving] = useState(false);
-  const [provinces, setProvinces] = useState([]);
-  const [regencies, setRegencies] = useState([]);
-  const [districts, setDistricts] = useState([]);
-  const [selectedProv, setSelectedProv] = useState(null);
-  const [selectedCity, setSelectedCity] = useState(null);
-  const [selectedDistrict, setSelectedDistrict] = useState(null);
 
+  // Biteship States
+  const [areaSearch, setAreaSearch] = useState('');
+  const [areaOptions, setAreaOptions] = useState([]);
+  const [isSearchingArea, setIsSearchingArea] = useState(false);
+  const [selectedArea, setSelectedArea] = useState(null);
+  const [showAreaDropdown, setShowAreaDropdown] = useState(false);
+  const [shippingRate, setShippingRate] = useState(null); // { price, courier_name, courier_service_name }
+  const [isLoadingRate, setIsLoadingRate] = useState(false);
+  const searchTimeoutRef = useRef(null);
+
+  // Search Areas
   useEffect(() => {
-    if (isOpen && provinces.length === 0) {
-      fetch('https://www.emsifa.com/api-wilayah-indonesia/api/provinces.json')
-        .then(response => response.json()).then(data => setProvinces(data));
+    if (!areaSearch || areaSearch.length < 3 || selectedArea?.name === areaSearch) {
+      setAreaOptions([]);
+      return;
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
 
-  const handleProvChange = (e) => {
-    const provId = e.target.value;
-    const provName = e.target.options[e.target.selectedIndex].text;
-    setSelectedProv({ id: provId, name: provName });
-    setSelectedCity(null); setSelectedDistrict(null); setRegencies([]); setDistricts([]);
-    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/regencies/${provId}.json`)
-      .then(res => res.json()).then(data => setRegencies(data));
-  };
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    
+    setIsSearchingArea(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      const res = await searchBiteshipAreas(areaSearch);
+      if (res.success) {
+        setAreaOptions(res.areas);
+        setShowAreaDropdown(true);
+      }
+      setIsSearchingArea(false);
+    }, 500);
 
-  const handleCityChange = (e) => {
-    const cityId = e.target.value;
-    const cityName = e.target.options[e.target.selectedIndex].text;
-    setSelectedCity({ id: cityId, name: cityName });
-    setSelectedDistrict(null); setDistricts([]);
-    fetch(`https://www.emsifa.com/api-wilayah-indonesia/api/districts/${cityId}.json`)
-      .then(res => res.json()).then(data => setDistricts(data));
-  };
+    return () => clearTimeout(searchTimeoutRef.current);
+  }, [areaSearch, selectedArea]);
 
-  const handleDistrictChange = (e) => {
-    const distId = e.target.value;
-    const distName = e.target.options[e.target.selectedIndex].text;
-    setSelectedDistrict({ id: distId, name: distName });
+  // Calculate Rate
+  useEffect(() => {
+    const fetchRate = async () => {
+      if (selectedArea && paymentMethod === 'transfer' && cartItems.length > 0) {
+        setIsLoadingRate(true);
+        // Kita berasumsi Biteship area object punya property postal_code
+        const postalCode = selectedArea.postal_code;
+        if (postalCode) {
+          const res = await getBiteshipRates(postalCode, cartItems, 'jnt');
+          if (res.success && res.pricing && res.pricing.length > 0) {
+            // Pilih tarif pertama yang tersedia
+            const rate = res.pricing[0];
+            setShippingRate({
+              price: rate.price,
+              courier_name: rate.courier_name,
+              courier_service_name: rate.courier_service_name
+            });
+          } else {
+            setShippingRate(null);
+          }
+        }
+        setIsLoadingRate(false);
+      } else {
+        setShippingRate(null);
+      }
+    };
+    
+    fetchRate();
+  }, [selectedArea, paymentMethod, cartItems]);
+
+  const handleSelectArea = (area) => {
+    setSelectedArea(area);
+    setAreaSearch(area.name); // Usually formatted nicely by Biteship
+    setShowAreaDropdown(false);
   };
 
   const subtotal = useMemo(() => {
     return cartItems.reduce((total, item) => total + (item.harga_produk * item.qty), 0);
   }, [cartItems]);
 
+  const totalBayar = useMemo(() => {
+    return subtotal + (shippingRate ? shippingRate.price : 0);
+  }, [subtotal, shippingRate]);
+
   // === FUNGSI KIRIM KE WHATSAPP DAN SIMPAN KE DATABASE ===
   const handleCheckout = async () => {
-    if (!formData.name || !formData.phone || !selectedProv || !selectedCity || !selectedDistrict || !formData.detailAddress) {
-      alert("Mohon lengkapi semua data alamat!");
+    if (!formData.name || !formData.phone || !selectedArea || !formData.detailAddress) {
+      alert("Mohon lengkapi semua data alamat termasuk area/kecamatan!");
       return;
     }
 
@@ -74,7 +109,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
       if (!orderNumResult.success) throw new Error('Gagal generate nomor order');
 
       // Build alamat lengkap
-      const fullAddress = `${formData.detailAddress}, ${selectedDistrict.name}, ${selectedCity.name}, ${selectedProv.name}`;
+      const fullAddress = `${formData.detailAddress}, ${selectedArea.name}`;
 
       // Buat atau dapatkan user berdasarkan nomor WA
       const userResult = await createOrGetUser(formData.name, formData.phone, null, fullAddress);
@@ -82,50 +117,43 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
       
       const userId = userResult.user.id;
 
-      // Create order in database (no shipping cost yet - will be added manually by admin)
+      // Create order in database
       const orderData = {
         order_number: orderNumResult.orderNumber,
         metode_bayar: paymentMethod,
         total_produk: subtotal,
-        total_bayar: subtotal, // Will be updated when admin adds shipping cost
+        total_bayar: paymentMethod === 'transfer' && shippingRate ? totalBayar : subtotal,
+        shipping_cost: paymentMethod === 'transfer' && shippingRate ? shippingRate.price : 0,
+        courier_name: paymentMethod === 'transfer' && shippingRate ? shippingRate.courier_name.toUpperCase() : null,
         alamat: fullAddress,
         nomor_wa: formData.phone,
         catatan: '',
         is_offline: false,
         affiliator_id: referralData.affiliatorId || null,
         payment_due_date: null,
-        status: 'WAITING_CONFIRMATION' // Temporary status, admin will update
+        status: 'WAITING_CONFIRMATION' // Admin can confirm or proceed to payment
       };
 
       const createResult = await createOrder(userId, orderData);
       if (!createResult.success) throw new Error(createResult.error);
 
       // --- TAMBAHAN BINDING LOGIC ---
-      // Ikat customer ke affiliator jika checkout menggunakan link referral
       if (referralData.affiliatorId) {
         await createOrUpdateBinding(userId, referralData.affiliatorId);
-        console.log('✅ Customer berhasil di-binding ke affiliator:', referralData.affiliatorId);
       }
       // ------------------------------
 
       // Add order items
       const itemsToAdd = cartItems.map(item => ({
-        product_id: item.original_product_id || item.id, // Gunakan original ID jika ada varian
+        product_id: item.original_product_id || item.id,
         qty: item.qty,
         harga_satuan: item.harga_produk,
         subtotal: item.harga_produk * item.qty,
-        varian: item.variant_code || null // Simpan varian untuk Paket Komplit
+        varian: item.variant_code || null
       }));
 
       const addItemsResult = await addOrderItems(createResult.order.id, itemsToAdd);
       if (!addItemsResult.success) throw new Error(addItemsResult.error);
-
-      console.log('✅ Order created successfully', {
-        orderNumber: orderNumResult.orderNumber,
-        orderId: createResult.order.id,
-        itemsAdded: itemsToAdd.length,
-        items: itemsToAdd
-      });
 
       // Now build WhatsApp message
       const refCode = referralData.affiliatorId || '-';
@@ -140,8 +168,14 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
 
       message += `\n*RINGKASAN BIAYA*\n`;
       message += `Subtotal Barang: ${formatRupiah(subtotal)}\n`;
-      message += `Ongkos Kirim: *belum ditentukan (mohon dikonfirmasi)*\n`;
-      message += `*Total: ${formatRupiah(subtotal)} (belum termasuk ongkir)*\n\n`;
+      
+      if (paymentMethod === 'transfer' && shippingRate) {
+        message += `Ongkos Kirim (${shippingRate.courier_name.toUpperCase()} - ${shippingRate.courier_service_name}): ${formatRupiah(shippingRate.price)}\n`;
+        message += `*Total: ${formatRupiah(totalBayar)}*\n\n`;
+      } else {
+        message += `Ongkos Kirim: *belum ditentukan (mohon dikonfirmasi karena COD)*\n`;
+        message += `*Total: ${formatRupiah(subtotal)} (belum termasuk ongkir)*\n\n`;
+      }
 
       message += `👤 *DATA PENERIMA*\n`;
       message += `Nama: ${formData.name}\n`;
@@ -156,27 +190,20 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
         message += `COD (Bayar saat diterima)\n\n`;
       }
       
-      // === INFO AFFILIATOR ===
       if (hasReferral) {
         message += `🤝 *REFERRAL CODE: ${refCode}* ✓\n`; 
-        message += `(Pesanan ini dari mitra terdaftar kami)\n\n`;
       }
 
-      message += `✅ Pesanan sudah tersimpan di sistem. Mohon konfirmasi ongkir dan invoice.\n`;
+      message += `✅ Pesanan sudah tersimpan di sistem.\n`;
 
       const adminNumber = "6285700800278"; 
       window.open(`https://wa.me/${adminNumber}?text=${encodeURIComponent(message)}`, '_blank');
 
-      // Clear cart after successful order
       alert('✅ Pesanan berhasil disimpan! WhatsApp akan terbuka untuk konfirmasi dengan admin.');
       onClose();
 
     } catch (error) {
       console.error('❌ Checkout Error:', error);
-      console.error('Error Details:', {
-        message: error.message,
-        stack: error.stack
-      });
       alert('❌ Error: ' + error.message);
     } finally {
       setIsSaving(false);
@@ -229,9 +256,41 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
                 <input type="text" placeholder="Nama Penerima" className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#D4AF37]" onChange={(e) => setFormData({...formData, name: e.target.value})} />
                 <input type="tel" placeholder="Nomor WhatsApp" className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#D4AF37]" onChange={(e) => setFormData({...formData, phone: e.target.value})} />
                 
-                <div className="relative"><select className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-sm text-gray-200 appearance-none cursor-pointer focus:border-[#D4AF37]" onChange={handleProvChange} value={selectedProv?.id || ""} style={{ colorScheme: 'dark' }}><option value="">-- Pilih Provinsi --</option>{provinces.map(p => <option key={p.id} value={p.id} className="bg-gray-800">{p.name}</option>)}</select><ChevronDown className="absolute right-3 top-3.5 text-gray-400 pointer-events-none" size={16}/></div>
-                <div className="relative"><select className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-sm text-gray-200 appearance-none cursor-pointer focus:border-[#D4AF37] disabled:opacity-50" onChange={handleCityChange} value={selectedCity?.id || ""} disabled={!selectedProv} style={{ colorScheme: 'dark' }}><option value="">-- Pilih Kota/Kabupaten --</option>{regencies.map(r => <option key={r.id} value={r.id} className="bg-gray-800">{r.name}</option>)}</select><ChevronDown className="absolute right-3 top-3.5 text-gray-400 pointer-events-none" size={16}/></div>
-                <div className="relative"><select className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-sm text-gray-200 appearance-none cursor-pointer focus:border-[#D4AF37] disabled:opacity-50" onChange={handleDistrictChange} value={selectedDistrict?.id || ""} disabled={!selectedCity} style={{ colorScheme: 'dark' }}><option value="">-- Pilih Kecamatan --</option>{districts.map(d => <option key={d.id} value={d.id} className="bg-gray-800">{d.name}</option>)}</select><ChevronDown className="absolute right-3 top-3.5 text-gray-400 pointer-events-none" size={16}/></div>
+                {/* Biteship Area Autocomplete */}
+                <div className="relative">
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      placeholder="Cari Kecamatan / Kodepos..." 
+                      className="w-full pl-10 p-3 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#D4AF37]" 
+                      value={areaSearch}
+                      onChange={(e) => {
+                        setAreaSearch(e.target.value);
+                        if (selectedArea && e.target.value !== selectedArea.name) {
+                          setSelectedArea(null);
+                        }
+                      }}
+                      onFocus={() => { if(areaOptions.length > 0) setShowAreaDropdown(true); }}
+                      onBlur={() => setTimeout(() => setShowAreaDropdown(false), 200)}
+                    />
+                    <Search className="absolute left-3 top-3.5 text-gray-400" size={16} />
+                    {isSearchingArea && <Loader2 className="absolute right-3 top-3.5 text-gray-400 animate-spin" size={16} />}
+                  </div>
+                  
+                  {showAreaDropdown && areaOptions.length > 0 && (
+                    <div className="absolute z-10 w-full mt-1 bg-[#0f3d37] border border-[#D4AF37]/30 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                      {areaOptions.map(area => (
+                        <div 
+                          key={area.id} 
+                          className="p-3 text-sm text-white hover:bg-[#D4AF37]/20 cursor-pointer border-b border-white/5 last:border-0"
+                          onClick={() => handleSelectArea(area)}
+                        >
+                          {area.name}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
                 <textarea rows="2" placeholder="Detail Jalan, Nomor Rumah, RT/RW..." className="w-full p-3 bg-black/30 border border-white/10 rounded-lg text-sm text-white focus:outline-none focus:border-[#D4AF37]" onChange={(e) => setFormData({...formData, detailAddress: e.target.value})}></textarea>
               </div>
@@ -240,7 +299,6 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
               <div className="mt-6 pt-6 border-t border-white/10">
                 <h3 className="font-bold text-[#D4AF37] mb-4 flex items-center gap-2"><CreditCard size={18} /> Metode Pembayaran</h3>
                 <div className="space-y-3">
-                  {/* Transfer Option */}
                   <label className="flex items-center p-3 bg-black/30 border border-white/10 rounded-lg cursor-pointer hover:bg-black/50 transition-all"
                     style={{ borderColor: paymentMethod === 'transfer' ? '#D4AF37' : 'rgba(255,255,255,0.1)' }}>
                     <input type="radio" name="payment" value="transfer" checked={paymentMethod === 'transfer'} 
@@ -251,21 +309,38 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
                     </div>
                   </label>
 
-                  {/* COD Option */}
                   <label className="flex items-center p-3 bg-black/30 border border-white/10 rounded-lg cursor-pointer hover:bg-black/50 transition-all"
                     style={{ borderColor: paymentMethod === 'cod' ? '#D4AF37' : 'rgba(255,255,255,0.1)' }}>
                     <input type="radio" name="payment" value="cod" checked={paymentMethod === 'cod'} 
                       onChange={(e) => setPaymentMethod(e.target.value)} className="w-4 h-4" />
                     <div className="ml-3 flex-1">
                       <p className="font-semibold text-white text-sm">🚚 COD (Bayar Nanti)</p>
-                      <p className="text-xs text-gray-400">Bayar ketika barang tiba</p>
+                      <p className="text-xs text-gray-400">Ongkir & Total akan dihitung manual oleh admin</p>
                     </div>
                   </label>
                 </div>
               </div>
 
+              {/* SHIPPING RATE DISPLAY */}
+              {paymentMethod === 'transfer' && selectedArea && (
+                <div className="mt-4 p-3 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-lg">
+                  {isLoadingRate ? (
+                    <div className="flex items-center gap-2 text-sm text-[#D4AF37]">
+                      <Loader2 size={14} className="animate-spin" /> Menghitung ongkir...
+                    </div>
+                  ) : shippingRate ? (
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-[#D4AF37] font-medium">Ongkir ({shippingRate.courier_name.toUpperCase()} - {shippingRate.courier_service_name})</span>
+                      <span className="text-white font-bold">{formatRupiah(shippingRate.price)}</span>
+                    </div>
+                  ) : (
+                    <div className="text-sm text-red-400">Gagal memuat tarif ongkir. Admin akan mengkonfirmasi manual.</div>
+                  )}
+                </div>
+              )}
+
               {/* INFO SECTION */}
-              <div className="mt-6 bg-[#D4AF37]/10 border border-[#D4AF37]/30 p-3 rounded-lg flex gap-3"><Info className="text-[#F4D03F] shrink-0" size={20} /><div className="text-xs text-[#F4D03F]/90"><p className="font-bold mb-1 text-[#F4D03F]">ℹ️ Info Pemesanan</p><p>Biaya ongkos kirim akan dikonfirmasi oleh admin. Pesanan Anda sudah tersimpan di sistem dan akan diproses segera.</p></div></div>
+              <div className="mt-6 bg-[#D4AF37]/10 border border-[#D4AF37]/30 p-3 rounded-lg flex gap-3"><Info className="text-[#F4D03F] shrink-0" size={20} /><div className="text-xs text-[#F4D03F]/90"><p className="font-bold mb-1 text-[#F4D03F]">ℹ️ Info Pemesanan</p><p>Pesanan Anda sudah tersimpan di sistem dan akan diproses segera setelah konfirmasi.</p></div></div>
             </div>
           )}
         </div>
@@ -276,9 +351,26 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
               <span className="text-gray-400">Subtotal Barang</span>
               <span className="font-bold text-white">{formatRupiah(subtotal)}</span>
             </div>
+            
+            {paymentMethod === 'transfer' && shippingRate && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Ongkos Kirim</span>
+                <span className="font-bold text-white">{formatRupiah(shippingRate.price)}</span>
+              </div>
+            )}
+            
             <div className="border-t border-white/20 pt-3 flex items-center justify-between">
-              <span className="text-gray-400 text-xs">*Biaya kirim akan dikonfirmasi admin</span>
+              <span className="text-white font-bold text-lg">Total Pembayaran</span>
+              <span className="font-extrabold text-[#D4AF37] text-lg">
+                {paymentMethod === 'transfer' && shippingRate ? formatRupiah(totalBayar) : formatRupiah(subtotal)}
+              </span>
             </div>
+            {paymentMethod === 'cod' && (
+              <div className="text-right text-xs text-yellow-400 mt-[-8px]">
+                *Belum termasuk ongkir (dihitung admin)
+              </div>
+            )}
+            
             <button onClick={handleCheckout} disabled={isSaving} className="w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] hover:shadow-[#D4AF37]/30 text-black font-extrabold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95 mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {isSaving ? 'Menyimpan...' : 'ORDER VIA WHATSAPP'} <Send size={18} strokeWidth={2.5} />
             </button>

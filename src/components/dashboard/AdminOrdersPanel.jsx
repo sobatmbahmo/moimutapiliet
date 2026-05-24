@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DollarSign, Check, Truck, Printer, Trash, Plus, X, Clock, Package, Send, CheckCircle } from 'lucide-react';
+import { DollarSign, Check, Truck, Printer, Trash, Plus, X, Clock, Package, Send, CheckCircle, Search, ArrowDownUp } from 'lucide-react';
 
 const formatRupiah = (number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -42,6 +42,9 @@ export default function AdminOrdersPanel({
   handleDeleteOrder
 }) {
   const [statusFilter, setStatusFilter] = useState('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [dateSort, setDateSort] = useState('newest'); // 'newest' | 'oldest'
+  const [skipNotifMap, setSkipNotifMap] = useState({});
 
   // Categorise orders
   const pendingOrders = orders.filter(o => o.status === 'WAITING_CONFIRMATION');
@@ -57,13 +60,30 @@ export default function AdminOrdersPanel({
     delivered: deliveredOrders.length
   };
 
-  // Filter active orders
-  const filteredOrders =
+  // Filter active orders based on status
+  let filteredOrders =
     statusFilter === 'pending' ? pendingOrders :
     statusFilter === 'process' ? processedOrders :
     statusFilter === 'shipped' ? shippedOrders :
     statusFilter === 'delivered' ? deliveredOrders :
     orders;
+
+  // Apply search
+  if (searchQuery.trim()) {
+    const lowerQuery = searchQuery.toLowerCase();
+    filteredOrders = filteredOrders.filter(o => 
+      o.order_number?.toLowerCase().includes(lowerQuery) ||
+      (o.users?.nama || o.nama_pembeli)?.toLowerCase().includes(lowerQuery) ||
+      (o.users?.nomor_wa || o.nomor_wa)?.toLowerCase().includes(lowerQuery)
+    );
+  }
+
+  // Apply date sort
+  filteredOrders.sort((a, b) => {
+    const dateA = new Date(a.created_at).getTime();
+    const dateB = new Date(b.created_at).getTime();
+    return dateSort === 'newest' ? dateB - dateA : dateA - dateB;
+  });
 
   // Status label & badge
   const getStatusInfo = (status) => {
@@ -140,6 +160,22 @@ export default function AdminOrdersPanel({
             </p>
           </div>
 
+          {/* Skip Notification Checkbox */}
+          {['WAITING_PAYMENT', 'processing', 'shipped', 'SHIPPED'].includes(order.status) && (
+            <div className="flex items-center gap-2 mb-2">
+              <input 
+                type="checkbox" 
+                id={`skip-notif-${order.id}`}
+                checked={skipNotifMap[order.id] || false}
+                onChange={(e) => setSkipNotifMap(prev => ({ ...prev, [order.id]: e.target.checked }))}
+                className="w-3.5 h-3.5 rounded border-gray-600 bg-black/40 text-[#D4AF37] focus:ring-[#D4AF37]"
+              />
+              <label htmlFor={`skip-notif-${order.id}`} className="text-xs text-gray-400 cursor-pointer">
+                Jangan kirim Notifikasi WA
+              </label>
+            </div>
+          )}
+
           {/* Action Buttons - stacked on mobile */}
           <div className="flex flex-wrap gap-1.5">
             {order.status === 'WAITING_CONFIRMATION' && (
@@ -152,7 +188,7 @@ export default function AdminOrdersPanel({
             )}
             {order.status === 'WAITING_PAYMENT' && (
               <button
-                onClick={() => handleConfirmPayment(order.id)}
+                onClick={() => handleConfirmPayment(order.id, skipNotifMap[order.id])}
                 disabled={loading}
                 className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-lg hover:bg-emerald-500/30 transition disabled:opacity-50"
               >
@@ -184,7 +220,7 @@ export default function AdminOrdersPanel({
                   <Printer size={13} /> Print Ulang
                 </button>
                 <button
-                  onClick={() => handleConfirmDelivery(order.id)}
+                  onClick={() => handleConfirmDelivery(order.id, skipNotifMap[order.id])}
                   className="flex-1 min-w-[100px] flex items-center justify-center gap-1 px-2 py-2 bg-green-500/20 text-green-300 text-xs font-bold rounded-lg hover:bg-green-500/30 transition"
                 >
                   <Check size={13} /> Terkirim
@@ -225,7 +261,7 @@ export default function AdminOrdersPanel({
             </select>
             <div className="flex gap-2">
               <button
-                onClick={() => handleInputResi(order.id)}
+                onClick={() => handleInputResi(order.id, skipNotifMap[order.id])}
                 className="flex-1 px-3 py-2.5 bg-green-500 text-black font-bold rounded-lg text-sm hover:bg-green-600 transition flex items-center justify-center gap-1.5"
               >
                 <Send size={14} /> Kirim
@@ -251,12 +287,39 @@ export default function AdminOrdersPanel({
           <h3 className="text-base sm:text-lg font-bold text-white">Manajemen Order</h3>
           <p className="text-xs text-gray-500">{orders.length} total order</p>
         </div>
-        <button
-          onClick={() => setShowOfflineOrderForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-[#D4AF37] text-black text-sm font-bold rounded-lg hover:bg-[#F4D03F] transition w-full sm:w-auto justify-center"
-        >
-          <Plus size={16} /> Tambah Order Manual
-        </button>
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
+          {/* Search Bar */}
+          <div className="relative flex-1 sm:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+            <input 
+              type="text" 
+              placeholder="Cari order, nama, WA..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-[#D4AF37] focus:outline-none transition"
+            />
+          </div>
+          
+          {/* Date Sort Dropdown */}
+          <div className="relative">
+            <select
+              value={dateSort}
+              onChange={(e) => setDateSort(e.target.value)}
+              className="w-full sm:w-auto pl-8 pr-8 py-2 bg-white/5 border border-white/10 rounded-lg text-white text-sm focus:border-[#D4AF37] focus:outline-none appearance-none transition"
+            >
+              <option value="newest">Terbaru</option>
+              <option value="oldest">Terlama</option>
+            </select>
+            <ArrowDownUp className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+          </div>
+
+          <button
+            onClick={() => setShowOfflineOrderForm(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-[#D4AF37] text-black text-sm font-bold rounded-lg hover:bg-[#F4D03F] transition justify-center"
+          >
+            <Plus size={16} /> Tambah Manual
+          </button>
+        </div>
       </div>
 
       {/* Summary Stat Cards - always visible overview */}

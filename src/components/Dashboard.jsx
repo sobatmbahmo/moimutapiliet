@@ -77,6 +77,7 @@ export default function Dashboard({ user, onLogout }) {
   const [resiNumber, setResiNumber] = useState('');
   const [shippingCost, setShippingCost] = useState('');
   const [couriername, setCourierName] = useState('J&T');
+  const [skipShippingNotif, setSkipShippingNotif] = useState(false);
   const [billOrder, setBillOrder] = useState('');
   const [showPrintLabel, setShowPrintLabel] = useState(false);
   const [selectedOrderForLabel, setSelectedOrderForLabel] = useState(null);
@@ -923,7 +924,7 @@ const handleSaveProductLink = async () => {
     }
   };
 
-  const handleInputResi = async (orderId) => {
+  const handleInputResi = async (orderId, skipNotif = false) => {
     if (!resiNumber.trim()) {
       setErrorMsg('Nomor resi tidak boleh kosong');
       return;
@@ -945,7 +946,7 @@ const handleSaveProductLink = async () => {
       if (updateError) throw updateError;
 
       const order = orders.find(o => o.id === orderId);
-      if (order?.users?.nomor_wa) {
+      if (order?.users?.nomor_wa && !skipNotif) {
         await sendResiNotification(
           order.users.nomor_wa,
           resiNumber,
@@ -964,7 +965,7 @@ const handleSaveProductLink = async () => {
     }
   };
 
-  const handleConfirmDelivery = async (orderId) => {
+  const handleConfirmDelivery = async (orderId, skipNotif = false) => {
     try {
       const result = await updateOrderStatus(orderId, 'delivered');
       if (result.success) {
@@ -978,7 +979,7 @@ const handleSaveProductLink = async () => {
     }
   };
 
-  const handleConfirmPayment = async (orderId) => {
+  const handleConfirmPayment = async (orderId, skipNotif = false) => {
     try {
       setLoading(true);
       const { error } = await supabase
@@ -1083,6 +1084,7 @@ const handleSaveProductLink = async () => {
     setSelectedOrder(order);
     setShippingCost(order.shipping_cost || '');
     setCourierName(order.courier_name || 'J&T');
+    setSkipShippingNotif(false);
     setBillOrder('');
     setShowShippingModal(true);
   };
@@ -1130,7 +1132,7 @@ const handleSaveProductLink = async () => {
 
       if (orderUpdateError) throw orderUpdateError;
 
-      if (selectedOrder.users?.nomor_wa) {
+      if (selectedOrder.users?.nomor_wa && !skipShippingNotif) {
         await safeApiCall(
           () => sendInvoiceNotification(
             selectedOrder.users.nomor_wa,
@@ -1144,7 +1146,7 @@ const handleSaveProductLink = async () => {
         );
       }
 
-      setSuccessMsg('✅ Ongkir & harga produk berhasil disimpan! Invoice sudah dikirim ke customer via WhatsApp.');
+      setSuccessMsg(skipShippingNotif ? '✅ Ongkir & harga produk berhasil disimpan!' : '✅ Ongkir & harga produk berhasil disimpan! Invoice sudah dikirim ke customer via WhatsApp.');
       setShowShippingModal(false);
       setShippingCost('');
       setBillOrder('');
@@ -2122,6 +2124,8 @@ const handleSaveProductLink = async () => {
           loading={loading}
           onConfirm={handleConfirmShipping}
           formatRupiah={formatRupiah}
+          skipNotif={skipShippingNotif}
+          setSkipNotif={setSkipShippingNotif}
         />
 
         {showPrintResiModal && selectedOrderForPrintResi && (

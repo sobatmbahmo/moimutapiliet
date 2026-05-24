@@ -17,7 +17,9 @@ export default function ShippingModal({
   errorMsg,
   loading,
   onConfirm,
-  formatRupiah
+  formatRupiah,
+  skipNotif,
+  setSkipNotif
 }) {
   if (!isOpen || !selectedOrder) return null;
 
@@ -122,6 +124,20 @@ export default function ShippingModal({
           </div>
         )}
 
+        {/* Skip Notification Checkbox */}
+        <div className="flex items-center gap-2 px-1">
+          <input 
+            type="checkbox" 
+            id="skip-shipping-notif"
+            checked={skipNotif}
+            onChange={(e) => setSkipNotif(e.target.checked)}
+            className="w-4 h-4 rounded border-gray-600 bg-black/40 text-[#D4AF37] focus:ring-[#D4AF37]"
+          />
+          <label htmlFor="skip-shipping-notif" className="text-sm text-gray-400 cursor-pointer">
+            Jangan kirim Notifikasi WA (Invoice)
+          </label>
+        </div>
+
         {/* Action Buttons */}
         <div className="flex gap-3 pt-2">
           <button
@@ -129,7 +145,7 @@ export default function ShippingModal({
             disabled={loading}
             className="flex-1 px-4 py-3 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition disabled:opacity-50"
           >
-            {loading ? 'Menyimpan...' : '✓ Simpan & Kirim WA'}
+            {loading ? 'Menyimpan...' : (skipNotif ? '✓ Simpan' : '✓ Simpan & Kirim WA')}
           </button>
           <button
             onClick={handleClose}
