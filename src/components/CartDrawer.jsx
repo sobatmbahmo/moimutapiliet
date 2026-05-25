@@ -53,7 +53,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
   // Calculate Rate
   useEffect(() => {
     const fetchRate = async () => {
-      if (selectedArea && paymentMethod === 'transfer' && cartItems.length > 0) {
+      if (selectedArea && cartItems.length > 0) {
         setIsLoadingRate(true);
         // Kita berasumsi Biteship area object punya property postal_code
         const postalCode = selectedArea.postal_code;
@@ -78,7 +78,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
     };
     
     fetchRate();
-  }, [selectedArea, paymentMethod, cartItems]);
+  }, [selectedArea, cartItems]);
 
   const handleSelectArea = (area) => {
     setSelectedArea(area);
@@ -91,8 +91,11 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
   }, [cartItems]);
 
   const totalBayar = useMemo(() => {
-    if (paymentMethod === 'cod') return subtotal + Math.round(subtotal * 0.05);
-    return subtotal + (shippingRate ? shippingRate.price : 0);
+    let total = subtotal + (shippingRate ? shippingRate.price : 0);
+    if (paymentMethod === 'cod') {
+      total += Math.round(subtotal * 0.05);
+    }
+    return total;
   }, [subtotal, shippingRate, paymentMethod]);
 
   // Revert payment method to transfer if subtotal exceeds 200k and cod is selected
@@ -131,9 +134,9 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
         order_number: orderNumResult.orderNumber,
         metode_bayar: paymentMethod,
         total_produk: subtotal,
-        total_bayar: paymentMethod === 'transfer' && shippingRate ? totalBayar : (paymentMethod === 'cod' ? totalBayar : subtotal),
-        shipping_cost: paymentMethod === 'transfer' && shippingRate ? shippingRate.price : 0,
-        courier_name: paymentMethod === 'transfer' && shippingRate ? shippingRate.courier_name.toUpperCase() : null,
+        total_bayar: totalBayar,
+        shipping_cost: shippingRate ? shippingRate.price : 0,
+        courier_name: shippingRate ? shippingRate.courier_name.toUpperCase() : null,
         alamat: fullAddress,
         nomor_wa: formData.phone,
         catatan: '',
@@ -178,14 +181,15 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
       message += `\n*RINGKASAN BIAYA*\n`;
       message += `Subtotal Barang: ${formatRupiah(subtotal)}\n`;
       
-      if (paymentMethod === 'transfer' && shippingRate) {
+      if (shippingRate) {
         message += `Ongkos Kirim (${shippingRate.courier_name.toUpperCase()} - ${shippingRate.courier_service_name}): ${formatRupiah(shippingRate.price)}\n`;
-        message += `*Total: ${formatRupiah(totalBayar)}*\n\n`;
-      } else {
-        message += `Biaya Layanan COD (5%): ${formatRupiah(Math.round(subtotal * 0.05))}\n`;
-        message += `Ongkos Kirim: *belum ditentukan (mohon dikonfirmasi karena COD)*\n`;
-        message += `*Total: ${formatRupiah(totalBayar)} (belum termasuk ongkir)*\n\n`;
       }
+      
+      if (paymentMethod === 'cod') {
+        message += `Biaya Layanan COD (5%): ${formatRupiah(Math.round(subtotal * 0.05))}\n`;
+      }
+      
+      message += `*Total Akhir: ${formatRupiah(totalBayar)}*\n\n`;
 
       message += `👤 *DATA PENERIMA*\n`;
       message += `Nama: ${formData.name}\n`;
@@ -338,7 +342,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
               </div>
 
               {/* SHIPPING RATE DISPLAY */}
-              {paymentMethod === 'transfer' && selectedArea && (
+              {selectedArea && (
                 <div className="mt-4 p-3 bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-lg">
                   {isLoadingRate ? (
                     <div className="flex items-center gap-2 text-sm text-[#D4AF37]">
@@ -350,7 +354,7 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
                       <span className="text-white font-bold">{formatRupiah(shippingRate.price)}</span>
                     </div>
                   ) : (
-                    <div className="text-sm text-red-400">Gagal memuat tarif ongkir. Admin akan mengkonfirmasi manual.</div>
+                    <div className="text-sm text-red-400">Gagal memuat tarif ongkir. Hubungi admin.</div>
                   )}
                 </div>
               )}
@@ -368,39 +372,26 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
               <span className="font-bold text-white">{formatRupiah(subtotal)}</span>
             </div>
             
-            {paymentMethod === 'transfer' && shippingRate && (
+            {shippingRate && (
               <div className="flex items-center justify-between text-sm">
                 <span className="text-gray-400">Ongkos Kirim</span>
                 <span className="font-bold text-white">{formatRupiah(shippingRate.price)}</span>
               </div>
             )}
             
-            {paymentMethod === 'transfer' && (
-              <div className="border-t border-white/20 pt-3 flex items-center justify-between">
-                <span className="text-white font-bold text-lg">Total Pembayaran</span>
-                <span className="font-extrabold text-[#D4AF37] text-lg">
-                  {shippingRate ? formatRupiah(totalBayar) : formatRupiah(subtotal)}
-                </span>
+            {paymentMethod === 'cod' && (
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-gray-400">Biaya Layanan COD (5%)</span>
+                <span className="font-bold text-white">{formatRupiah(Math.round(subtotal * 0.05))}</span>
               </div>
             )}
             
-            {paymentMethod === 'cod' && (
-              <>
-                <div className="flex items-center justify-between text-sm">
-                  <span className="text-gray-400">Biaya Layanan COD (5%)</span>
-                  <span className="font-bold text-white">{formatRupiah(Math.round(subtotal * 0.05))}</span>
-                </div>
-                <div className="border-t border-white/20 pt-3 flex items-center justify-between">
-                  <span className="text-white font-bold text-lg">Total Pembayaran</span>
-                  <span className="font-extrabold text-[#D4AF37] text-lg">
-                    {formatRupiah(totalBayar)}
-                  </span>
-                </div>
-                <div className="text-right text-xs text-yellow-400 mt-[-8px]">
-                  *Belum termasuk ongkir (dihitung admin)
-                </div>
-              </>
-            )}
+            <div className="border-t border-white/20 pt-3 flex items-center justify-between">
+              <span className="text-white font-bold text-lg">Total Pembayaran</span>
+              <span className="font-extrabold text-[#D4AF37] text-lg">
+                {formatRupiah(totalBayar)}
+              </span>
+            </div>
             
             <button onClick={handleCheckout} disabled={isSaving} className="w-full py-4 bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] hover:shadow-[#D4AF37]/30 text-black font-extrabold rounded-xl shadow-lg flex items-center justify-center gap-2 transition-transform active:scale-95 mt-2 disabled:opacity-50 disabled:cursor-not-allowed">
               {isSaving ? 'Menyimpan...' : 'ORDER VIA WHATSAPP'} <Send size={18} strokeWidth={2.5} />
