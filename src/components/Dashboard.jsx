@@ -576,6 +576,50 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
+  const handleEditAffiliator = (affiliator) => {
+    setEditingAffiliator(affiliator);
+    setEditAffiliatorForm({
+      nama: affiliator.nama || '',
+      nomor_wa: affiliator.nomor_wa || '',
+      email: affiliator.email || '',
+      status: affiliator.status || 'active',
+      akun_tiktok: affiliator.akun_tiktok || '',
+      bank_name: affiliator.bank_name || '',
+      account_number: affiliator.account_number || ''
+    });
+    setShowEditAffiliatorModal(true);
+  };
+
+  const handleSaveAffiliator = async (e) => {
+    if (e) e.preventDefault();
+    try {
+      setLoading(true);
+      const { data, error } = await supabase
+        .from('affiliator_profiles')
+        .update({
+          nama: editAffiliatorForm.nama,
+          nomor_wa: editAffiliatorForm.nomor_wa,
+          email: editAffiliatorForm.email,
+          status: editAffiliatorForm.status,
+          akun_tiktok: editAffiliatorForm.akun_tiktok,
+          bank_name: editAffiliatorForm.bank_name,
+          account_number: editAffiliatorForm.account_number
+        })
+        .eq('id', editingAffiliator.id)
+        .select()
+        .single();
+        
+      if (error) throw error;
+      
+      setSuccessMsg('Profil mitra berhasil diperbarui');
+      setShowEditAffiliatorModal(false);
+      loadInitialData();
+    } catch (err) {
+      setErrorMsg('Gagal memperbarui profil: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
 const handleEditProductLink = async (product) => {
   setEditingProductForLink(product);
