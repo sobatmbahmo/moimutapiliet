@@ -88,31 +88,30 @@ export default function AffiliatorDashboard({
           </div>
         )}
 
-        {/* Summary Cards */}
         {summary && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <div className="bg-black/30 border border-white/10 rounded-lg p-4 text-center">
-              <p className="text-gray-400 text-sm mb-1">Saldo</p>
-              <p className="text-2xl font-bold text-[#D4AF37]">{formatRupiah(summary.currentBalance)}</p>
+              <p className="text-gray-400 text-sm mb-1">Siap Cair (Cleared)</p>
+              <p className="text-2xl font-bold text-green-400">{formatRupiah(summary.totalCleared)}</p>
             </div>
             <div className="bg-black/30 border border-white/10 rounded-lg p-4 text-center">
-              <p className="text-gray-400 text-sm mb-1">Penghasilan</p>
-              <p className="text-2xl font-bold text-green-400">{formatRupiah(summary.totalEarnings)}</p>
+              <p className="text-gray-400 text-sm mb-1">Menunggu (Pending)</p>
+              <p className="text-2xl font-bold text-yellow-400">{formatRupiah(summary.totalPending)}</p>
             </div>
             <div className="bg-black/30 border border-white/10 rounded-lg p-4 text-center">
-              <p className="text-gray-400 text-sm mb-1">Pelanggan</p>
-              <p className="text-2xl font-bold text-blue-400">{summary.customerCount}</p>
+              <p className="text-gray-400 text-sm mb-1">Sudah Dibayar</p>
+              <p className="text-2xl font-bold text-[#D4AF37]">{formatRupiah(summary.totalPaid)}</p>
             </div>
             <div className="bg-black/30 border border-white/10 rounded-lg p-4 text-center">
-              <p className="text-gray-400 text-sm mb-1">Pesanan Terjual</p>
-              <p className="text-2xl font-bold text-purple-400">{summary.orderCount}</p>
+              <p className="text-gray-400 text-sm mb-1">Total Pesanan</p>
+              <p className="text-2xl font-bold text-blue-400">{summary.orderCount}</p>
             </div>
           </div>
         )}
 
         {/* Tabs */}
         <div className="flex gap-2 border-b border-white/10 overflow-x-auto">
-          {['overview', 'products', 'customers', 'withdrawals'].map(tab => (
+          {['overview', 'products', 'customers', 'commissions'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -122,7 +121,7 @@ export default function AffiliatorDashboard({
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              {tab === 'products' ? 'Produk' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              {tab === 'products' ? 'Produk' : tab === 'commissions' ? 'Komisi' : tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
         </div>
@@ -283,18 +282,14 @@ export default function AffiliatorDashboard({
           </div>
         )}
 
-        {activeTab === 'withdrawals' && (
+        {activeTab === 'commissions' && (
           <div className="space-y-4">
-            <button
-              onClick={() => setShowWithdrawalForm(true)}
-              className="w-full px-4 py-2 bg-[#D4AF37] text-black font-bold rounded-lg hover:bg-[#F4D03F] transition flex items-center justify-center gap-2"
-            >
-              <Plus size={18} /> Buat Permintaan Penarikan
-            </button>
+            <h3 className="font-bold text-[#D4AF37]">Riwayat Komisi</h3>
+            <p className="text-sm text-gray-400 mb-4">Komisi dengan status "Cleared" akan dibayarkan oleh admin setiap hari Jumat.</p>
 
             {withdrawals.length === 0 ? (
               <div className="text-center py-8 bg-black/30 rounded-lg border border-white/10">
-                <p className="text-gray-400">Belum ada riwayat penarikan</p>
+                <p className="text-gray-400">Belum ada riwayat komisi</p>
               </div>
             ) : (
               <div className="grid gap-2">
@@ -302,18 +297,22 @@ export default function AffiliatorDashboard({
                   <div key={w.id} className="bg-black/30 border border-white/10 rounded p-3">
                     <div className="flex justify-between items-start mb-2">
                       <div>
-                        <p className="font-bold text-[#D4AF37]">{formatRupiah(w.nominal)}</p>
-                        <p className="text-sm text-gray-400">{w.bank_name} - {w.account_name}</p>
+                        <p className="font-bold text-[#D4AF37]">{formatRupiah(w.commission_amount)}</p>
+                        <p className="text-sm text-gray-400">Order: {w.orders?.order_number}</p>
                       </div>
                       <span className={`px-2 py-1 rounded text-xs font-bold ${
                         w.status === 'pending' ? 'bg-yellow-500/20 text-yellow-300' :
-                        w.status === 'approved' ? 'bg-green-500/20 text-green-300' :
+                        w.status === 'cleared' ? 'bg-green-500/20 text-green-300' :
+                        w.status === 'paid' ? 'bg-blue-500/20 text-blue-300' :
                         'bg-red-500/20 text-red-300'
                       }`}>
                         {w.status.toUpperCase()}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500">{new Date(w.created_at).toLocaleDateString('id-ID')}</p>
+                    <div className="flex justify-between items-end">
+                      <p className="text-xs text-gray-500">Nilai Barang: {formatRupiah(w.total_item_value)}</p>
+                      <p className="text-xs text-gray-500">{new Date(w.created_at).toLocaleDateString('id-ID')}</p>
+                    </div>
                   </div>
                 ))}
               </div>

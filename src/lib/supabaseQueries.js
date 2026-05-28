@@ -85,7 +85,7 @@ export const getUserOrders = async (userId) => {
 };
 
 /**
- * Create a new order
+ * Create a new order and calculate affiliate commission if applicable
  */
 export const createOrder = async (userId, orderData) => {
   try {
@@ -110,6 +110,25 @@ export const createOrder = async (userId, orderData) => {
       .single();
 
     if (error) return { success: false, error: error.message };
+
+    // --- NEW LOGIC: Calculate and insert commission ---
+    if (orderData.affiliator_id && orderData.total_produk > 0) {
+      const commissionRaw = orderData.total_produk * 0.10;
+      const commissionAmount = Math.min(commissionRaw, 30000);
+      
+      const { error: commError } = await supabase
+        .from('affiliate_commissions')
+        .insert([{
+          affiliator_id: orderData.affiliator_id,
+          order_id: data.id,
+          total_item_value: orderData.total_produk,
+          commission_amount: commissionAmount,
+          status: 'pending'
+        }]);
+        
+      if (commError) console.error('Failed to create commission:', commError);
+    }
+
     return { success: true, order: data };
   } catch (error) {
     console.error('Error creating order:', error);
@@ -196,44 +215,35 @@ export const deleteOrder = async (orderId) => {
 // ================================================================
 
 /**
- * Get affiliator by email
+ * Get all affiliators (Admin)
  */
-export const getAffiliatorByEmail = async (email) => {
+export const getAllAffiliators = async () => {
   try {
     const { data, error } = await supabase
-      .from('affiliators')
+      .from('affiliator_profiles')
       .select('*')
-      .eq('email', email.toLowerCase())
-      .single();
+      .order('created_at', { ascending: false });
 
-    if (error && error.code !== 'PGRST116') {
-      return { success: false, error: error.message };
-    }
-
-    return { success: true, affiliator: data };
+    if (error) return { success: false, error: error.message };
+    return { success: true, affiliators: data };
   } catch (error) {
     return { success: false, error: error.message };
   }
 };
 
 /**
- * Create new affiliator
+ * Register new affiliator
  */
-export const createAffiliator = async (affiliatorData) => {
+export const registerAffiliator = async (affiliatorData) => {
   try {
     const { data, error } = await supabase
-      .from('affiliators')
+      .from('affiliator_profiles')
       .insert([{
-        nama: affiliatorData.nama,
-        email: affiliatorData.email.toLowerCase(),
-        nomor_wa: affiliatorData.nomor_wa,
-        password_hash: affiliatorData.password,
-        bank_name: affiliatorData.bank_name || null,
-        account_number: affiliatorData.account_number || null,
-        status: 'pending',
-        current_balance: 0,
-        total_commission: 0,
-        total_withdrawn: 0
+        name: affiliatorData.name,
+        ref_code: affiliatorData.ref_code.toUpperCase(),
+        tiktok_account: affiliatorData.tiktok_account || null,
+        whatsapp_number: affiliatorData.whatsapp_number,
+        bank_info: affiliatorData.bank_info || null
       }])
       .select()
       .single();
@@ -247,86 +257,17 @@ export const createAffiliator = async (affiliatorData) => {
 };
 
 /**
- * Update affiliator data
- */
-export const updateAffiliator = async (affiliatorId, updateData) => {
-  try {
-    const { data, error } = await supabase
-      .from('affiliators')
-      .update({
-        ...updateData,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', affiliatorId)
-      .select()
-      .single();
-
-    if (error) return { success: false, error: error.message };
-    return { success: true, affiliator: data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-/**
  * Delete affiliator
  */
-export const deleteAffiliator = async (affiliatorId) => {
+export const deleteAffiliatorProfile = async (affiliatorId) => {
   try {
     const { error } = await supabase
-      .from('affiliators')
+      .from('affiliator_profiles')
       .delete()
       .eq('id', affiliatorId);
 
     if (error) return { success: false, error: error.message };
     return { success: true };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-// ================================================================
-// WITHDRAWAL QUERIES
-// ================================================================
-
-/**
- * Create withdrawal request
- */
-export const createWithdrawal = async (affiliatorId, nominal, bankName, accountNumber, accountHolder) => {
-  try {
-    const { data, error } = await supabase
-      .from('withdrawals')
-      .insert([{
-        affiliator_id: affiliatorId,
-        nominal,
-        bank_name: bankName,
-        bank_account: accountNumber,
-        account_holder: accountHolder,
-        status: 'pending'
-      }])
-      .select()
-      .single();
-
-    if (error) return { success: false, error: error.message };
-    return { success: true, withdrawal: data };
-  } catch (error) {
-    return { success: false, error: error.message };
-  }
-};
-
-/**
- * Get withdrawals for affiliator
- */
-export const getAffiliatorWithdrawals = async (affiliatorId) => {
-  try {
-    const { data, error } = await supabase
-      .from('withdrawals')
-      .select('*')
-      .eq('affiliator_id', affiliatorId)
-      .order('created_at', { ascending: false });
-
-    if (error) return { success: false, error: error.message };
-    return { success: true, withdrawals: data };
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -718,6 +659,99 @@ export const getActiveBinding = async (userId) => {
     }
 
     return { success: true, binding: data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+// ================================================================
+// SLIDER QUERIES
+// ================================================================
+
+export const getSliders = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('app_sliders')
+      .select('*')
+      .order('sort_order', { ascending: true })
+      .order('created_at', { ascending: false });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, sliders: data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const createSlider = async (sliderData) => {
+  try {
+    const { data, error } = await supabase
+      .from('app_sliders')
+      .insert([{
+        title: sliderData.title,
+        image_url: sliderData.image_url,
+        link: sliderData.link || null,
+        sort_order: sliderData.sort_order || 0,
+        is_active: sliderData.is_active ?? true
+      }])
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, slider: data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateSlider = async (sliderId, updateData) => {
+  try {
+    const { data, error } = await supabase
+      .from('app_sliders')
+      .update(updateData)
+      .eq('id', sliderId)
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, slider: data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const deleteSlider = async (sliderId) => {
+  try {
+    const { error } = await supabase
+      .from('app_sliders')
+      .delete()
+      .eq('id', sliderId);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const uploadSliderImage = async (file) => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `slider_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    const filePath = `${fileName}`;
+
+    // Upload to public "product-images" bucket since we might not have a sliders bucket created
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, file);
+
+    if (error) return { success: false, error: error.message };
+
+    const { data: publicUrlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    return { success: true, publicUrl: publicUrlData.publicUrl };
   } catch (error) {
     return { success: false, error: error.message };
   }

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Search, X } from 'lucide-react';
 import { supabase } from './lib/supabaseClient'; 
 import ProductCard from './components/ProductCard';
 import ProductModal from './components/ProductModal';
@@ -190,11 +191,27 @@ function App() {
           onLoginSuccess={handleLoginSuccess} 
         />
 
-        <main className="max-w-md mx-auto px-4 py-6 space-y-8">
-          <HeroSection 
-            searchTerm={searchTerm} 
-            setSearchTerm={setSearchTerm} 
-          />
+        <main className="max-w-md mx-auto px-4 py-6 space-y-6">
+          <div className="relative">
+            <input 
+              type="text" 
+              placeholder="Cari nama, kode, atau deskripsi..." 
+              className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-white/5 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:border-[#D4AF37]/70 transition-all shadow-lg backdrop-blur-md" 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)} 
+            />
+            <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
+            {searchTerm && (
+              <button 
+                onClick={() => setSearchTerm('')} 
+                className="absolute right-3 top-3.5 text-gray-400 hover:text-white bg-white/10 rounded-full p-0.5 transition-colors"
+              >
+                <X size={16}/>
+              </button>
+            )}
+          </div>
+          
+          <HeroSection />
           <div>
             <div className="flex items-center justify-between mb-5 px-1">
               <h2 className="font-bold text-white text-lg tracking-wide flex items-center gap-2">

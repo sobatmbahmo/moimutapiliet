@@ -7,13 +7,12 @@ import {
 import { supabase } from '../lib/supabaseClient';
 import { 
   createOrder, addOrderItems, updateOrderStatus, deleteOrder,
-  createWithdrawal, getAffiliatorWithdrawals,
-  updateAffiliator, updateProduct, deleteAffiliator, reorderProduct,
+  updateProduct, deleteAffiliatorProfile, reorderProduct,
   createProduct, deleteProduct, uploadProductImage,
   upsertCustomer, setAffiliatorProductLink, getAffiliatorProductLink,
   createOrGetUser, getAllCustomers, deleteCustomer
 } from '../lib/supabaseQueries';
-import { getAffiliatorDashboardSummary, validateWithdrawalRequest } from '../lib/affiliateLogic';
+import { getAffiliatorDashboardSummary } from '../lib/affiliateLogic';
 import { getAffiliatorBindings } from '../lib/bindingLogic';
 import { generateOrderNumber } from '../lib/orderUtils';
 import { sendOrderConfirmation, sendResiNotification, sendInvoiceNotification, sendAffiliatorApprovalNotification } from '../lib/fonntePush';
@@ -31,6 +30,7 @@ import AdminOrdersPanel from './dashboard/AdminOrdersPanel';
 import AdminProductsPanel from './dashboard/AdminProductsPanel';
 import AdminAffiliatorsPanel from './dashboard/AdminAffiliatorsPanel';
 import AdminCustomersPanel from './dashboard/AdminCustomersPanel';
+import AdminSlidersPanel from './dashboard/AdminSlidersPanel';
 import AffiliatorDashboard from './dashboard/AffiliatorDashboard';
 
 const formatRupiah = (number) => {
@@ -59,11 +59,12 @@ export default function Dashboard({ user, onLogout }) {
   // STATE: DATA
   // ======================
   const [orders, setOrders] = useState([]);
-  const [customers, setCustomers] = useState([]);
-  const [bindings, setBindings] = useState([]);
-  const [withdrawals, setWithdrawals] = useState([]);
   const [products, setProducts] = useState([]);
   const [affiliators, setAffiliators] = useState([]);
+  const [customers, setCustomers] = useState([]);
+  const [sliders, setSliders] = useState([]);
+  const [bindings, setBindings] = useState([]);
+  const [withdrawals, setWithdrawals] = useState([]);
   const [summary, setSummary] = useState(null);
 
   // ======================
@@ -222,9 +223,9 @@ export default function Dashboard({ user, onLogout }) {
 
         // Load affiliators
         const { data: affiliatorsData } = await supabase
-          .from('affiliators')
+          .from('affiliator_profiles')
           .select('*')
-          .order('nama', { ascending: true });
+          .order('created_at', { ascending: false });
         setAffiliators(affiliatorsData || []);
 
         // Load customers for offline order form
@@ -232,6 +233,14 @@ export default function Dashboard({ user, onLogout }) {
         if (customersResult.success) {
           setCustomers(customersResult.customers || []);
         }
+        
+        // Load sliders
+        const { data: slidersData } = await supabase
+          .from('app_sliders')
+          .select('*')
+          .order('sort_order', { ascending: true })
+          .order('created_at', { ascending: false });
+        setSliders(slidersData || []);
       } else if (isAffiliator) {
         // --- PERBAIKAN 1: LOAD LINK TIKTOK & GABUNGKAN KE PRODUCT ---
         const { data: productsData } = await supabase
@@ -267,10 +276,11 @@ export default function Dashboard({ user, onLogout }) {
           setBindings(bindingsResult.bindings || []);
         }
 
-        // Load their withdrawals
-        const withdrawalsResult = await getAffiliatorWithdrawals(user.id);
-        if (withdrawalsResult.success) {
-          setWithdrawals(withdrawalsResult.withdrawals || []);
+        // Load their commissions
+        const { getAffiliatorCommissions } = await import('../lib/affiliateLogic');
+        const commissionsResult = await getAffiliatorCommissions(user.id);
+        if (commissionsResult.success) {
+          setWithdrawals(commissionsResult.commissions || []); // Keeping withdrawals state name for simplicity, but it stores commissions now
         }
       }
     } catch (err) {
@@ -542,70 +552,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  const handleEditAffiliator = (affiliator) => {
-    setEditingAffiliator(affiliator);
-    setEditAffiliatorForm({
-      nama: affiliator.nama || '',
-      nomor_wa: affiliator.nomor_wa || '',
-      email: affiliator.email || '',
-      password_hash: '',
-      status: affiliator.status || 'active',
-      current_balance: affiliator.current_balance || 0,
-      total_commission: affiliator.total_commission || 0,
-      total_withdrawn: affiliator.total_withdrawn || 0,
-      akun_tiktok: Array.isArray(affiliator.akun_tiktok) ? affiliator.akun_tiktok.join(', ') : '',
-      bank_name: affiliator.bank_name || '',
-      account_number: affiliator.account_number || ''
-    });
-    setShowEditAffiliatorModal(true);
-  };
-
-  const handleSaveAffiliator = async () => {
-    if (!editingAffiliator) return;
-    if (!editAffiliatorForm.nama.trim()) {
-      setErrorMsg('Nama harus diisi');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const updateData = {
-        nama: editAffiliatorForm.nama,
-        nomor_wa: editAffiliatorForm.nomor_wa,
-        email: editAffiliatorForm.email,
-        status: editAffiliatorForm.status,
-        current_balance: parseFloat(editAffiliatorForm.current_balance) || 0,
-        total_commission: parseFloat(editAffiliatorForm.total_commission) || 0,
-        total_withdrawn: parseFloat(editAffiliatorForm.total_withdrawn) || 0,
-        bank_name: editAffiliatorForm.bank_name,
-        account_number: editAffiliatorForm.account_number
-      };
-
-      if (editAffiliatorForm.password_hash.trim()) {
-        updateData.password_hash = editAffiliatorForm.password_hash;
-      }
-
-      if (editAffiliatorForm.akun_tiktok.trim()) {
-        updateData.akun_tiktok = editAffiliatorForm.akun_tiktok.split(',').map(acc => acc.trim()).filter(acc => acc.length > 0);
-      } else {
-        updateData.akun_tiktok = [];
-      }
-      
-      const result = await updateAffiliator(editingAffiliator.id, updateData);
-      if (result.success) {
-        setSuccessMsg('Mitra berhasil diupdate');
-        setShowEditAffiliatorModal(false);
-        setEditingAffiliator(null);
-        loadInitialData();
-      } else {
-        setErrorMsg('Error: ' + result.error);
-      }
-    } catch (err) {
-      setErrorMsg('Error: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleDeleteAffiliator = async (affiliatorId, affiliatorName) => {
     const confirmed = window.confirm(
@@ -616,7 +562,7 @@ export default function Dashboard({ user, onLogout }) {
 
     try {
       setLoading(true);
-      const result = await deleteAffiliator(affiliatorId);
+      const result = await deleteAffiliatorProfile(affiliatorId);
       if (result.success) {
         setSuccessMsg(`Mitra ${affiliatorName} berhasil dihapus`);
         loadInitialData();
@@ -630,57 +576,6 @@ export default function Dashboard({ user, onLogout }) {
     }
   };
 
-  const handleApproveAffiliator = async (affiliatorId, affiliatorName) => {
-    const confirmed = window.confirm(
-      `✅ Setujui aktivasi mitra: ${affiliatorName}?\n\nMitra akan dapat memulai program komisi.`
-    );
-
-    if (!confirmed) return;
-
-    try {
-      setLoading(true);
-      
-      const { data: affiliatorData, error: fetchError } = await supabase
-        .from('affiliators')
-        .select('*')
-        .eq('id', affiliatorId)
-        .single();
-
-      if (fetchError || !affiliatorData) {
-        setErrorMsg('Error: Tidak bisa mengambil data mitra');
-        setLoading(false);
-        return;
-      }
-
-      const result = await updateAffiliator(affiliatorId, { status: 'active' });
-      if (result.success) {
-        try {
-          let password = affiliatorData.password_hash || 'Password Anda (hubungi admin jika lupa)';
-          if (affiliatorData.plain_password) password = affiliatorData.plain_password;
-          await sendAffiliatorApprovalNotification(
-            affiliatorData.nomor_wa,
-            affiliatorData.nama,
-            affiliatorData.email,
-            affiliatorData.bank_name || 'N/A',
-            affiliatorData.account_number || 'N/A',
-            password
-          );
-          setSuccessMsg(`✅ Mitra ${affiliatorName} diaktifkan & notifikasi WhatsApp terkirim!`);
-        } catch (notificationError) {
-          console.error('Notification send error:', notificationError);
-          setSuccessMsg(`✅ Mitra ${affiliatorName} berhasil diaktifkan! (Notifikasi gagal terkirim)`);
-        }
-        
-        loadInitialData();
-      } else {
-        setErrorMsg('Error: ' + result.error);
-      }
-    } catch (err) {
-      setErrorMsg('Error: ' + err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
 const handleEditProductLink = async (product) => {
   setEditingProductForLink(product);
@@ -1369,51 +1264,6 @@ const handleSaveProductLink = async () => {
     });
   };
 
-  const handleRequestWithdrawal = async () => {
-    if (!withdrawalForm.nominal || !withdrawalForm.bank_name || !withdrawalForm.account_name || !withdrawalForm.account_number) {
-      setErrorMsg('Semua field harus diisi');
-      return;
-    }
-
-    const nominal = parseInt(withdrawalForm.nominal);
-    const validationResult = await validateWithdrawalRequest(user.id, nominal);
-
-    if (!validationResult.valid) {
-      setErrorMsg(validationResult.message);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const result = await safeApiCall(
-        () => createWithdrawal(
-          user.id,
-          nominal,
-          {
-            bank_name: withdrawalForm.bank_name,
-            bank_account: withdrawalForm.account_number,
-            account_holder: withdrawalForm.account_name
-          }
-        ),
-        { context: 'Membuat permintaan penarikan' }
-      );
-
-      if (result.success) {
-        setSuccessMsg('✅ Permintaan penarikan berhasil. Tunggu persetujuan admin.');
-        setShowWithdrawalForm(false);
-        setWithdrawalForm({ nominal: '', bank_name: '', account_name: '', account_number: '' });
-        loadInitialData();
-      } else {
-        const errorMsg = handleError(new Error(result.error));
-        setErrorMsg(errorMsg);
-      }
-    } catch (err) {
-      const errorMsg = handleError(err);
-      setErrorMsg(errorMsg);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   if (showPrintLabel && selectedOrderForLabel) {
     const order = selectedOrderForLabel;
@@ -1629,6 +1479,7 @@ const handleSaveProductLink = async () => {
     { key: 'products', label: 'Produk', icon: <BarChart3 size={18} />, count: products.length },
     { key: 'affiliators', label: 'Mitra', icon: <Users size={18} />, count: affiliators.length },
     { key: 'customers', label: 'Pelanggan', icon: <Share2 size={18} />, count: customers.length },
+    { key: 'sliders', label: 'Tampilan', icon: <Eye size={18} />, count: sliders.length },
   ];
 
   return (
@@ -1756,6 +1607,17 @@ const handleSaveProductLink = async () => {
               setNewCustomerForm({ nama: '', nomor_wa: '', alamat: '' });
               setShowAddCustomerModal(true);
             }}
+          />
+        )}
+
+        {activeTab === 'sliders' && (
+          <AdminSlidersPanel
+            sliders={sliders}
+            loading={loading}
+            setSliders={setSliders}
+            loadInitialData={loadInitialData}
+            setSuccessMsg={setSuccessMsg}
+            setErrorMsg={setErrorMsg}
           />
         )}
 

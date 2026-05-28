@@ -253,11 +253,13 @@ export default function AdminOrdersPanel({
               onChange={(e) => setCourierName(e.target.value)}
               className="w-full px-3 py-2.5 bg-black/40 border border-white/20 rounded-lg text-white text-sm focus:border-[#D4AF37] focus:outline-none"
             >
+              <option value="J&T">J&T</option>
               <option value="JNE">JNE</option>
               <option value="TIKI">TIKI</option>
               <option value="POS">POS Indonesia</option>
               <option value="Gojek">Gojek</option>
               <option value="Grab">Grab</option>
+              <option value="KiriminAja">KiriminAja (COD)</option>
             </select>
             <div className="flex gap-2">
               <button

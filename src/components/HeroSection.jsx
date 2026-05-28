@@ -1,21 +1,67 @@
-import React from 'react';
-import { Search, X } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { getSliders } from '../lib/supabaseQueries';
 
-export default function HeroSection({ searchTerm, setSearchTerm }) {
+export default function HeroSection() {
+  const [sliders, setSliders] = useState([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+
+  useEffect(() => {
+    const fetchSliders = async () => {
+      const res = await getSliders();
+      if (res.success && res.sliders && res.sliders.length > 0) {
+        setSliders(res.sliders.filter(s => s.is_active));
+      }
+    };
+    fetchSliders();
+  }, []);
+
+  useEffect(() => {
+    if (sliders.length <= 1) return;
+    const interval = setInterval(() => {
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % sliders.length);
+    }, 4000); // 4 seconds
+    return () => clearInterval(interval);
+  }, [sliders]);
+
+  // If no sliders, show a default placeholder or nothing
+  if (sliders.length === 0) return null;
+
   return (
-    <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-6 text-white shadow-2xl relative overflow-hidden group">
-      <div className="absolute top-0 -left-[100%] w-full h-full bg-gradient-to-r from-transparent via-[#D4AF37]/10 to-transparent group-hover:translate-x-[200%] transition-all duration-1000"></div>
-      <div className="relative z-10">
-        <h2 className="text-2xl font-extrabold mb-2 flex items-center gap-2"><span className="text-[#D4AF37]">Gudangnya Mbako</span> Enaq!</h2>
-        <p className="text-gray-300 text-sm mb-5 max-w-[80%]">Menyatukan Jari, Melestarikan Tradisi, Pelopor Tingwe Keren Masa Kini..</p>
-        <div className="relative">
-          <input type="text" placeholder="Cari nama, kode, atau deskripsi..." className="w-full pl-11 pr-10 py-3.5 rounded-2xl bg-black/40 border border-white/10 text-white placeholder-gray-400 focus:outline-none focus:border-[#D4AF37]/70 transition-all shadow-inner" value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} />
-          <Search className="absolute left-4 top-3.5 text-gray-400" size={20} />
-          {searchTerm && <button onClick={() => setSearchTerm('')} className="absolute right-3 top-3.5 text-gray-400 hover:text-white bg-white/10 rounded-full p-0.5"><X size={16}/></button>}
-        </div>
+    <div className="relative w-full rounded-2xl overflow-hidden shadow-2xl aspect-video group bg-black/40 border border-white/10">
+      {/* Images Container */}
+      <div 
+        className="flex transition-transform duration-700 ease-in-out h-full"
+        style={{ transform: `translateX(-${currentIndex * 100}%)` }}
+      >
+        {sliders.map((slider) => (
+          <div key={slider.id} className="w-full flex-shrink-0 relative h-full cursor-pointer" onClick={() => slider.link && window.open(slider.link, '_blank')}>
+            <img 
+              src={slider.image_url} 
+              alt={slider.title} 
+              className="w-full h-full object-cover"
+            />
+            {/* Optional overlay gradient to make it look premium */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent pointer-events-none"></div>
+          </div>
+        ))}
       </div>
-      <div className="absolute -right-10 -bottom-10 w-40 h-40 bg-[#D4AF37]/10 rounded-full blur-3xl"></div>
-      <div className="absolute -left-10 -top-10 w-32 h-32 bg-green-500/10 rounded-full blur-3xl"></div>
+
+      {/* Navigation Dots */}
+      {sliders.length > 1 && (
+        <div className="absolute bottom-3 left-0 right-0 flex justify-center gap-2 z-20">
+          {sliders.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => setCurrentIndex(idx)}
+              className={`transition-all duration-300 rounded-full ${
+                currentIndex === idx 
+                  ? 'w-6 h-2 bg-[#D4AF37]' 
+                  : 'w-2 h-2 bg-white/50 hover:bg-white/80'
+              }`}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
