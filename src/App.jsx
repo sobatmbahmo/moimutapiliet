@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Search, X } from 'lucide-react';
+import { Search, X, Truck } from 'lucide-react';
 import { supabase } from './lib/supabaseClient'; 
 import ProductCard from './components/ProductCard';
 import ProductModal from './components/ProductModal';
@@ -212,6 +212,20 @@ function App() {
           </div>
           
           <HeroSection />
+          
+          {/* Promo Banner / Column */}
+          <div className="bg-gradient-to-r from-[#D4AF37]/20 via-[#D4AF37]/10 to-[#042f2e] border border-[#D4AF37]/30 rounded-2xl p-4 flex items-center gap-4 shadow-lg animate-fade-in relative overflow-hidden">
+            <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#D4AF37]/20 rounded-full blur-2xl"></div>
+            <div className="bg-[#D4AF37] text-black p-3 rounded-full shrink-0 relative z-10 shadow-md">
+              <Truck size={24} className="animate-pulse" />
+            </div>
+            <div className="relative z-10">
+              <h3 className="text-[#D4AF37] font-extrabold text-sm sm:text-base leading-tight mb-1">PROMO SPESIAL HARI INI 🎉</h3>
+              <p className="text-white text-xs sm:text-sm font-medium">Belanja 60Rb Subsidi Ongkir <span className="font-bold text-[#D4AF37]">5Rb</span></p>
+              <p className="text-white text-xs sm:text-sm font-medium">Belanja 100Rb Subsidi Ongkir <span className="font-bold text-[#D4AF37]">10Rb</span></p>
+            </div>
+          </div>
+
           <div>
             <div className="flex items-center justify-between mb-5 px-1">
               <h2 className="font-bold text-white text-lg tracking-wide flex items-center gap-2">

@@ -90,13 +90,20 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
     return cartItems.reduce((total, item) => total + (item.harga_produk * item.qty), 0);
   }, [cartItems]);
 
+  const subsidiOngkir = useMemo(() => {
+    if (subtotal >= 100000) return 10000;
+    if (subtotal >= 60000) return 5000;
+    return 0;
+  }, [subtotal]);
+
   const totalBayar = useMemo(() => {
-    let total = subtotal + (shippingRate ? shippingRate.price : 0);
+    let ongkir = shippingRate ? Math.max(0, shippingRate.price - subsidiOngkir) : 0;
+    let total = subtotal + ongkir;
     if (paymentMethod === 'cod') {
       total += Math.round(subtotal * 0.05);
     }
     return total;
-  }, [subtotal, shippingRate, paymentMethod]);
+  }, [subtotal, shippingRate, paymentMethod, subsidiOngkir]);
 
   // Revert payment method to transfer if subtotal exceeds 200k and cod is selected
   useEffect(() => {
@@ -129,13 +136,16 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
       
       const userId = userResult.user.id;
 
+      let finalShippingCost = shippingRate ? Math.max(0, shippingRate.price - subsidiOngkir) : 0;
+
       // Create order in database
       const orderData = {
         order_number: orderNumResult.orderNumber,
         metode_bayar: paymentMethod,
         total_produk: subtotal,
         total_bayar: totalBayar,
-        shipping_cost: shippingRate ? shippingRate.price : 0,
+        shipping_cost: finalShippingCost,
+        subsidi_ongkir: subsidiOngkir,
         courier_name: shippingRate ? shippingRate.courier_name.toUpperCase() : null,
         alamat: fullAddress,
         nomor_wa: formData.phone,
@@ -183,6 +193,9 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
       
       if (shippingRate) {
         message += `Ongkos Kirim (${shippingRate.courier_name.toUpperCase()} - ${shippingRate.courier_service_name}): ${formatRupiah(shippingRate.price)}\n`;
+        if (subsidiOngkir > 0) {
+          message += `Subsidi Ongkir: -${formatRupiah(subsidiOngkir)} ✅\n`;
+        }
       }
       
       if (paymentMethod === 'cod') {
@@ -349,9 +362,19 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
                       <Loader2 size={14} className="animate-spin" /> Menghitung ongkir...
                     </div>
                   ) : shippingRate ? (
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-[#D4AF37] font-medium">Ongkir ({shippingRate.courier_name.toUpperCase()} - {shippingRate.courier_service_name})</span>
-                      <span className="text-white font-bold">{formatRupiah(shippingRate.price)}</span>
+                    <div className="flex flex-col gap-1 text-sm">
+                      <div className="flex justify-between items-center">
+                        <span className="text-[#D4AF37] font-medium">Ongkir ({shippingRate.courier_name.toUpperCase()} - {shippingRate.courier_service_name})</span>
+                        <span className={`text-white font-bold ${subsidiOngkir > 0 ? 'line-through text-gray-400' : ''}`}>
+                          {formatRupiah(shippingRate.price)}
+                        </span>
+                      </div>
+                      {subsidiOngkir > 0 && (
+                        <div className="flex justify-between items-center text-green-400 mt-1 font-bold">
+                          <span>Subsidi Ongkir 🎉</span>
+                          <span>-{formatRupiah(subsidiOngkir)}</span>
+                        </div>
+                      )}
                     </div>
                   ) : (
                     <div className="text-sm text-red-400">Gagal memuat tarif ongkir. Hubungi admin.</div>
@@ -373,10 +396,20 @@ export default function CartDrawer({ isOpen, onClose, cartItems, onUpdateQty, on
             </div>
             
             {shippingRate && (
-              <div className="flex items-center justify-between text-sm">
-                <span className="text-gray-400">Ongkos Kirim</span>
-                <span className="font-bold text-white">{formatRupiah(shippingRate.price)}</span>
-              </div>
+              <>
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-400">Ongkos Kirim</span>
+                  <span className={`font-bold text-white ${subsidiOngkir > 0 ? 'line-through text-gray-500' : ''}`}>
+                    {formatRupiah(shippingRate.price)}
+                  </span>
+                </div>
+                {subsidiOngkir > 0 && (
+                  <div className="flex items-center justify-between text-sm text-green-400 font-bold">
+                    <span>Subsidi Ongkir</span>
+                    <span>-{formatRupiah(subsidiOngkir)}</span>
+                  </div>
+                )}
+              </>
             )}
             
             {paymentMethod === 'cod' && (

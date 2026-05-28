@@ -146,6 +146,24 @@ export default function AdminOrdersPanel({
               ))}
             </div>
           )}
+          {order.shipping_cost > 0 && (
+            <div className="flex justify-between items-center text-xs sm:text-sm text-gray-400 mt-1">
+              <span>Ongkir {order.courier_name ? `(${order.courier_name})` : ''}</span>
+              <span className="font-mono">{formatRupiah(order.shipping_cost + (order.subsidi_ongkir || 0))}</span>
+            </div>
+          )}
+          {order.subsidi_ongkir > 0 && (
+            <div className="flex justify-between items-center text-xs sm:text-sm text-green-400 font-bold mt-1">
+              <span>Subsidi Ongkir</span>
+              <span className="font-mono">-{formatRupiah(order.subsidi_ongkir)}</span>
+            </div>
+          )}
+          {order.metode_bayar === 'cod' && (
+            <div className="flex justify-between items-center text-xs sm:text-sm text-gray-400 mt-1">
+              <span>Biaya Layanan COD (5%)</span>
+              <span className="font-mono">{formatRupiah(Math.round(order.total_produk * 0.05))}</span>
+            </div>
+          )}
         </div>
 
         {/* Total + Actions */}
