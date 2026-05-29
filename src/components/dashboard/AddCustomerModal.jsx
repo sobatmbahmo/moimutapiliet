@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { X, Trash } from 'lucide-react';
+import { X, Trash, ClipboardPaste, CheckCircle } from 'lucide-react';
+import { parseWAMessage, formatAddressString } from '../../lib/addressParser';
 
 /**
  * Modal untuk menambah atau mengedit customer
@@ -17,13 +18,35 @@ export default function AddCustomerModal({
 }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [localError, setLocalError] = useState('');
+  const [pasteText, setPasteText] = useState('');
+  const [parseSuccess, setParseSuccess] = useState(false);
   
   if (!isOpen) return null;
 
   const handleClose = () => {
     setForm({ nama: '', nomor_wa: '', alamat: '' });
     setLocalError('');
+    setPasteText('');
+    setParseSuccess(false);
     onClose();
+  };
+
+  const handleParse = () => {
+    if (!pasteText.trim()) return;
+    const parsed = parseWAMessage(pasteText);
+    
+    setForm({
+      ...form,
+      nama: parsed.nama || form.nama,
+      nomor_wa: parsed.nomor_wa || form.nomor_wa,
+      alamat: formatAddressString(parsed) || form.alamat
+    });
+    
+    setParseSuccess(true);
+    setTimeout(() => {
+      setParseSuccess(false);
+      setPasteText('');
+    }, 2000);
   };
 
   const handleSubmit = async () => {
@@ -59,6 +82,31 @@ export default function AddCustomerModal({
         {(localError || errorMsg) && (
           <div className="p-3 bg-red-500/20 border border-red-500/50 rounded-lg text-red-300 text-sm">
             {localError || errorMsg}
+          </div>
+        )}
+
+        {/* Auto Parse Section (Only for new customer) */}
+        {!editingCustomer && (
+          <div className="bg-[#D4AF37]/10 border border-[#D4AF37]/30 rounded-xl p-4 space-y-3">
+            <label className="text-[#D4AF37] font-bold text-sm flex items-center gap-2">
+              <ClipboardPaste size={16} /> Paste Data Customer (Otomatis)
+            </label>
+            <textarea
+              value={pasteText}
+              onChange={(e) => setPasteText(e.target.value)}
+              className="w-full px-3 py-2 bg-black/40 border border-[#D4AF37]/20 rounded-lg text-white h-24 focus:border-[#D4AF37]/50 focus:outline-none transition text-sm"
+              placeholder="Paste pesan WA orderan di sini... (Contoh: Nama: Budi, No HP: 08123...)"
+            />
+            <div className="flex justify-end">
+              <button
+                type="button"
+                onClick={handleParse}
+                disabled={!pasteText.trim()}
+                className={`px-4 py-2 rounded-lg text-sm font-bold transition flex items-center gap-2 ${parseSuccess ? 'bg-green-500 text-white' : 'bg-[#D4AF37]/20 text-[#D4AF37] hover:bg-[#D4AF37]/30 disabled:opacity-50 border border-[#D4AF37]/30'}`}
+              >
+                {parseSuccess ? <><CheckCircle size={16} /> Berhasil</> : 'Proses Data'}
+              </button>
+            </div>
           </div>
         )}
 
