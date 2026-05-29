@@ -4,6 +4,8 @@ import { registerSW } from 'virtual:pwa-register'
 import './index.css'
 import App from './App.jsx'
 
+import ErrorBoundary from './components/ErrorBoundary.jsx'
+
 // Register Service Worker with auto-update
 registerSW({
   onNeedRefresh() {
@@ -25,6 +27,8 @@ registerSW({
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <App />
+    <ErrorBoundary>
+      <App />
+    </ErrorBoundary>
   </StrictMode>,
 )

@@ -1224,7 +1224,16 @@ const handleSaveProductLink = async () => {
       const userId = userResult.user.id;
 
       const subtotal = offlineOrder.items.reduce((sum, i) => sum + (i.quantity * i.price), 0);
-      const total = subtotal + offlineOrder.shipping_cost;
+      
+      let subsidiOngkir = 0;
+      if (subtotal >= 100000) {
+        subsidiOngkir = 10000;
+      } else if (subtotal >= 60000) {
+        subsidiOngkir = 5000;
+      }
+
+      const finalShippingCost = Math.max(0, offlineOrder.shipping_cost - subsidiOngkir);
+      const total = subtotal + finalShippingCost;
 
       const createOrderResult = await createOrder(userId, {
         order_number: orderNumber,
@@ -1238,6 +1247,7 @@ const handleSaveProductLink = async () => {
         is_offline: true,
         payment_due_date: null,
         shipping_cost: offlineOrder.shipping_cost,
+        subsidi_ongkir: subsidiOngkir,
         courier_name: offlineOrder.courier_name
       });
 

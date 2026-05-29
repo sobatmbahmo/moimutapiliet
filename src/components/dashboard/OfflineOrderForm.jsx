@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { X, Plus, Trash, Edit, MessageSquare, Loader2, CheckCircle, AlertCircle, ShoppingCart, User, Truck, FileText, CreditCard, Package } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { X, Plus, Trash, Edit, MessageSquare, Loader2, CheckCircle, AlertCircle, ShoppingCart, User, Truck, FileText, CreditCard, Package, Search } from 'lucide-react';
 import { parseWAMessage, detectPaymentMethod, normalizeRTRW } from '../../lib/addressParser';
 import { validateAddress, formatValidatedAddress } from '../../lib/indonesiaAddress';
+import { searchBiteshipAreas, getBiteshipRates } from '../../lib/biteshipAPI';
 
 /**
  * Form untuk menambah order offline/manual
@@ -28,6 +29,69 @@ export default function OfflineOrderForm({
   const [isParsing, setIsParsing] = useState(false);
   const [parseResult, setParseResult] = useState(null);
   const [parseError, setParseError] = useState('');
+
+  // Biteship States
+  const [areaSearch, setAreaSearch] = useState('');
+  const [areaOptions, setAreaOptions] = useState([]);
+  const [isSearchingArea, setIsSearchingArea] = useState(false);
+  const [selectedArea, setSelectedArea] = useState(null);
+  const [showAreaDropdown, setShowAreaDropdown] = useState(false);
+  const [isLoadingRate, setIsLoadingRate] = useState(false);
+  const searchTimeoutRef = useRef(null);
+
+  // Search Areas
+  useEffect(() => {
+    if (!areaSearch || areaSearch.length < 3 || selectedArea?.name === areaSearch) {
+      setAreaOptions([]);
+      return;
+    }
+
+    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
+    
+    setIsSearchingArea(true);
+    searchTimeoutRef.current = setTimeout(async () => {
+      const res = await searchBiteshipAreas(areaSearch);
+      if (res.success) {
+        setAreaOptions(res.areas);
+        setShowAreaDropdown(true);
+      }
+      setIsSearchingArea(false);
+    }, 500);
+
+    return () => clearTimeout(searchTimeoutRef.current);
+  }, [areaSearch, selectedArea]);
+
+  // Calculate Rate
+  useEffect(() => {
+    const fetchRate = async () => {
+      if (selectedArea && offlineOrder.items.length > 0) {
+        setIsLoadingRate(true);
+        const postalCode = selectedArea.postal_code;
+        if (postalCode) {
+          const itemsForRate = offlineOrder.items.map(item => ({ qty: item.quantity, berat_produk: 200 }));
+          const res = await getBiteshipRates(postalCode, itemsForRate, offlineOrder.courier_name === 'J&T' ? 'jnt' : '');
+          if (res.success && res.pricing && res.pricing.length > 0) {
+            const rate = res.pricing[0];
+            setOfflineOrder(prev => ({
+              ...prev,
+              shipping_cost: rate.price,
+              courier_name: rate.courier_name.toUpperCase(),
+              customer_address: prev.customer_address ? (prev.customer_address.includes(selectedArea.name) ? prev.customer_address : `${prev.customer_address}, ${selectedArea.name}`) : selectedArea.name
+            }));
+          }
+        }
+        setIsLoadingRate(false);
+      }
+    };
+    
+    fetchRate();
+  }, [selectedArea, offlineOrder.items, offlineOrder.courier_name, setOfflineOrder]);
+
+  const handleSelectArea = (area) => {
+    setSelectedArea(area);
+    setAreaSearch(area.name);
+    setShowAreaDropdown(false);
+  };
 
   if (!isOpen) return null;
 
@@ -190,7 +254,17 @@ export default function OfflineOrderForm({
 
   // Calculate total
   const subtotal = offlineOrder.items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
-  const totalWithShipping = subtotal + (parseInt(offlineOrder.shipping_cost) || 0);
+  
+  let subsidiOngkir = 0;
+  if (subtotal >= 100000) {
+    subsidiOngkir = 10000;
+  } else if (subtotal >= 60000) {
+    subsidiOngkir = 5000;
+  }
+
+  const shippingCostNum = parseInt(offlineOrder.shipping_cost) || 0;
+  const finalShippingCost = Math.max(0, shippingCostNum - subsidiOngkir);
+  const totalWithShipping = subtotal + finalShippingCost;
 
   return (
     <div className="fixed inset-0 z-[70] flex items-start justify-center bg-black/85 overflow-y-auto">
@@ -351,15 +425,58 @@ export default function OfflineOrderForm({
                 </div>
 
                 {/* Alamat */}
-                <div className="space-y-1.5">
-                  <label className="text-gray-300 font-medium text-xs uppercase tracking-wide">Alamat Lengkap</label>
-                  <textarea
-                    value={offlineOrder.customer_address}
-                    onChange={(e) => setOfflineOrder({ ...offlineOrder, customer_address: e.target.value })}
-                    className="w-full px-3 py-2 bg-black/40 border border-white/15 rounded-lg text-white text-sm h-24 resize-none focus:border-[#D4AF37]/50 focus:outline-none transition"
-                    placeholder="Alamat detail pengiriman..."
-                  />
-                </div>
+                  <div className="space-y-1.5">
+                    <label className="text-gray-300 font-medium text-xs uppercase tracking-wide">Alamat Lengkap</label>
+                    <textarea
+                      value={offlineOrder.customer_address}
+                      onChange={(e) => setOfflineOrder({ ...offlineOrder, customer_address: e.target.value })}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/15 rounded-lg text-white text-sm h-24 resize-none focus:border-[#D4AF37]/50 focus:outline-none transition"
+                      placeholder="Alamat detail pengiriman..."
+                    />
+                  </div>
+
+                  {/* Biteship Area Autocomplete */}
+                  <div className="space-y-1.5 relative">
+                    <label className="text-gray-300 font-medium text-xs uppercase tracking-wide">Kecamatan / Area (Cek Ongkir Otomatis)</label>
+                    <div className="relative">
+                      <input 
+                        type="text" 
+                        placeholder="Cari Kecamatan / Kodepos..." 
+                        className="w-full pl-9 py-2 bg-black/40 border border-white/15 rounded-lg text-sm text-white focus:outline-none focus:border-[#D4AF37]/50" 
+                        value={areaSearch}
+                        onChange={(e) => {
+                          setAreaSearch(e.target.value);
+                          if (selectedArea && e.target.value !== selectedArea.name) {
+                            setSelectedArea(null);
+                          }
+                        }}
+                        onFocus={() => { if(areaOptions.length > 0) setShowAreaDropdown(true); }}
+                        onBlur={() => setTimeout(() => setShowAreaDropdown(false), 200)}
+                      />
+                      <Search className="absolute left-3 top-2.5 text-gray-400" size={16} />
+                      {isSearchingArea && <Loader2 className="absolute right-3 top-2.5 text-gray-400 animate-spin" size={16} />}
+                    </div>
+                    
+                    {showAreaDropdown && areaOptions.length > 0 && (
+                      <div className="absolute z-[80] w-full mt-1 max-h-60 overflow-y-auto bg-[#0a0a0a] border border-[#D4AF37]/30 rounded-lg shadow-xl shadow-black/50">
+                        {areaOptions.map((area, idx) => (
+                          <div 
+                            key={idx} 
+                            onClick={() => handleSelectArea(area)}
+                            className="px-4 py-3 hover:bg-[#D4AF37]/10 cursor-pointer border-b border-white/5 last:border-0 transition"
+                          >
+                            <p className="text-sm text-white font-medium">{area.name}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">{area.administrative_division_level_1}, {area.administrative_division_level_2}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {isLoadingRate && (
+                      <div className="flex items-center gap-2 text-xs text-[#D4AF37] mt-1">
+                        <Loader2 size={12} className="animate-spin" /> Menghitung ongkir otomatis...
+                      </div>
+                    )}
+                  </div>
               </div>
 
               {/* Shipping & Payment Card */}
