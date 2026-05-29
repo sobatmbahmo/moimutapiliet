@@ -15,6 +15,7 @@ export default function OfflineOrderForm({
   products,
   customers,
   loading,
+  errorMsg,
   onSubmit,
   onAddCustomer,
   onEditCustomer,
@@ -270,6 +271,13 @@ export default function OfflineOrderForm({
     <div className="fixed inset-0 z-[70] flex items-start justify-center bg-black/85 overflow-y-auto">
       <div className="w-full max-w-6xl mx-auto my-4 md:my-8 px-4">
         
+        {errorMsg && (
+          <div className="bg-red-500/90 text-white px-4 py-3 rounded-xl mb-4 flex items-center gap-2 shadow-lg font-bold border border-red-400">
+            <AlertCircle size={20} />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
         {/* === HEADER === */}
         <div className="bg-gradient-to-r from-[#022c22] to-[#064e3b] border border-[#D4AF37]/40 rounded-t-2xl px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">

@@ -2151,6 +2151,7 @@ const handleSaveProductLink = async () => {
           products={products}
           customers={customers}
           loading={loading}
+          errorMsg={errorMsg}
           onSubmit={handleSubmitOfflineOrder}
           onAddCustomer={() => {
             setEditingCustomer(null);

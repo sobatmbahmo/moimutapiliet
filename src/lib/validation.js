@@ -50,8 +50,8 @@ export const validateNomorWA = (nomor) => {
   const cleaned = nomor.replace(/[\s-]/g, '');
 
   // Check format: must be valid Indonesian phone
-  // 62 or 0 prefix, followed by 9-12 digits
-  const phoneRegex = /^(?:\+62|62|0)(?:8|9)[0-9]{7,10}$/;
+  // 62 or 0 prefix, followed by 7-13 digits
+  const phoneRegex = /^(?:\+62|62|0)(?:8|9)[0-9]{7,12}$/;
 
   if (!phoneRegex.test(cleaned)) {
     return 'Format nomor WhatsApp tidak valid. Gunakan format: 08xxx atau +628xxx';
