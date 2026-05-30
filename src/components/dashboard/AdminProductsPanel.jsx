@@ -128,7 +128,8 @@ export default function AdminProductsPanel({
   handleAdminBulkEditOpen,
   handleEditProduct,
   handleCreateProductClick,
-  handleDeleteProduct
+  handleDeleteProduct,
+  loadInitialData
 }) {
   const [localProducts, setLocalProducts] = useState([]);
   const [hasOrderChanged, setHasOrderChanged] = useState(false);
@@ -192,6 +193,7 @@ export default function AdminProductsPanel({
       setHasOrderChanged(false);
       setSaveSuccessMsg('Susunan produk berhasil disimpan!');
       setTimeout(() => setSaveSuccessMsg(''), 3000);
+      if (loadInitialData) loadInitialData();
     } else {
       alert('Gagal menyimpan susunan: ' + result.error);
     }

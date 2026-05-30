@@ -1668,6 +1668,7 @@ const handleSaveProductLink = async () => {
             setReorderingProduct={setReorderingProduct}
             setReorderDestination={setReorderDestination}
             setShowReorderModal={setShowReorderModal}
+            loadInitialData={loadInitialData}
           />
         )}
 
