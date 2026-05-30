@@ -32,6 +32,8 @@ import AdminAffiliatorsPanel from './dashboard/AdminAffiliatorsPanel';
 import AdminCustomersPanel from './dashboard/AdminCustomersPanel';
 import AdminSlidersPanel from './dashboard/AdminSlidersPanel';
 import AdminPromoPanel from './dashboard/AdminPromoPanel';
+import AdminWholesaleCatalogsPanel from './dashboard/AdminWholesaleCatalogsPanel';
+import AdminResellerRegistrationsPanel from './dashboard/AdminResellerRegistrationsPanel';
 import AffiliatorDashboard from './dashboard/AffiliatorDashboard';
 
 const formatRupiah = (number) => {
@@ -1563,6 +1565,8 @@ const handleSaveProductLink = async () => {
     { key: 'products', label: 'Produk', icon: <BarChart3 size={18} />, count: products.length },
     { key: 'affiliators', label: 'Mitra', icon: <Users size={18} />, count: affiliators.length },
     { key: 'customers', label: 'Pelanggan', icon: <Share2 size={18} />, count: customers.length },
+    { key: 'grosir', label: 'Katalog Grosir', icon: <Package size={18} /> },
+    { key: 'calon_reseller', label: 'Calon Reseller', icon: <Users size={18} /> },
     { key: 'sliders', label: 'Tampilan', icon: <Eye size={18} />, count: sliders.length },
     { key: 'promo', label: 'Promo', icon: <Settings size={18} /> },
   ];
@@ -1606,13 +1610,15 @@ const handleSaveProductLink = async () => {
               >
                 {tab.icon}
                 <span>{tab.label}</span>
-                <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                  activeTab === tab.key
-                    ? 'bg-[#D4AF37]/20 text-[#D4AF37]'
-                    : 'bg-white/10 text-gray-400'
-                }`}>
-                  {tab.count}
-                </span>
+                {tab.count !== undefined && (
+                  <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                    activeTab === tab.key
+                      ? 'bg-[#D4AF37]/20 text-[#D4AF37]'
+                      : 'bg-white/10 text-gray-400'
+                  }`}>
+                    {tab.count}
+                  </span>
+                )}
               </button>
             ))}
           </div>
@@ -1708,6 +1714,20 @@ const handleSaveProductLink = async () => {
 
         {activeTab === 'promo' && (
           <AdminPromoPanel />
+        )}
+
+        {activeTab === 'grosir' && (
+          <AdminWholesaleCatalogsPanel 
+            setSuccessMsg={setSuccessMsg} 
+            setErrorMsg={setErrorMsg} 
+          />
+        )}
+
+        {activeTab === 'calon_reseller' && (
+          <AdminResellerRegistrationsPanel 
+            setSuccessMsg={setSuccessMsg} 
+            setErrorMsg={setErrorMsg} 
+          />
         )}
 
         {showEditProductModal && editingProduct && (

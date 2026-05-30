@@ -782,6 +782,110 @@ export const getSetting = async (key) => {
   }
 };
 
+// ================================================================
+// RESELLER & WHOLESALE QUERIES
+// ================================================================
+
+export const fetchWholesaleCatalogs = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('wholesale_catalogs')
+      .select('*')
+      .order('min_qty', { ascending: true });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const createWholesaleCatalog = async (catalog) => {
+  try {
+    const { data, error } = await supabase
+      .from('wholesale_catalogs')
+      .insert([catalog])
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data[0] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateWholesaleCatalog = async (id, catalog) => {
+  try {
+    const { data, error } = await supabase
+      .from('wholesale_catalogs')
+      .update(catalog)
+      .eq('id', id)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data[0] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const deleteWholesaleCatalog = async (id) => {
+  try {
+    const { error } = await supabase
+      .from('wholesale_catalogs')
+      .delete()
+      .eq('id', id);
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const submitResellerRegistration = async (registration) => {
+  try {
+    const { data, error } = await supabase
+      .from('reseller_registrations')
+      .insert([registration])
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data[0] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const fetchResellerRegistrations = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('reseller_registrations')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateResellerRegistrationStatus = async (id, status, catatan = '') => {
+  try {
+    const { data, error } = await supabase
+      .from('reseller_registrations')
+      .update({ status, catatan_admin: catatan })
+      .eq('id', id)
+      .select();
+
+    if (error) return { success: false, error: error.message };
+    return { success: true, data: data[0] };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 export const updateSetting = async (key, value) => {
   try {
     const { error } = await supabase

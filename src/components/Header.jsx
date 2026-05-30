@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Menu, ShieldCheck, LogIn, User, ShoppingBag, Share2, Check } from 'lucide-react';
+import { Menu, ShieldCheck, LogIn, User, ShoppingBag, Share2, Check, Package } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useReferral } from '../context/ReferralContext';
 
 export default function Header({ 
@@ -10,6 +11,7 @@ export default function Header({
   onLoginClick, 
   onRegisterClick 
 }) {
+  const navigate = useNavigate();
   const { hasReferral, getShareLink } = useReferral();
   const [copiedToClipboard, setCopiedToClipboard] = useState(false);
 
@@ -70,6 +72,10 @@ export default function Header({
                 <button onClick={() => onRegisterClick('Affiliator')} className="w-full text-left px-3 py-3 rounded-lg hover:bg-white/10 text-white text-sm font-medium flex items-center gap-3 transition group">
                   <div className="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400 group-hover:bg-green-500 group-hover:text-white transition"><User size={16}/></div>
                    <div><span className="block font-bold">Daftar Affiliator</span><span className="text-[10px] text-gray-400">Gabung Kemitraan Baru</span></div>
+                </button>
+                <button onClick={() => { setIsMenuOpen(false); navigate('/katalog-reseller'); }} className="w-full text-left px-3 py-3 rounded-lg hover:bg-white/10 text-white text-sm font-medium flex items-center gap-3 transition group">
+                  <div className="w-8 h-8 rounded-full bg-[#D4AF37]/20 flex items-center justify-center text-[#D4AF37] group-hover:bg-[#D4AF37] group-hover:text-black transition"><Package size={16}/></div>
+                   <div><span className="block font-bold">Katalog Grosir</span><span className="text-[10px] text-gray-400">Daftar Jadi Reseller</span></div>
                 </button>
               </div>
             </div>

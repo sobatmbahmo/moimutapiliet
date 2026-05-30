@@ -11,6 +11,7 @@ import AuthModal from './components/AuthModal';
 import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import InvoicePage from './pages/InvoicePage';
+import KatalogResellerPage from './pages/KatalogResellerPage';
 import { ReferralProvider } from './context/ReferralContext';
 import { getSetting } from './lib/supabaseQueries';
 
@@ -165,6 +166,9 @@ function App() {
       <Routes>
         {/* Invoice Page */}
         <Route path="/invoice/:orderNumber" element={<InvoicePage />} />
+        
+        {/* Katalog Reseller Page */}
+        <Route path="/katalog-reseller" element={<KatalogResellerPage />} />
         
         {/* Main Shop */}
         <Route path="/*" element={
