@@ -814,3 +814,22 @@ export const toggleProductActiveStatus = async (productId, currentStatus) => {
     return { success: false, error: error.message };
   }
 };
+/**
+ * Bulk update products order
+ */
+export const bulkUpdateProductOrder = async (updates) => {
+  try {
+    const { data, error } = await supabase
+      .from('products')
+      .upsert(updates.map(u => ({
+        id: u.id,
+        sort_order: u.sort_order,
+        updated_at: new Date().toISOString()
+      })));
+
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
