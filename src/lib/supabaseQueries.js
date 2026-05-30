@@ -819,15 +819,24 @@ export const toggleProductActiveStatus = async (productId, currentStatus) => {
  */
 export const bulkUpdateProductOrder = async (updates) => {
   try {
-    const { data, error } = await supabase
-      .from('products')
-      .upsert(updates.map(u => ({
-        id: u.id,
-        sort_order: u.sort_order,
-        updated_at: new Date().toISOString()
-      })));
+    // Supabase upsert requires all NOT NULL columns if not using RPC.
+    // Since we only want to update sort_order, we use Promise.all with individual updates.
+    const updatePromises = updates.map(u => 
+      supabase
+        .from('products')
+        .update({
+          sort_order: u.sort_order,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', u.id)
+    );
 
-    if (error) return { success: false, error: error.message };
+    const results = await Promise.all(updatePromises);
+    
+    // Check if any of the updates failed
+    const hasError = results.find(result => result.error);
+    if (hasError) return { success: false, error: hasError.error.message };
+
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };
