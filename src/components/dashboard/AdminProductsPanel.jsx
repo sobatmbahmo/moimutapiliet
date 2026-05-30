@@ -125,22 +125,12 @@ export default function AdminProductsPanel({
                     </div>
 
                     {/* Actions Grid */}
-                    <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
+                    <div className="grid grid-cols-2 gap-2 w-full sm:w-auto">
                       <button
                         onClick={() => handleEditProduct(p)}
                         className="flex items-center justify-center gap-1 px-2 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded-lg hover:bg-[#D4AF37]/40 hover:text-white transition w-full active:scale-95"
                       >
                         <Edit size={12} /> Edit
-                      </button>
-                      <button
-                        onClick={() => handleToggleProductStatus(p.id, p.is_active !== false)}
-                        className={`flex items-center justify-center gap-1 px-2 py-2 text-xs font-bold rounded-lg transition w-full active:scale-95 ${
-                          p.is_active === false 
-                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/40 hover:text-white'
-                            : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/40 hover:text-white'
-                        }`}
-                      >
-                        {p.is_active === false ? <><Eye size={12} /> Tampilkan</> : <><EyeOff size={12} /> Arsipkan</>}
                       </button>
                       <button
                         onClick={() => handleDeleteProduct(p.id)}
