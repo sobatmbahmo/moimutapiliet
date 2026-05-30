@@ -12,7 +12,7 @@ import {
   arrayMove,
   SortableContext,
   sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
+  rectSortingStrategy,
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -257,12 +257,11 @@ export default function AdminProductsPanel({
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          {/* Note: changed grid-cols-1 md:grid-cols-2 lg:grid-cols-3 to flex col for drag and drop to look cleaner */}
           <SortableContext 
             items={localProducts.map(p => p.id)}
-            strategy={verticalListSortingStrategy}
+            strategy={rectSortingStrategy}
           >
-            <div className="flex flex-col gap-3 sm:gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
               {localProducts.map(p => (
                 <SortableProductCard 
                   key={p.id}
