@@ -31,6 +31,7 @@ import AdminProductsPanel from './dashboard/AdminProductsPanel';
 import AdminAffiliatorsPanel from './dashboard/AdminAffiliatorsPanel';
 import AdminCustomersPanel from './dashboard/AdminCustomersPanel';
 import AdminSlidersPanel from './dashboard/AdminSlidersPanel';
+import AdminPromoPanel from './dashboard/AdminPromoPanel';
 import AffiliatorDashboard from './dashboard/AffiliatorDashboard';
 
 const formatRupiah = (number) => {
@@ -1534,6 +1535,7 @@ const handleSaveProductLink = async () => {
     { key: 'affiliators', label: 'Mitra', icon: <Users size={18} />, count: affiliators.length },
     { key: 'customers', label: 'Pelanggan', icon: <Share2 size={18} />, count: customers.length },
     { key: 'sliders', label: 'Tampilan', icon: <Eye size={18} />, count: sliders.length },
+    { key: 'promo', label: 'Promo', icon: <Settings size={18} /> },
   ];
 
   return (
@@ -1673,6 +1675,10 @@ const handleSaveProductLink = async () => {
             setSuccessMsg={setSuccessMsg}
             setErrorMsg={setErrorMsg}
           />
+        )}
+
+        {activeTab === 'promo' && (
+          <AdminPromoPanel />
         )}
 
         {showEditProductModal && editingProduct && (

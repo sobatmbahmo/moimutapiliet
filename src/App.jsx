@@ -12,6 +12,7 @@ import Header from './components/Header';
 import HeroSection from './components/HeroSection';
 import InvoicePage from './pages/InvoicePage';
 import { ReferralProvider } from './context/ReferralContext';
+import { getSetting } from './lib/supabaseQueries';
 
 function App() {
   // === STATE TOKO ===
@@ -21,6 +22,11 @@ function App() {
   const [products, setProducts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [promoConfig, setPromoConfig] = useState({
+    is_active: true,
+    title: "PROMO SPESIAL HARI INI 🎉",
+    content: "Belanja 60Rb Subsidi Ongkir <span class=\"font-bold text-[#D4AF37]\">5Rb</span>\nBelanja 100Rb Subsidi Ongkir <span class=\"font-bold text-[#D4AF37]\">10Rb</span>"
+  });
 
   // === STATE AUTHENTICATION & MENU ===
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -107,7 +113,13 @@ function App() {
         
         setProducts(mappedData);
 
-        // ✅ Auto-open product modal if ?product=ID in URL (affiliate share link)
+        // Fetch Promo Settings
+        const promoRes = await getSetting('promo_banner');
+        if (promoRes.success && promoRes.value) {
+          setPromoConfig(promoRes.value);
+        }
+
+        // 🛍️ Auto-open product modal if ?product=ID in URL (affiliate share link)
         const params = new URLSearchParams(window.location.search);
         const productId = params.get('product');
         if (productId) {
@@ -213,17 +225,21 @@ function App() {
           <HeroSection />
           
           {/* Promo Banner / Column */}
-          <div className="bg-gradient-to-r from-[#D4AF37]/20 via-[#D4AF37]/10 to-[#042f2e] border border-[#D4AF37]/30 rounded-2xl p-4 flex items-center gap-4 shadow-lg animate-fade-in relative overflow-hidden">
-            <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#D4AF37]/20 rounded-full blur-2xl"></div>
-            <div className="bg-[#D4AF37] text-black p-3 rounded-full shrink-0 relative z-10 shadow-md">
-              <Truck size={24} className="animate-pulse" />
+          {promoConfig.is_active && (
+            <div className="bg-gradient-to-r from-[#D4AF37]/20 via-[#D4AF37]/10 to-[#042f2e] border border-[#D4AF37]/30 rounded-2xl p-4 flex items-center gap-4 shadow-lg animate-fade-in relative overflow-hidden">
+              <div className="absolute -right-10 -top-10 w-32 h-32 bg-[#D4AF37]/20 rounded-full blur-2xl"></div>
+              <div className="bg-[#D4AF37] text-black p-3 rounded-full shrink-0 relative z-10 shadow-md">
+                <Truck size={24} className="animate-pulse" />
+              </div>
+              <div className="relative z-10">
+                <h3 className="text-[#D4AF37] font-extrabold text-sm sm:text-base leading-tight mb-1">{promoConfig.title}</h3>
+                <div 
+                  className="text-white text-xs sm:text-sm font-medium space-y-1"
+                  dangerouslySetInnerHTML={{ __html: promoConfig.content.replace(/\n/g, '<br/>') }}
+                />
+              </div>
             </div>
-            <div className="relative z-10">
-              <h3 className="text-[#D4AF37] font-extrabold text-sm sm:text-base leading-tight mb-1">PROMO SPESIAL HARI INI 🎉</h3>
-              <p className="text-white text-xs sm:text-sm font-medium">Belanja 60Rb Subsidi Ongkir <span className="font-bold text-[#D4AF37]">5Rb</span></p>
-              <p className="text-white text-xs sm:text-sm font-medium">Belanja 100Rb Subsidi Ongkir <span className="font-bold text-[#D4AF37]">10Rb</span></p>
-            </div>
-          </div>
+          )}
 
           <div>
             <div className="flex items-center justify-between mb-5 px-1">

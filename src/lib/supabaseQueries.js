@@ -758,3 +758,42 @@ export const uploadSliderImage = async (file) => {
     return { success: false, error: error.message };
   }
 };
+// ================================================================
+// SETTINGS QUERIES
+// ================================================================
+
+export const getSetting = async (key) => {
+  try {
+    const { data, error } = await supabase
+      .from('settings')
+      .select('value')
+      .eq('key', key)
+      .maybeSingle();
+      
+    if (error) {
+      console.error('Error fetching setting:', key, error);
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true, value: data?.value || null };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
+export const updateSetting = async (key, value) => {
+  try {
+    const { error } = await supabase
+      .from('settings')
+      .upsert({ key, value, updated_at: new Date().toISOString() }, { onConflict: 'key' });
+      
+    if (error) {
+      console.error('Error updating setting:', key, error);
+      return { success: false, error: error.message };
+    }
+    
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
