@@ -340,7 +340,8 @@ export const createProduct = async (productData) => {
         commission_rate: productData.commission_rate || 10,
         sort_order: productData.sort_order || 0,
         berat_produk: productData.berat_produk || 200,
-        variants: productData.variants || []
+        variants: productData.variants || [],
+        is_active: productData.is_active !== false
       }])
       .select()
       .single();
@@ -792,6 +793,22 @@ export const updateSetting = async (key, value) => {
       return { success: false, error: error.message };
     }
     
+    return { success: true };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+/**
+ * Toggle product active status (soft delete)
+ */
+export const toggleProductActiveStatus = async (productId, currentStatus) => {
+  try {
+    const { error } = await supabase
+      .from('products')
+      .update({ is_active: !currentStatus })
+      .eq('id', productId);
+
+    if (error) return { success: false, error: error.message };
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Edit, Package, Trash } from 'lucide-react';
+import { Edit, Package, Trash, Eye, EyeOff } from 'lucide-react';
 
 const formatRupiah = (number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -16,6 +16,7 @@ export default function AdminProductsPanel({
   handleEditProduct,
   handleCreateProductClick,
   handleDeleteProduct,
+  handleToggleProductStatus,
   setReorderingProduct,
   setReorderDestination,
   setShowReorderModal
@@ -62,81 +63,84 @@ export default function AdminProductsPanel({
             .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0))
             .map(p => {
               const hasVariants = p.name && p.name.toLowerCase().includes('paket komplit');
-              const isSelected = selectedAdminProducts.includes(p.id);
               return (
-                <div 
-                  key={p.id} 
-                  className={`bg-black/30 border rounded-xl p-3 sm:p-4 transition flex gap-3 sm:gap-4 ${
-                    isSelected
-                      ? 'border-[#D4AF37] bg-[#D4AF37]/10 ring-1 ring-[#D4AF37]/30'
-                      : 'border-white/10 hover:border-[#D4AF37]/30'
-                  }`}
-                >
-                  {/* Checkbox */}
-                  <div className="flex items-start pt-0.5">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => toggleAdminProductSelection(p.id)}
-                      className="w-4 h-4 sm:w-5 sm:h-5 cursor-pointer accent-[#D4AF37]"
-                    />
-                  </div>
-
-                  {/* Product Image */}
-                  {p.image_url && (
-                    <div className="w-20 h-20 sm:w-28 sm:h-28 flex-shrink-0">
-                      <img src={p.image_url} alt={p.name} className="w-full h-full object-cover rounded-lg" />
-                    </div>
-                  )}
-                  
-                  {/* Product Info */}
-                  <div className="flex-1 min-w-0 space-y-1.5 flex flex-col justify-between">
-                    <div className="space-y-1.5">
-                      <p className="font-bold text-white text-sm sm:text-base line-clamp-2">{p.name}</p>
-                      
-                      {/* Price + Code row */}
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[#D4AF37] font-bold text-xs sm:text-sm">{formatRupiah(p.price)}</p>
-                        <p className="text-[10px] sm:text-xs text-gray-500 font-mono">{p.product_code || 'N/A'}</p>
+                  <div 
+                    key={p.id} 
+                    className={`bg-black/40 rounded-xl p-4 flex flex-col sm:flex-row items-start sm:items-center gap-4 transition border ${
+                      p.is_active === false ? 'border-red-500/30 opacity-70' : 'border-[#D4AF37]/20 hover:bg-black/60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4 w-full">
+                      <div className="flex flex-col items-center justify-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedAdminProducts.includes(p.id)}
+                          onChange={() => toggleAdminProductSelection(p.id)}
+                          className="w-4 h-4 rounded border-gray-600 bg-gray-700/50 text-[#D4AF37] focus:ring-[#D4AF37] focus:ring-offset-gray-900 cursor-pointer shrink-0"
+                        />
+                        <span className="text-[10px] font-bold text-gray-500 hidden sm:block">No. {p.sort_order}</span>
                       </div>
                       
-                      {/* Commission + Position */}
-                      <div className="flex items-center justify-between gap-2">
-                        <p className="text-[10px] sm:text-xs text-gray-400">{p.commission_rate}% komisi</p>
-                        <div className="flex items-center gap-1">
-                          <span className="text-[10px] text-[#D4AF37] font-bold">Pos:</span>
-                          <span className="w-8 sm:w-10 px-1 py-0.5 bg-black/40 border border-white/20 rounded text-white text-[10px] sm:text-xs text-center font-bold">
-                            {p.sort_order || 0}
-                          </span>
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 bg-[#042f2e] rounded-lg shrink-0 overflow-hidden relative border border-[#D4AF37]/30">
+                        {p.image_url ? (
+                          <img src={p.image_url} alt={p.name} className="w-full h-full object-cover" loading="lazy" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-500">
+                            <Package size={24} />
+                          </div>
+                        )}
+                        {p.is_active === false && (
+                          <div className="absolute inset-0 bg-red-900/60 flex items-center justify-center backdrop-blur-[1px]">
+                            <span className="text-[10px] font-bold text-white bg-red-600 px-1 rounded">DISCONTINUED</span>
+                          </div>
+                        )}
+                      </div>
+                      
+                      {/* Product Info */}
+                      <div className="flex-1 min-w-0 space-y-1.5">
+                        <p className="font-bold text-white text-sm sm:text-base line-clamp-1">{p.name}</p>
+                        <div className="flex items-center gap-4">
+                          <p className="text-[#D4AF37] font-bold text-xs sm:text-sm">{formatRupiah(p.price)}</p>
+                          <p className="text-[10px] sm:text-xs text-gray-500 font-mono">{p.product_code || 'N/A'}</p>
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <p className="text-[10px] sm:text-xs text-gray-400">{p.commission_rate}% komisi</p>
                           <button
                             onClick={() => {
                               setReorderingProduct(p);
                               setReorderDestination(String(p.sort_order || 0));
                               setShowReorderModal(true);
                             }}
-                            className="px-1.5 py-0.5 bg-[#D4AF37]/30 text-[#D4AF37] text-xs font-bold rounded hover:bg-[#D4AF37]/50 transition"
-                            title="Pindahkan ke posisi lain"
+                            className="text-[10px] text-[#D4AF37] underline"
                           >
-                            ↕
+                            Ubah Posisi
                           </button>
                         </div>
+                        {hasVariants && (
+                          <span className="inline-block px-2 py-0.5 bg-blue-500/20 text-blue-300 text-[10px] rounded">
+                            + Varian
+                          </span>
+                        )}
                       </div>
-                      
-                      {/* Variants Badge */}
-                      {hasVariants && (
-                        <span className="inline-block px-2 py-0.5 bg-blue-500/20 text-blue-300 text-[10px] sm:text-xs font-bold rounded">
-                          + Varian
-                        </span>
-                      )}
                     </div>
 
                     {/* Actions Grid */}
-                    <div className="grid grid-cols-2 gap-2 mt-2">
+                    <div className="grid grid-cols-3 gap-2 w-full sm:w-auto">
                       <button
                         onClick={() => handleEditProduct(p)}
                         className="flex items-center justify-center gap-1 px-2 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded-lg hover:bg-[#D4AF37]/40 hover:text-white transition w-full active:scale-95"
                       >
                         <Edit size={12} /> Edit
+                      </button>
+                      <button
+                        onClick={() => handleToggleProductStatus(p.id, p.is_active !== false)}
+                        className={`flex items-center justify-center gap-1 px-2 py-2 text-xs font-bold rounded-lg transition w-full active:scale-95 ${
+                          p.is_active === false 
+                            ? 'bg-green-500/20 text-green-400 hover:bg-green-500/40 hover:text-white'
+                            : 'bg-orange-500/20 text-orange-400 hover:bg-orange-500/40 hover:text-white'
+                        }`}
+                      >
+                        {p.is_active === false ? <><Eye size={12} /> Tampilkan</> : <><EyeOff size={12} /> Arsipkan</>}
                       </button>
                       <button
                         onClick={() => handleDeleteProduct(p.id)}
@@ -146,7 +150,6 @@ export default function AdminProductsPanel({
                       </button>
                     </div>
                   </div>
-                </div>
               );
             })}
         </div>

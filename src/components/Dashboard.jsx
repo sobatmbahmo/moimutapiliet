@@ -8,7 +8,7 @@ import { supabase } from '../lib/supabaseClient';
 import { 
   createOrder, addOrderItems, updateOrderStatus, deleteOrder,
   updateProduct, deleteAffiliatorProfile, reorderProduct,
-  createProduct, deleteProduct, uploadProductImage,
+  createProduct, deleteProduct, uploadProductImage, toggleProductActiveStatus,
   upsertCustomer, setAffiliatorProductLink, getAffiliatorProductLink,
   createOrGetUser, getAllCustomers, deleteCustomer
 } from '../lib/supabaseQueries';
@@ -325,7 +325,8 @@ export default function Dashboard({ user, onLogout }) {
       product_code: '',
       commission_rate: 10,
       default_link: '',
-      sort_order: products.length + 1
+      sort_order: products.length + 1,
+      is_active: true
     });
     setErrorMsg('');
     setShowEditProductModal(true);
@@ -341,7 +342,8 @@ export default function Dashboard({ user, onLogout }) {
       product_code: product.product_code || '',
       commission_rate: product.commission_rate || 10,
       default_link: product.default_link || '',
-      sort_order: product.sort_order || 0
+      sort_order: product.sort_order || 0,
+      is_active: product.is_active !== false
     });
     setShowEditProductModal(true);
   };
@@ -398,10 +400,37 @@ export default function Dashboard({ user, onLogout }) {
         loadInitialData();
       } else {
         if (result.error?.includes('foreign key constraint') || result.error?.includes('violates foreign key')) {
-          setErrorMsg(`Gagal menghapus: Produk "${product.name}" tidak dapat dihapus karena sudah pernah dipesan oleh pelanggan. Silakan ubah nama atau deskripsinya saja.`);
+          const archiveConfirm = window.confirm(`Gagal menghapus permanen: Produk "${product.name}" sudah pernah dipesan pelanggan sehingga terkait dengan data riwayat order.\n\nApakah Anda ingin MENYEMBUNYIKAN (Arsipkan) produk ini dari toko agar tidak bisa dibeli lagi?`);
+          if (archiveConfirm) {
+            handleToggleProductStatus(productId, product.is_active !== false);
+          } else {
+            setErrorMsg(`Penghapusan dibatalkan.`);
+          }
         } else {
           setErrorMsg('Gagal menghapus produk: ' + result.error);
         }
+      }
+    } catch (err) {
+      setErrorMsg('Error: ' + err.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleProductStatus = async (productId, currentStatus) => {
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+    
+    try {
+      setLoading(true);
+      setErrorMsg('');
+      const result = await toggleProductActiveStatus(productId, currentStatus);
+      
+      if (result.success) {
+        setSuccessMsg(`Status produk "${product.name}" berhasil diubah menjadi ${!currentStatus ? 'Aktif' : 'Disembunyikan'}.`);
+        loadInitialData();
+      } else {
+        setErrorMsg('Gagal mengubah status produk: ' + result.error);
       }
     } catch (err) {
       setErrorMsg('Error: ' + err.message);
@@ -1635,6 +1664,7 @@ const handleSaveProductLink = async () => {
             handleEditProduct={handleEditProduct}
             handleCreateProductClick={handleCreateProductClick}
             handleDeleteProduct={handleDeleteProduct}
+            handleToggleProductStatus={handleToggleProductStatus}
             setReorderingProduct={setReorderingProduct}
             setReorderDestination={setReorderDestination}
             setShowReorderModal={setShowReorderModal}
@@ -1717,6 +1747,20 @@ const handleSaveProductLink = async () => {
                     className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
                     placeholder="Kode unik produk"
                   />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[#D4AF37] font-bold text-sm">Status Produk</label>
+                    <select
+                      value={editProductForm.is_active !== false ? 'active' : 'inactive'}
+                      onChange={(e) => setEditProductForm({ ...editProductForm, is_active: e.target.value === 'active' })}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
+                    >
+                      <option value="active">🟢 Aktif (Ditampilkan)</option>
+                      <option value="inactive">🔴 Nonaktif (Disembunyikan)</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">

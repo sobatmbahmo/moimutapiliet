@@ -100,7 +100,7 @@ function App() {
         
         if (error) throw error;
         
-        const mappedData = data?.map(item => ({
+        const mappedData = data?.filter(item => item.is_active !== false).map(item => ({
           id: item.id,
           nama_produk: item.name,
           harga_produk: item.price,
