@@ -32,7 +32,6 @@ import AdminAffiliatorsPanel from './dashboard/AdminAffiliatorsPanel';
 import AdminCustomersPanel from './dashboard/AdminCustomersPanel';
 import AdminSlidersPanel from './dashboard/AdminSlidersPanel';
 import AdminPromoPanel from './dashboard/AdminPromoPanel';
-import AdminWholesaleCatalogsPanel from './dashboard/AdminWholesaleCatalogsPanel';
 import AdminResellerRegistrationsPanel from './dashboard/AdminResellerRegistrationsPanel';
 import AffiliatorDashboard from './dashboard/AffiliatorDashboard';
 
@@ -323,6 +322,7 @@ export default function Dashboard({ user, onLogout }) {
       name: '',
       description: '',
       price: 0,
+      wholesale_price: 0,
       image_url: '',
       product_code: '',
       commission_rate: 10,
@@ -340,6 +340,7 @@ export default function Dashboard({ user, onLogout }) {
       name: product.name || '',
       description: product.description || '',
       price: product.price || 0,
+      wholesale_price: product.wholesale_price || 0,
       image_url: product.image_url || '',
       product_code: product.product_code || '',
       commission_rate: product.commission_rate || 10,
@@ -1565,7 +1566,6 @@ const handleSaveProductLink = async () => {
     { key: 'products', label: 'Produk', icon: <BarChart3 size={18} />, count: products.length },
     { key: 'affiliators', label: 'Mitra', icon: <Users size={18} />, count: affiliators.length },
     { key: 'customers', label: 'Pelanggan', icon: <Share2 size={18} />, count: customers.length },
-    { key: 'grosir', label: 'Katalog Grosir', icon: <Package size={18} /> },
     { key: 'calon_reseller', label: 'Calon Reseller', icon: <Users size={18} /> },
     { key: 'sliders', label: 'Tampilan', icon: <Eye size={18} />, count: sliders.length },
     { key: 'promo', label: 'Promo', icon: <Settings size={18} /> },
@@ -1716,13 +1716,6 @@ const handleSaveProductLink = async () => {
           <AdminPromoPanel />
         )}
 
-        {activeTab === 'grosir' && (
-          <AdminWholesaleCatalogsPanel 
-            setSuccessMsg={setSuccessMsg} 
-            setErrorMsg={setErrorMsg} 
-          />
-        )}
-
         {activeTab === 'calon_reseller' && (
           <AdminResellerRegistrationsPanel 
             setSuccessMsg={setSuccessMsg} 
@@ -1782,13 +1775,23 @@ const handleSaveProductLink = async () => {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
-                    <label className="text-[#D4AF37] font-bold text-sm">Harga (Rp)</label>
+                    <label className="text-[#D4AF37] font-bold text-sm">Harga Ecer (Rp)</label>
                     <input
                       type="number"
                       value={editProductForm.price}
                       onChange={(e) => setEditProductForm({ ...editProductForm, price: parseFloat(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
+                      placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[#D4AF37] font-bold text-sm">Harga Grosir/KG (Rp)</label>
+                    <input
+                      type="number"
+                      value={editProductForm.wholesale_price}
+                      onChange={(e) => setEditProductForm({ ...editProductForm, wholesale_price: parseFloat(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
                       placeholder="0"
                     />

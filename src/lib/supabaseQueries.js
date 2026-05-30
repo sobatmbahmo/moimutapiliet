@@ -340,6 +340,7 @@ export const createProduct = async (productData) => {
         commission_rate: productData.commission_rate || 10,
         sort_order: productData.sort_order || 0,
         berat_produk: productData.berat_produk || 200,
+        wholesale_price: productData.wholesale_price || 0,
         variants: productData.variants || [],
         is_active: productData.is_active !== false
       }])
