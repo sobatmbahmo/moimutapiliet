@@ -1676,10 +1676,8 @@ const handleSaveProductLink = async () => {
           <AdminAffiliatorsPanel
             affiliators={affiliators}
             loading={loading}
-            handleApproveAffiliator={handleApproveAffiliator}
             handleEditAffiliator={handleEditAffiliator}
             handleDeleteAffiliator={handleDeleteAffiliator}
-            handleResendAffiliatorNotification={handleResendAffiliatorNotification}
           />
         )}
 
