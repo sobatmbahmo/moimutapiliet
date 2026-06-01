@@ -246,6 +246,12 @@ export default function AdminOrdersPanel({
                   <Printer size={13} /> Print Ulang
                 </button>
                 <button
+                  onClick={() => setEditingResi(order.id)}
+                  className="flex-1 min-w-[100px] flex items-center justify-center gap-1 px-2 py-2 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-lg hover:bg-blue-500/30 transition"
+                >
+                  <Truck size={13} /> Edit Resi
+                </button>
+                <button
                   onClick={() => handleConfirmDelivery(order.id, skipNotifMap[order.id])}
                   className="flex-1 min-w-[100px] flex items-center justify-center gap-1 px-2 py-2 bg-green-500/20 text-green-300 text-xs font-bold rounded-lg hover:bg-green-500/30 transition"
                 >

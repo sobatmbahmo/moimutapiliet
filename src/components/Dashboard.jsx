@@ -918,16 +918,18 @@ const handleSaveProductLink = async () => {
       if (updateError) throw updateError;
 
       const order = orders.find(o => o.id === orderId);
-      if (order?.users?.nomor_wa && !skipNotif) {
+      const phoneToNotify = order?.users?.nomor_wa || order?.nomor_wa;
+      
+      if (phoneToNotify && !skipNotif) {
         await sendResiNotification(
-          order.users.nomor_wa,
+          phoneToNotify,
           resiNumber,
           couriername,
-          order.order_number
+          order?.order_number
         );
       }
 
-      setSuccessMsg(`Resi ${resiNumber} berhasil diinput. SMS dikirim ke customer.`);
+      setSuccessMsg(`Resi ${resiNumber} berhasil diinput. Notifikasi WA dikirim ke customer.`);
       setEditingResi(null);
       setResiNumber('');
       setCourierName('JNE');
