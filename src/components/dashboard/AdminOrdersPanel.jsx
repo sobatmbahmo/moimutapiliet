@@ -98,7 +98,7 @@ export default function AdminOrdersPanel({
     }
   };
 
-  const OrderCard = ({ order }) => {
+  const renderOrderCard = (order) => {
     const statusInfo = getStatusInfo(order.status);
     const statusClasses = {
       yellow: 'bg-yellow-500/20 text-yellow-300',
@@ -111,7 +111,7 @@ export default function AdminOrdersPanel({
     };
 
     return (
-      <div className="bg-black/30 border border-white/10 rounded-xl p-3 sm:p-4 space-y-3 hover:border-white/20 transition">
+      <div key={order.id} className="bg-black/30 border border-white/10 rounded-xl p-3 sm:p-4 space-y-3 hover:border-white/20 transition">
         {/* Header row */}
         <div className="flex justify-between items-start gap-2">
           <div className="min-w-0 flex-1">
@@ -415,11 +415,11 @@ export default function AdminOrdersPanel({
           <p className="text-gray-400 text-sm">Tidak ada order dalam kategori ini</p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
-          {filteredOrders.map((order) => (
-            <OrderCard key={order.id} order={order} />
-          ))}
-        </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3 sm:gap-4">
+            {filteredOrders.map((order) => (
+              renderOrderCard(order)
+            ))}
+          </div>
       )}
     </div>
   );
