@@ -164,7 +164,9 @@ export const sendResiNotification = async (phoneNumber, resi, courierName = 'JNE
   let message = `*Paket Anda Sudah Dikirim! 📦*\n\n`;
   if (orderNumber) message += `No Pesanan: ${orderNumber}\n`;
   message += `No Resi: *${resi}*\n`;
-  message += `Kurir: ${courierName}\n\n`;
+  message += `Ekspedisi: ${courierName}\n\n`;
+  message += `Lacak pengiriman Anda secara manual melalui tautan berikut:\n`;
+  message += `👉 https://cekresi.com/?noresi=${resi}\n\n`;
   message += `Terus pantau perkembangan paket Anda ya!\n\n`;
   message += `Terima kasih 🙏`;
   return sendFonntMessage(phoneNumber, message);
