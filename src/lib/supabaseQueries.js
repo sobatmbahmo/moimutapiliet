@@ -238,6 +238,22 @@ export const getAllAffiliators = async () => {
  */
 export const registerAffiliator = async (affiliatorData) => {
   try {
+    // Check for existing whatsapp or bank_info
+    const { data: existing } = await supabase
+      .from('affiliator_profiles')
+      .select('whatsapp_number, bank_info')
+      .or(`whatsapp_number.eq.${affiliatorData.whatsapp_number},bank_info.eq.${affiliatorData.bank_info}`);
+      
+    if (existing && existing.length > 0) {
+      const match = existing[0];
+      if (match.whatsapp_number === affiliatorData.whatsapp_number) {
+        return { success: false, error: 'Nomor WhatsApp sudah terdaftar sebagai mitra.' };
+      }
+      if (match.bank_info === affiliatorData.bank_info) {
+        return { success: false, error: 'Nomor Rekening/Bank sudah didaftarkan sebelumnya.' };
+      }
+    }
+
     const { data, error } = await supabase
       .from('affiliator_profiles')
       .insert([{
@@ -250,7 +266,14 @@ export const registerAffiliator = async (affiliatorData) => {
       .select()
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) {
+      if (error.message.includes('unique constraint') || error.code === '23505') {
+         if (error.message.includes('ref_code')) return { success: false, error: 'Kode referal sudah digunakan, coba kode lain.' };
+         return { success: false, error: 'Data sudah terdaftar sebelumnya (duplikat).' };
+      }
+      return { success: false, error: error.message };
+    }
+    
     return { success: true, affiliator: data };
   } catch (error) {
     console.error('Error creating affiliator:', error);
