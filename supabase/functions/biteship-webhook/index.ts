@@ -13,13 +13,24 @@ serve(async (req) => {
   }
 
   try {
-    const payload = await req.json();
+    let payload = {};
+    try {
+      const text = await req.text();
+      if (text) payload = JSON.parse(text);
+    } catch (e) {
+      // Ignore parse error, treat as empty body for Biteship validation
+    }
 
-    // Biteship tracking webhook payload format usually has:
-    // { event: "tracking.status.updated", waybill_id: "...", status: "delivered", ... }
-    
-    // We only care about tracking updates
-    if (payload.event !== 'tracking.status.updated') {
+    // If there is no event, it's likely a test ping from Biteship during installation
+    if (!payload.event) {
+      return new Response(JSON.stringify({ message: "Webhook installation successful" }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 200,
+      });
+    }
+
+    // We care about tracking updates and order status changes
+    if (payload.event !== 'tracking.status.updated' && payload.event !== 'order.status') {
       return new Response(JSON.stringify({ message: "Ignored event" }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         status: 200,

@@ -146,6 +146,14 @@ export default function AdminOrdersPanel({
               ))}
             </div>
           )}
+          {order.resi && (
+            <div className="flex justify-between items-center text-xs sm:text-sm text-blue-400 font-medium mt-1">
+              <span>Resi:</span>
+              <span className="font-mono bg-blue-500/10 px-1.5 py-0.5 rounded flex items-center gap-1">
+                {order.resi} <Check size={12} className="text-blue-400" />
+              </span>
+            </div>
+          )}
           {order.shipping_cost > 0 && (
             <div className="flex justify-between items-center text-xs sm:text-sm text-gray-400 mt-1">
               <span>Ongkir {order.courier_name ? `(${order.courier_name})` : ''}</span>
@@ -184,7 +192,7 @@ export default function AdminOrdersPanel({
               <input 
                 type="checkbox" 
                 id={`skip-notif-${order.id}`}
-                checked={skipNotifMap[order.id] || false}
+                checked={skipNotifMap[order.id] ?? (order.status === 'shipped' || order.status === 'SHIPPED')}
                 onChange={(e) => setSkipNotifMap(prev => ({ ...prev, [order.id]: e.target.checked }))}
                 className="w-3.5 h-3.5 rounded border-gray-600 bg-black/40 text-[#D4AF37] focus:ring-[#D4AF37]"
               />
@@ -295,7 +303,7 @@ export default function AdminOrdersPanel({
             </select>
             <div className="flex gap-2">
               <button
-                onClick={() => handleInputResi(order.id, skipNotifMap[order.id])}
+                onClick={() => handleInputResi(order.id, skipNotifMap[order.id] ?? (order.status === 'shipped' || order.status === 'SHIPPED'))}
                 className="flex-1 px-3 py-2.5 bg-green-500 text-black font-bold rounded-lg text-sm hover:bg-green-600 transition flex items-center justify-center gap-1.5"
               >
                 <Send size={14} /> Kirim
