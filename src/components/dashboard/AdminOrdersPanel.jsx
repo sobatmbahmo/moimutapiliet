@@ -222,12 +222,20 @@ export default function AdminOrdersPanel({
               </button>
             )}
             {order.status === 'processing' && (
-              <button
-                onClick={() => setEditingResi(order.id)}
-                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-lg hover:bg-blue-500/30 transition"
-              >
-                <Truck size={14} /> Input Resi
-              </button>
+              <>
+                <button
+                  onClick={() => handleOpenPrintResiModal(order)}
+                  className="flex-1 min-w-[100px] flex items-center justify-center gap-1 px-2 py-2 bg-purple-500/20 text-purple-300 text-xs font-bold rounded-lg hover:bg-purple-500/30 transition"
+                >
+                  <Printer size={13} /> Print Ulang
+                </button>
+                <button
+                  onClick={() => setEditingResi(order.id)}
+                  className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-lg hover:bg-blue-500/30 transition"
+                >
+                  <Truck size={14} /> Input Resi
+                </button>
+              </>
             )}
             {(order.status === 'shipped' || order.status === 'SHIPPED') && (
               <>

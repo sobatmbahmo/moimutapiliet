@@ -974,7 +974,7 @@ const handleSaveProductLink = async () => {
 
   const handleOpenPrintResiModal = (order) => {
     setSelectedOrderForPrintResi(order);
-    const isReprint = order.status === 'SHIPPED' || order.status === 'shipped';
+    const isReprint = ['SHIPPED', 'shipped', 'processing'].includes(order.status);
     if (isReprint && order.resi && order.resi.includes('-')) {
       const parts = order.resi.split('-');
       setExpeditionRequestCode(parts.slice(1).join('-') || '');
@@ -992,7 +992,7 @@ const handleSaveProductLink = async () => {
 
     try {
       setLoading(true);
-      const isReprint = selectedOrderForPrintResi.status === 'SHIPPED' || selectedOrderForPrintResi.status === 'shipped';
+      const isReprint = ['SHIPPED', 'shipped', 'processing'].includes(selectedOrderForPrintResi.status);
       
       const updateData = { 
         resi: `${selectedOrderForPrintResi.courier_name || selectedOrderForPrintResi.resi?.split('-')[0] || 'EXPEDISI'}-${expeditionRequestCode}`,
@@ -1000,7 +1000,7 @@ const handleSaveProductLink = async () => {
       };
       
       if (!isReprint) {
-        updateData.status = 'SHIPPED';
+        updateData.status = 'processing';
       }
       
       const { error } = await supabase
@@ -1036,7 +1036,7 @@ const handleSaveProductLink = async () => {
       });
       setPrintType('resi');
 
-      setSuccessMsg(isReprint ? 'Resi berhasil diupdate!' : 'Resi berhasil disimpan! Order dalam perjalanan.');
+      setSuccessMsg(isReprint ? 'Resi berhasil diupdate!' : 'Kode request disimpan! Order diproses.');
       setShowPrintResiModal(false);
       setSelectedOrderForPrintResi(null);
       setExpeditionRequestCode('');
@@ -2121,7 +2121,7 @@ const handleSaveProductLink = async () => {
             <div className="bg-[#022c22] border border-[#D4AF37]/50 rounded-2xl w-full max-w-md p-6 space-y-4">
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-bold text-[#D4AF37]">
-                  {(selectedOrderForPrintResi.status === 'SHIPPED' || selectedOrderForPrintResi.status === 'shipped') 
+                  {['SHIPPED', 'shipped', 'processing'].includes(selectedOrderForPrintResi.status)
                     ? 'Print Resi Ulang' 
                     : 'Print Resi'}
                 </h2>
@@ -2137,7 +2137,7 @@ const handleSaveProductLink = async () => {
                 </button>
               </div>
 
-              {(selectedOrderForPrintResi.status === 'SHIPPED' || selectedOrderForPrintResi.status === 'shipped') && (
+              {['SHIPPED', 'shipped', 'processing'].includes(selectedOrderForPrintResi.status) && (
                 <div className="p-3 bg-purple-500/20 border border-purple-500/30 rounded-lg text-purple-300 text-sm">
                   <Printer size={16} className="inline mr-2" />
                   Print ulang resi - masukkan kode rikues baru jika berbeda
