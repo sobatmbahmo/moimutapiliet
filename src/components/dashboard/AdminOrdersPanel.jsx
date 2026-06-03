@@ -277,7 +277,7 @@ export default function AdminOrdersPanel({
             {order.status === 'processing' && (
               <>
                 <button
-                  onClick={() => handleInputResi(order.id, skipNotifMap[order.id] ?? false)}
+                  onClick={() => setEditingResi(order.id)}
                   className="flex-1 px-3 py-2.5 bg-[#D4AF37]/20 text-[#D4AF37] font-bold rounded-lg text-sm hover:bg-[#D4AF37]/30 transition flex items-center justify-center gap-1.5"
                 >
                   <Truck size={16} /> Input Resi
@@ -293,7 +293,7 @@ export default function AdminOrdersPanel({
                   <Printer size={16} /> Print Ulang
                 </button>
                 <button
-                  onClick={() => handleInputResi(order.id, skipNotifMap[order.id] ?? true)}
+                  onClick={() => setEditingResi(order.id)}
                   className="flex-1 px-3 py-2.5 bg-[#1F2937] text-gray-300 font-bold rounded-lg text-sm hover:bg-[#374151] transition flex items-center justify-center gap-1.5"
                 >
                   <Truck size={16} /> Edit Resi
