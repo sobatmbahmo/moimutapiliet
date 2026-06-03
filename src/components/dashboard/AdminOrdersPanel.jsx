@@ -342,10 +342,10 @@ export default function AdminOrdersPanel({
             </select>
             <div className="flex gap-2">
               <button
-                onClick={() => handleConfirmDelivery(order.id)}
+                onClick={() => handleInputResi(order.id, skipNotifMap[order.id] ?? (order.status === 'shipped' || order.status === 'SHIPPED'))}
                 className="flex-1 px-3 py-2.5 bg-green-500 text-black font-bold rounded-lg text-sm hover:bg-green-600 transition flex items-center justify-center gap-1.5"
               >
-                <Check size={16} /> Terkirim
+                <Send size={16} /> Kirim
               </button>
               <button
                 onClick={() => setEditingResi(null)}
