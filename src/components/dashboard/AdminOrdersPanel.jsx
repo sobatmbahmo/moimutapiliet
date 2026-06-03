@@ -45,6 +45,8 @@ export default function AdminOrdersPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [dateSort, setDateSort] = useState('newest'); // 'newest' | 'oldest'
   const [skipNotifMap, setSkipNotifMap] = useState({});
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
 
   // Categorise orders
   const pendingOrders = orders.filter(o => o.status === 'WAITING_CONFIRMATION');
@@ -76,6 +78,18 @@ export default function AdminOrdersPanel({
       (o.users?.nama || o.nama_pembeli)?.toLowerCase().includes(lowerQuery) ||
       (o.users?.nomor_wa || o.nomor_wa)?.toLowerCase().includes(lowerQuery)
     );
+  }
+
+  // Apply date range filter
+  if (startDate) {
+    const start = new Date(startDate);
+    start.setHours(0, 0, 0, 0);
+    filteredOrders = filteredOrders.filter(o => new Date(o.created_at) >= start);
+  }
+  if (endDate) {
+    const end = new Date(endDate);
+    end.setHours(23, 59, 59, 999);
+    filteredOrders = filteredOrders.filter(o => new Date(o.created_at) <= end);
   }
 
   // Apply date sort
@@ -121,9 +135,19 @@ export default function AdminOrdersPanel({
             </p>
             <p className="text-xs text-gray-500 mt-0.5 hidden sm:block">{order.users?.nomor_wa || order.nomor_wa}</p>
           </div>
-          <span className={`shrink-0 px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold ${statusClasses[statusInfo.color] || statusClasses.gray}`}>
-            {statusInfo.label}
-          </span>
+          <div className="flex flex-col items-end gap-1 shrink-0">
+            <span className={`px-2 sm:px-3 py-1 rounded-lg text-[10px] sm:text-xs font-bold ${statusClasses[statusInfo.color] || statusClasses.gray}`}>
+              {statusInfo.label}
+            </span>
+            <div className="text-right mt-1">
+              <p className="text-[10px] sm:text-[11px] text-[#EAEAEA]">
+                {new Date(order.created_at).toLocaleDateString('id-ID', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' })}
+              </p>
+              <p className="text-[10px] sm:text-[11px] text-[#EAEAEA]">
+                Pukul {new Date(order.created_at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Address - truncated on mobile */}
@@ -181,9 +205,6 @@ export default function AdminOrdersPanel({
               <p className="text-[10px] sm:text-xs text-gray-500 uppercase tracking-wider">Total</p>
               <p className="font-bold text-[#D4AF37] text-sm sm:text-base">{formatRupiah(order.total_bayar)}</p>
             </div>
-            <p className="text-[10px] text-gray-600">
-              {new Date(order.created_at).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' })}
-            </p>
           </div>
 
           {/* Skip Notification Checkbox */}
@@ -213,13 +234,30 @@ export default function AdminOrdersPanel({
               </button>
             )}
             {order.status === 'WAITING_PAYMENT' && (
-              <button
-                onClick={() => handleConfirmPayment(order.id, skipNotifMap[order.id])}
-                disabled={loading}
-                className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-lg hover:bg-emerald-500/30 transition disabled:opacity-50"
-              >
-                <Check size={14} /> Konfirmasi Bayar
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    const phone = order.users?.nomor_wa || order.nomor_wa;
+                    if (!phone) return alert('Nomor WA tidak ditemukan');
+                    let formattedPhone = phone.replace(/\D/g, '');
+                    if (formattedPhone.startsWith('0')) formattedPhone = '62' + formattedPhone.substring(1);
+                    
+                    const message = `Halo Kak, apakah sudah dilakukan pembayaran? 😊\n\nJika sudah, mohon kesediaannya untuk mengirimkan bukti pembayaran di sini agar pesanan Kakak bisa segera kami proses.\n\nSebagai informasi, pemesanan akan dibatalkan oleh sistem secara otomatis setelah 48 jam jika tidak ada konfirmasi. Namun jangan khawatir, Kakak tetap bisa memesan ulang produknya nanti melalui aplikasi. Terima kasih banyak!`;
+                    
+                    window.open(`https://wa.me/${formattedPhone}?text=${encodeURIComponent(message)}`, '_blank');
+                  }}
+                  className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 bg-[#D4AF37]/20 text-[#D4AF37] text-xs font-bold rounded-lg hover:bg-[#D4AF37]/30 transition"
+                >
+                  <Send size={14} /> Konfirmasi Ulang
+                </button>
+                <button
+                  onClick={() => handleConfirmPayment(order.id, skipNotifMap[order.id])}
+                  disabled={loading}
+                  className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 bg-emerald-500/20 text-emerald-300 text-xs font-bold rounded-lg hover:bg-emerald-500/30 transition disabled:opacity-50"
+                >
+                  <Check size={14} /> Konfirmasi Bayar
+                </button>
+              </>
             )}
             {order.status === 'PAID' && (
               <button
@@ -414,6 +452,34 @@ export default function AdminOrdersPanel({
             </button>
           );
         })}
+      </div>
+
+      {/* Date Range Filter */}
+      <div className="flex items-center gap-2 mb-4 bg-black/20 p-3 rounded-xl border border-white/5 overflow-x-auto scrollbar-hide">
+        <div className="flex items-center gap-2 min-w-max">
+          <span className="text-gray-400 text-xs font-medium">Filter Tanggal:</span>
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="px-2 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+          />
+          <span className="text-gray-500 text-xs">-</span>
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="px-2 py-1.5 bg-black/40 border border-white/10 rounded-lg text-white text-xs focus:border-[#D4AF37] focus:outline-none"
+          />
+          {(startDate || endDate) && (
+            <button
+              onClick={() => { setStartDate(''); setEndDate(''); }}
+              className="px-2 py-1.5 bg-red-500/20 text-red-300 rounded-lg text-xs hover:bg-red-500/30 transition flex items-center gap-1"
+            >
+              <X size={12} /> Reset
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Order Cards Grid - 1 col mobile, 2 col tablet, 3 col desktop */}
