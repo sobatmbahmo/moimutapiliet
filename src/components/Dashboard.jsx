@@ -926,10 +926,14 @@ const handleSaveProductLink = async () => {
       // Auto-register tracking to Biteship
       const trackingResult = await createBiteshipTracking(resiNumber, couriername);
       if (trackingResult.success && trackingResult.tracking?.id) {
-          // Save the biteship tracking id (optional, but good for reference)
+          // Save the biteship tracking id and the real-time status
+          const biteshipStatus = trackingResult.tracking.status || 'shipped';
           await supabase
             .from('orders')
-            .update({ biteship_tracking_id: trackingResult.tracking.id })
+            .update({ 
+              biteship_tracking_id: trackingResult.tracking.id,
+              status: biteshipStatus // Instantly update to real-time status (e.g., picking_up, dropped_off)
+            })
             .eq('id', orderId);
       } else {
           console.warn('Failed to auto-register Biteship tracking:', trackingResult.error || 'No tracking ID returned');
