@@ -69,7 +69,7 @@ serve(async (req) => {
       // 1. Update Order Status
       const { error: updateOrderError } = await supabase
         .from('orders')
-        .update({ status: 'Selesai' })
+        .update({ status: 'delivered' })
         .eq('id', order.id);
 
       if (updateOrderError) {

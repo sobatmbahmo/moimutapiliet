@@ -56,3 +56,20 @@ export const getBiteshipRates = async (destinationPostalCode, items, courier = '
     return { success: false, error: err.message };
   }
 };
+
+export const createBiteshipTracking = async (waybill_id, courier = 'jnt') => {
+  try {
+    const { data, error } = await supabase.functions.invoke('biteship-proxy', {
+      body: {
+        endpoint: '/v1/trackings',
+        payload: { waybill_id, courier }
+      }
+    });
+
+    if (error) throw error;
+    return { success: true, tracking: data };
+  } catch (err) {
+    console.error('Error creating tracking:', err);
+    return { success: false, error: err.message };
+  }
+};

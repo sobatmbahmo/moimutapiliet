@@ -18,6 +18,7 @@ import { generateOrderNumber } from '../lib/orderUtils';
 import { sendOrderConfirmation, sendResiNotification, sendInvoiceNotification, sendAffiliatorApprovalNotification } from '../lib/fonntePush';
 import { validateOngkir, validateResi, validateNomorWA, validateAlamat, validateNama } from '../lib/validation';
 import { handleError, safeApiCall } from '../lib/errorHandler';
+import { createBiteshipTracking } from '../lib/biteshipAPI';
 
 // Import Dashboard Modular Components
 import PrintArea from './PrintArea';
@@ -921,6 +922,18 @@ const handleSaveProductLink = async () => {
         .single();
 
       if (updateError) throw updateError;
+        
+      // Auto-register tracking to Biteship
+      const trackingResult = await createBiteshipTracking(resiNumber, couriername);
+      if (trackingResult.success && trackingResult.tracking?.id) {
+          // Save the biteship tracking id (optional, but good for reference)
+          await supabase
+            .from('orders')
+            .update({ biteship_tracking_id: trackingResult.tracking.id })
+            .eq('id', orderId);
+      } else {
+          console.warn('Failed to auto-register Biteship tracking:', trackingResult.error || 'No tracking ID returned');
+      }
 
       const order = orders.find(o => o.id === orderId);
       const phoneToNotify = order?.users?.nomor_wa || order?.nomor_wa;

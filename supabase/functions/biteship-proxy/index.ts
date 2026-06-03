@@ -15,7 +15,7 @@ serve(async (req) => {
     const { endpoint, payload } = await req.json();
     
     // Validate endpoint
-    if (!['/v1/maps/areas', '/v1/rates/couriers'].includes(endpoint)) {
+    if (!['/v1/maps/areas', '/v1/rates/couriers', '/v1/trackings'].includes(endpoint)) {
       return new Response(JSON.stringify({ error: 'Invalid endpoint' }), {
         status: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
