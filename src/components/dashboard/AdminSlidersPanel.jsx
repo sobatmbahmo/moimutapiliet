@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Plus, Edit, Trash, Image as ImageIcon, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
 import { uploadSliderImage, createSlider, updateSlider, deleteSlider } from '../../lib/supabaseQueries';
+import { compressImage } from '../../utils/imageCompression';
 
 export default function AdminSlidersPanel({ sliders, loading, setSliders, loadInitialData, setSuccessMsg, setErrorMsg }) {
   const [showModal, setShowModal] = useState(false);
@@ -54,7 +55,11 @@ export default function AdminSlidersPanel({ sliders, loading, setSliders, loadIn
     try {
       setIsUploading(true);
       setErrorMsg('');
-      const result = await uploadSliderImage(file);
+      
+      // Compress image before upload
+      const compressedFile = await compressImage(file);
+      
+      const result = await uploadSliderImage(compressedFile);
       if (result.success) {
         setForm(prev => ({ ...prev, image_url: result.publicUrl }));
         setSuccessMsg('Gambar berhasil diunggah!');

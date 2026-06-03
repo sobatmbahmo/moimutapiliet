@@ -34,6 +34,7 @@ import AdminSlidersPanel from './dashboard/AdminSlidersPanel';
 import AdminPromoPanel from './dashboard/AdminPromoPanel';
 import AdminResellerRegistrationsPanel from './dashboard/AdminResellerRegistrationsPanel';
 import AffiliatorDashboard from './dashboard/AffiliatorDashboard';
+import { compressImage } from '../utils/imageCompression';
 
 const formatRupiah = (number) => {
   return new Intl.NumberFormat('id-ID', {
@@ -459,7 +460,11 @@ export default function Dashboard({ user, onLogout }) {
     try {
       setIsUploadingImage(true);
       setErrorMsg('');
-      const result = await uploadProductImage(file);
+      
+      // Compress image before upload
+      const compressedFile = await compressImage(file);
+      
+      const result = await uploadProductImage(compressedFile);
       if (result.success) {
         setEditProductForm(prev => ({
           ...prev,
