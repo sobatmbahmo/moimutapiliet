@@ -64,19 +64,18 @@ serve(async (req) => {
       });
     }
 
-    // If status is delivered, update order and commission
+    // 1. Update Order Status with the new Biteship status
+    const { error: updateOrderError } = await supabase
+      .from('orders')
+      .update({ status: status }) // Save exact Biteship status (allocated, picking_up, etc)
+      .eq('id', order.id);
+
+    if (updateOrderError) {
+      throw new Error('Failed to update order: ' + updateOrderError.message);
+    }
+
+    // 2. Update Affiliate Commission Status ONLY if delivered
     if (status === 'delivered') {
-      // 1. Update Order Status
-      const { error: updateOrderError } = await supabase
-        .from('orders')
-        .update({ status: 'delivered' })
-        .eq('id', order.id);
-
-      if (updateOrderError) {
-        throw new Error('Failed to update order: ' + updateOrderError.message);
-      }
-
-      // 2. Update Affiliate Commission Status
       const { error: updateCommissionError } = await supabase
         .from('affiliate_commissions')
         .update({ status: 'cleared' })

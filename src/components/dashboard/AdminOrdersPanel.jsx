@@ -51,7 +51,7 @@ export default function AdminOrdersPanel({
   // Categorise orders
   const pendingOrders = orders.filter(o => o.status === 'WAITING_CONFIRMATION');
   const processedOrders = orders.filter(o => ['WAITING_PAYMENT', 'PAID', 'processing'].includes(o.status));
-  const shippedOrders = orders.filter(o => o.status === 'shipped' || o.status === 'SHIPPED');
+  const shippedOrders = orders.filter(o => ['shipped', 'SHIPPED', 'allocated', 'picking_up', 'picked', 'dropping_off', 'inTransit', 'on_hold', 'returned', 'rejected'].includes(o.status));
   const deliveredOrders = orders.filter(o => o.status === 'delivered' || o.status === 'COMPLETED');
 
   const counts = {
@@ -107,6 +107,13 @@ export default function AdminOrdersPanel({
       case 'PAID': return { label: 'Sudah Dibayar', color: 'emerald' };
       case 'processing': return { label: 'Dalam Proses', color: 'blue' };
       case 'shipped': case 'SHIPPED': return { label: 'Dalam Perjalanan', color: 'purple' };
+      case 'allocated': return { label: 'Kurir Dipesan', color: 'purple' };
+      case 'picking_up': return { label: 'Kurir Menuju Alamat', color: 'purple' };
+      case 'picked': return { label: 'Paket Dibawa Kurir', color: 'purple' };
+      case 'dropping_off': case 'inTransit': return { label: 'Paket Sedang Diantar', color: 'purple' };
+      case 'on_hold': return { label: 'Pengiriman Tertunda', color: 'red' };
+      case 'returned': return { label: 'Paket Diretur', color: 'red' };
+      case 'rejected': return { label: 'Ditolak Kurir', color: 'red' };
       case 'delivered': case 'COMPLETED': return { label: 'Terkirim', color: 'green' };
       default: return { label: status, color: 'gray' };
     }
@@ -213,7 +220,7 @@ export default function AdminOrdersPanel({
               <input 
                 type="checkbox" 
                 id={`skip-notif-${order.id}`}
-                checked={skipNotifMap[order.id] ?? (order.status === 'shipped' || order.status === 'SHIPPED')}
+                checked={skipNotifMap[order.id] ?? (['shipped', 'SHIPPED', 'allocated', 'picking_up', 'picked', 'dropping_off', 'inTransit'].includes(order.status))}
                 onChange={(e) => setSkipNotifMap(prev => ({ ...prev, [order.id]: e.target.checked }))}
                 className="w-3.5 h-3.5 rounded border-gray-600 bg-black/40 text-[#D4AF37] focus:ring-[#D4AF37]"
               />
@@ -223,7 +230,7 @@ export default function AdminOrdersPanel({
             </div>
           )}
 
-          {/* Action Buttons - stacked on mobile */}
+          {/* Action Buttons */}
           <div className="flex flex-wrap gap-1.5">
             {order.status === 'WAITING_CONFIRMATION' && (
               <button
@@ -270,38 +277,32 @@ export default function AdminOrdersPanel({
             {order.status === 'processing' && (
               <>
                 <button
-                  onClick={() => handleOpenPrintResiModal(order)}
-                  className="flex-1 min-w-[100px] flex items-center justify-center gap-1 px-2 py-2 bg-purple-500/20 text-purple-300 text-xs font-bold rounded-lg hover:bg-purple-500/30 transition"
+                  onClick={() => handleInputResi(order.id, skipNotifMap[order.id] ?? false)}
+                  className="flex-1 px-3 py-2.5 bg-[#D4AF37]/20 text-[#D4AF37] font-bold rounded-lg text-sm hover:bg-[#D4AF37]/30 transition flex items-center justify-center gap-1.5"
                 >
-                  <Printer size={13} /> Print Ulang
-                </button>
-                <button
-                  onClick={() => setEditingResi(order.id)}
-                  className="flex-1 min-w-[120px] flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-lg hover:bg-blue-500/30 transition"
-                >
-                  <Truck size={14} /> Input Resi
+                  <Truck size={16} /> Input Resi
                 </button>
               </>
             )}
-            {(order.status === 'shipped' || order.status === 'SHIPPED') && (
+            {(['shipped', 'SHIPPED', 'allocated', 'picking_up', 'picked', 'dropping_off', 'inTransit', 'on_hold'].includes(order.status)) && (
               <>
                 <button
                   onClick={() => handleOpenPrintResiModal(order)}
-                  className="flex-1 min-w-[100px] flex items-center justify-center gap-1 px-2 py-2 bg-purple-500/20 text-purple-300 text-xs font-bold rounded-lg hover:bg-purple-500/30 transition"
+                  className="flex-1 px-3 py-2.5 bg-purple-500/20 text-purple-300 font-bold rounded-lg text-sm hover:bg-purple-500/30 transition flex items-center justify-center gap-1.5"
                 >
-                  <Printer size={13} /> Print Ulang
+                  <Printer size={16} /> Print Ulang
                 </button>
                 <button
-                  onClick={() => setEditingResi(order.id)}
-                  className="flex-1 min-w-[100px] flex items-center justify-center gap-1 px-2 py-2 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-lg hover:bg-blue-500/30 transition"
+                  onClick={() => handleInputResi(order.id, skipNotifMap[order.id] ?? true)}
+                  className="flex-1 px-3 py-2.5 bg-[#1F2937] text-gray-300 font-bold rounded-lg text-sm hover:bg-[#374151] transition flex items-center justify-center gap-1.5"
                 >
-                  <Truck size={13} /> Edit Resi
+                  <Truck size={16} /> Edit Resi
                 </button>
                 <button
-                  onClick={() => handleConfirmDelivery(order.id, skipNotifMap[order.id])}
-                  className="flex-1 min-w-[100px] flex items-center justify-center gap-1 px-2 py-2 bg-green-500/20 text-green-300 text-xs font-bold rounded-lg hover:bg-green-500/30 transition"
+                  onClick={() => handleConfirmDelivery(order.id)}
+                  className="flex-1 px-3 py-2.5 bg-green-500/20 text-green-300 font-bold rounded-lg text-sm hover:bg-green-500/30 transition flex items-center justify-center gap-1.5"
                 >
-                  <Check size={13} /> Terkirim
+                  <Check size={16} /> Terkirim
                 </button>
               </>
             )}
@@ -341,10 +342,10 @@ export default function AdminOrdersPanel({
             </select>
             <div className="flex gap-2">
               <button
-                onClick={() => handleInputResi(order.id, skipNotifMap[order.id] ?? (order.status === 'shipped' || order.status === 'SHIPPED'))}
+                onClick={() => handleConfirmDelivery(order.id)}
                 className="flex-1 px-3 py-2.5 bg-green-500 text-black font-bold rounded-lg text-sm hover:bg-green-600 transition flex items-center justify-center gap-1.5"
               >
-                <Send size={14} /> Kirim
+                <Check size={16} /> Terkirim
               </button>
               <button
                 onClick={() => setEditingResi(null)}
