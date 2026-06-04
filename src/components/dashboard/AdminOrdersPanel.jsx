@@ -132,10 +132,19 @@ export default function AdminOrdersPanel({
     };
 
     return (
-      <div key={order.id} className="bg-black/30 border border-white/10 rounded-xl p-3 sm:p-4 space-y-3 hover:border-white/20 transition">
+      <div key={order.id} className="bg-black/30 border border-white/10 rounded-xl p-3 sm:p-4 space-y-3 hover:border-white/20 transition relative overflow-hidden">
+        {/* Optional Payment Method Watermark or Label */}
+        
         {/* Header row */}
         <div className="flex justify-between items-start gap-2">
           <div className="min-w-0 flex-1">
+            <div className="mb-1.5 flex items-center gap-2">
+              {order.metode_bayar === 'cod' ? (
+                <span className="text-[#EAB308] font-black text-lg uppercase tracking-widest bg-[#EAB308]/10 px-2 py-0.5 rounded border border-[#EAB308]/30 inline-block">COD</span>
+              ) : order.metode_bayar === 'manual' ? (
+                <span className="text-[#60A5FA] font-black text-lg uppercase tracking-widest bg-[#60A5FA]/10 px-2 py-0.5 rounded border border-[#60A5FA]/30 inline-block">TRANSFER</span>
+              ) : null}
+            </div>
             <p className="font-bold text-white text-sm sm:text-base truncate">{order.order_number}</p>
             <p className="text-xs sm:text-sm text-gray-400 truncate">
               {order.users?.nama || order.nama_pembeli}
