@@ -325,6 +325,7 @@ export default function Dashboard({ user, onLogout }) {
       description: '',
       price: 0,
       wholesale_price: 0,
+      berat_produk: 200,
       image_url: '',
       product_code: '',
       commission_rate: 10,
@@ -375,6 +376,7 @@ export default function Dashboard({ user, onLogout }) {
       description: product.description || '',
       price: product.price || 0,
       wholesale_price: product.wholesale_price || 0,
+      berat_produk: product.berat_produk || 200,
       image_url: product.image_url || '',
       product_code: product.product_code || '',
       commission_rate: product.commission_rate || 10,
@@ -1856,6 +1858,16 @@ const handleSaveProductLink = async () => {
                       onChange={(e) => setEditProductForm({ ...editProductForm, wholesale_price: parseFloat(e.target.value) || 0 })}
                       className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
                       placeholder="0"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[#D4AF37] font-bold text-sm">Berat Produk (Gram)</label>
+                    <input
+                      type="number"
+                      value={editProductForm.berat_produk}
+                      onChange={(e) => setEditProductForm({ ...editProductForm, berat_produk: parseInt(e.target.value) || 0 })}
+                      className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
+                      placeholder="200"
                     />
                   </div>
                   <div className="space-y-2">
