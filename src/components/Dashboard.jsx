@@ -955,8 +955,14 @@ const handleSaveProductLink = async () => {
 
       if (updateError) throw updateError;
         
+      // Map couriername to Biteship format
+      const biteshipCourier = couriername === 'J&T' ? 'jnt' :
+                              couriername === 'JNE' ? 'jne' :
+                              couriername === 'POS' ? 'pos' :
+                              couriername.toLowerCase();
+
       // Auto-register tracking to Biteship
-      const trackingResult = await createBiteshipTracking(resiNumber, couriername);
+      const trackingResult = await createBiteshipTracking(resiNumber, biteshipCourier);
       if (trackingResult.success && trackingResult.tracking?.id) {
           // Save the biteship tracking id and the real-time status
           const biteshipStatus = trackingResult.tracking.status || 'shipped';
