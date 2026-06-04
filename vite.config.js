@@ -40,9 +40,18 @@ export default defineConfig({
         ]
       },
       workbox: {
-        navigateFallback: '/index.html',
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        navigateFallback: null,
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff2}'], // Remove HTML from precache
         runtimeCaching: [
+          {
+            // NetworkFirst for HTML documents (Navigation)
+            urlPattern: ({ request, url }) => request.mode === 'navigate' || request.destination === 'document' || url.pathname === '/' || url.pathname === '/index.html',
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 60 * 60 * 24 }
+            }
+          },
           {
             urlPattern: /^https:\/\/.*supabase\.co\/.*/i,
             handler: 'NetworkFirst',

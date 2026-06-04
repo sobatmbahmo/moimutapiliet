@@ -38,6 +38,13 @@ serve(async (req) => {
       body = undefined;
     }
 
+    // If it's a GET request for tracking
+    if (endpoint === '/v1/trackings' && payload?.waybill_id && payload?.courier) {
+      method = 'GET';
+      url = `https://api.biteship.com/v1/trackings/${payload.waybill_id}/couriers/${payload.courier}`;
+      body = undefined;
+    }
+
     const response = await fetch(url, {
       method,
       headers: {
