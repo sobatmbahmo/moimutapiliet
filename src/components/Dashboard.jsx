@@ -336,6 +336,38 @@ export default function Dashboard({ user, onLogout }) {
     setShowEditProductModal(true);
   };
 
+
+
+  const handleRequestWithdrawal = () => {
+    if (!withdrawalForm.nominal || !withdrawalForm.bank_name || !withdrawalForm.account_number || !withdrawalForm.account_name) {
+      setErrorMsg('Semua kolom wajib diisi');
+      return;
+    }
+    const nominal = parseInt(withdrawalForm.nominal);
+    if (nominal < 50000) {
+      setErrorMsg('Minimal penarikan adalah Rp 50.000');
+      return;
+    }
+    if (summary && summary.clearedCommission < nominal) {
+      setErrorMsg('Saldo komisi (Cleared) tidak mencukupi');
+      return;
+    }
+    
+    // Admin WhatsApp for withdrawal requests
+    const adminPhone = '6288237166033'; 
+    const message = `Halo Admin, saya ingin menarik komisi Affiliate.\n\nNama: ${user.nama}\nNominal: Rp ${formatRupiah(nominal)}\nBank: ${withdrawalForm.bank_name}\nNo Rekening: ${withdrawalForm.account_number}\nAtas Nama: ${withdrawalForm.account_name}\n\nMohon diproses ya.`;
+    window.open(`https://wa.me/${adminPhone}?text=${encodeURIComponent(message)}`, '_blank');
+    
+    setShowWithdrawalForm(false);
+    setWithdrawalForm({
+      nominal: '',
+      bank_name: '',
+      account_name: '',
+      account_number: '',
+      notes: ''
+    });
+  };
+
   const handleEditProduct = (product) => {
     setEditingProduct(product);
     setEditProductForm({
