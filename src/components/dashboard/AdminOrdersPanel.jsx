@@ -141,7 +141,7 @@ export default function AdminOrdersPanel({
             <div className="mb-1.5 flex items-center gap-2">
               {order.metode_bayar === 'cod' ? (
                 <span className="text-[#EAB308] font-black text-lg uppercase tracking-widest bg-[#EAB308]/10 px-2 py-0.5 rounded border border-[#EAB308]/30 inline-block">COD</span>
-              ) : order.metode_bayar === 'manual' ? (
+              ) : (order.metode_bayar === 'transfer' || order.metode_bayar === 'manual') ? (
                 <span className="text-[#60A5FA] font-black text-lg uppercase tracking-widest bg-[#60A5FA]/10 px-2 py-0.5 rounded border border-[#60A5FA]/30 inline-block">TRANSFER</span>
               ) : null}
             </div>
