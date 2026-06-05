@@ -7,10 +7,15 @@ export default function AdminLoyalCustomersPanel({
   loading
 }) {
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortBy, setSortBy] = useState('orders'); // 'orders' | 'spent'
 
   // Hitung statistik loyalitas untuk setiap pelanggan
   const loyalCustomers = customers.map(customer => {
-    const customerOrders = orders.filter(o => o.nomor_wa === customer.nomor_wa);
+    // Hanya ambil orderan yang sudah terkirim/selesai
+    const customerOrders = orders.filter(o => 
+      o.nomor_wa === customer.nomor_wa && 
+      (o.status === 'delivered' || o.status === 'COMPLETED')
+    );
     const orderCount = customerOrders.length;
     const totalSpent = customerOrders.reduce((sum, o) => sum + (Number(o.total_bayar) || 0), 0);
     
@@ -22,8 +27,13 @@ export default function AdminLoyalCustomersPanel({
         ? new Date(Math.max(...customerOrders.map(o => new Date(o.created_at))))
         : null
     };
-  }).filter(c => c.orderCount > 1) // Hanya tampilkan yang order > 1
-  .sort((a, b) => b.orderCount - a.orderCount || b.totalSpent - a.totalSpent); // Sort by order count, then spent
+  }).filter(c => c.orderCount >= 1) // Tampilkan walau baru 1x order sukses
+  .sort((a, b) => {
+    if (sortBy === 'spent') {
+      return b.totalSpent - a.totalSpent || b.orderCount - a.orderCount;
+    }
+    return b.orderCount - a.orderCount || b.totalSpent - a.totalSpent;
+  });
 
   const filtered = loyalCustomers.filter(c => {
     if (!searchTerm.trim()) return true;
@@ -61,24 +71,45 @@ export default function AdminLoyalCustomersPanel({
         </div>
       </div>
 
-      {/* Search */}
-      <div className="relative">
-        <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
-        <input
-          type="text"
-          placeholder="Cari nama atau nomor WA..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full bg-black/50 border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none"
-        />
-        {searchTerm && (
+      {/* Search & Sort */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="relative flex-1">
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
+          <input
+            type="text"
+            placeholder="Cari nama atau nomor WA..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full bg-black/50 border border-white/10 rounded-lg pl-9 pr-4 py-2.5 text-sm text-white placeholder:text-gray-500 focus:border-[#D4AF37] focus:ring-1 focus:ring-[#D4AF37] outline-none"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+            >
+              Tutup
+            </button>
+          )}
+        </div>
+        
+        <div className="flex bg-black/50 border border-white/10 rounded-lg p-1 shrink-0 overflow-hidden">
           <button
-            onClick={() => setSearchTerm('')}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white"
+            onClick={() => setSortBy('orders')}
+            className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
+              sortBy === 'orders' ? 'bg-[#D4AF37] text-black shadow-sm' : 'text-gray-400 hover:text-white'
+            }`}
           >
-            Tutup
+            Terbanyak Order
           </button>
-        )}
+          <button
+            onClick={() => setSortBy('spent')}
+            className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all ${
+              sortBy === 'spent' ? 'bg-[#D4AF37] text-black shadow-sm' : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Terbesar Belanja
+          </button>
+        </div>
       </div>
 
       {/* Customer List */}
