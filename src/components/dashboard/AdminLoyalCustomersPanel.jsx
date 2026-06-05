@@ -9,31 +9,53 @@ export default function AdminLoyalCustomersPanel({
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('orders'); // 'orders' | 'spent'
 
-  // Hitung statistik loyalitas untuk setiap pelanggan
-  const loyalCustomers = customers.map(customer => {
-    // Hanya ambil orderan yang sudah terkirim/selesai
-    const customerOrders = orders.filter(o => 
-      o.nomor_wa === customer.nomor_wa && 
-      (o.status === 'delivered' || o.status === 'COMPLETED')
-    );
-    const orderCount = customerOrders.length;
-    const totalSpent = customerOrders.reduce((sum, o) => sum + (Number(o.total_bayar) || 0), 0);
+  // Kumpulkan order yang valid (terkirim/selesai)
+  const validOrders = orders.filter(o => o.status === 'delivered' || o.status === 'COMPLETED');
+
+  // Kelompokkan berdasarkan nomor WA
+  const customerMap = {};
+  validOrders.forEach(o => {
+    const wa = o.users?.nomor_wa || o.nomor_wa;
+    if (!wa) return; // Lewati jika tidak ada nomor WA
     
-    return {
-      ...customer,
-      orderCount,
-      totalSpent,
-      lastOrderDate: customerOrders.length > 0 
-        ? new Date(Math.max(...customerOrders.map(o => new Date(o.created_at))))
-        : null
-    };
-  }).filter(c => c.orderCount >= 1) // Tampilkan walau baru 1x order sukses
-  .sort((a, b) => {
-    if (sortBy === 'spent') {
-      return b.totalSpent - a.totalSpent || b.orderCount - a.orderCount;
+    if (!customerMap[wa]) {
+      customerMap[wa] = {
+        id: wa, // Gunakan WA sebagai ID unik
+        nomor_wa: wa,
+        nama: o.users?.nama || o.nama_pembeli || 'Pelanggan',
+        alamat: o.alamat || '',
+        orderCount: 0,
+        totalSpent: 0,
+        lastOrderDate: o.created_at
+      };
+    } else {
+      // Perbarui nama/alamat jika sebelumnya kosong atau Pelanggan
+      const betterName = o.users?.nama || o.nama_pembeli;
+      if ((!customerMap[wa].nama || customerMap[wa].nama === 'Pelanggan') && betterName) {
+        customerMap[wa].nama = betterName;
+      }
+      if (!customerMap[wa].alamat && o.alamat) {
+        customerMap[wa].alamat = o.alamat;
+      }
     }
-    return b.orderCount - a.orderCount || b.totalSpent - a.totalSpent;
+    
+    customerMap[wa].orderCount += 1;
+    customerMap[wa].totalSpent += (Number(o.total_bayar) || 0);
+    
+    // Update last order date
+    if (new Date(o.created_at) > new Date(customerMap[wa].lastOrderDate)) {
+      customerMap[wa].lastOrderDate = o.created_at;
+    }
   });
+
+  const loyalCustomers = Object.values(customerMap)
+    .filter(c => c.orderCount >= 1) // Tampilkan walau baru 1x order sukses
+    .sort((a, b) => {
+      if (sortBy === 'spent') {
+        return b.totalSpent - a.totalSpent || b.orderCount - a.orderCount;
+      }
+      return b.orderCount - a.orderCount || b.totalSpent - a.totalSpent;
+    });
 
   const filtered = loyalCustomers.filter(c => {
     if (!searchTerm.trim()) return true;
