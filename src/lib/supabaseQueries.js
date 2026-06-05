@@ -305,7 +305,7 @@ export const deleteAffiliatorProfile = async (affiliatorId) => {
 /**
  * Update product
  */
-export const updateProduct = async (productId, updateData) => {
+export const updateProduct = async (productId, updateData, oldImageUrl = null) => {
   try {
     const { data, error } = await supabase
       .from('products')
@@ -380,7 +380,7 @@ export const createProduct = async (productData) => {
 /**
  * Delete product by ID
  */
-export const deleteProduct = async (productId) => {
+export const deleteProduct = async (productId, imageUrl) => {
   try {
     const { error } = await supabase
       .from('products')
@@ -388,6 +388,15 @@ export const deleteProduct = async (productId) => {
       .eq('id', productId);
 
     if (error) return { success: false, error: error.message };
+    
+    // Also delete the image from storage if it exists
+    if (imageUrl) {
+      const match = imageUrl.match(/product-images\/(.+)$/);
+      if (match && match[1]) {
+        await supabase.storage.from('product-images').remove([match[1]]);
+      }
+    }
+    
     return { success: true };
   } catch (error) {
     return { success: false, error: error.message };

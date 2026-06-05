@@ -3,6 +3,7 @@ import { Search, Edit2, Trash, Plus, Phone, MapPin, X, Users } from 'lucide-reac
 
 export default function AdminCustomersPanel({
   customers,
+  orders = [],
   loading,
   onEditCustomer,
   onDeleteCustomer,
@@ -78,15 +79,27 @@ export default function AdminCustomersPanel({
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {filtered.map((customer) => (
+          {filtered.map((customer) => {
+            const customerOrders = orders.filter(o => o.nomor_wa === customer.nomor_wa);
+            const orderCount = customerOrders.length;
+            const isRepeatOrder = orderCount > 1;
+            
+            return (
             <div
               key={customer.id}
-              className="bg-black/30 border border-white/10 rounded-xl p-3 sm:p-4 hover:border-[#D4AF37]/30 transition"
+              className="bg-black/30 border border-white/10 rounded-xl p-3 sm:p-4 hover:border-[#D4AF37]/30 transition relative overflow-hidden"
             >
               {/* Customer Info */}
               <div className="flex justify-between items-start gap-3 mb-2">
                 <div className="min-w-0 flex-1 space-y-1">
-                  <p className="font-bold text-white text-sm sm:text-base truncate">{customer.nama}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold text-white text-sm sm:text-base truncate">{customer.nama}</p>
+                    {isRepeatOrder && (
+                      <span className="px-1.5 py-0.5 bg-[#D4AF37]/20 text-[#D4AF37] border border-[#D4AF37]/30 text-[10px] rounded-full font-bold uppercase tracking-wider shrink-0 shadow-[0_0_10px_rgba(212,175,55,0.2)]">
+                        Loyal (x{orderCount})
+                      </span>
+                    )}
+                  </div>
                   <div className="flex items-center gap-1.5 text-xs text-gray-400">
                     <Phone size={12} className="text-[#D4AF37] shrink-0" />
                     <span className="font-mono">{customer.nomor_wa}</span>
@@ -140,7 +153,8 @@ export default function AdminCustomersPanel({
                 )}
               </div>
             </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

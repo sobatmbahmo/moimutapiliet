@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   LogOut, BarChart3, Users, Package, Settings, Eye, EyeOff,
   Plus, Edit, Trash, Check, X, DollarSign, TrendingUp, Copy, RefreshCw,
-  Share2, Download, Truck, Calendar, PhoneCall, MapPin, AlertCircle, CheckCircle2, Printer, Send
+  Share2, Download, Truck, Calendar, PhoneCall, MapPin, AlertCircle, CheckCircle2, Printer, Send, Award
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { 
@@ -31,6 +31,7 @@ import AdminOrdersPanel from './dashboard/AdminOrdersPanel';
 import AdminProductsPanel from './dashboard/AdminProductsPanel';
 import AdminAffiliatorsPanel from './dashboard/AdminAffiliatorsPanel';
 import AdminCustomersPanel from './dashboard/AdminCustomersPanel';
+import AdminLoyalCustomersPanel from './dashboard/AdminLoyalCustomersPanel';
 import AdminSlidersPanel from './dashboard/AdminSlidersPanel';
 import AdminPromoPanel from './dashboard/AdminPromoPanel';
 import AdminResellerRegistrationsPanel from './dashboard/AdminResellerRegistrationsPanel';
@@ -433,7 +434,7 @@ export default function Dashboard({ user, onLogout }) {
       setErrorMsg('');
       setSuccessMsg('');
       
-      const result = await deleteProduct(productId);
+      const result = await deleteProduct(productId, product.image_url);
       if (result.success) {
         setSuccessMsg(`Produk "${product.name}" berhasil dihapus.`);
         loadInitialData();
@@ -1630,6 +1631,7 @@ const handleSaveProductLink = async () => {
     { key: 'products', label: 'Produk', icon: <BarChart3 size={18} />, count: products.length },
     { key: 'affiliators', label: 'Mitra', icon: <Users size={18} />, count: affiliators.length },
     { key: 'customers', label: 'Pelanggan', icon: <Share2 size={18} />, count: customers.length },
+    { key: 'loyal_customers', label: 'Pelanggan Setia', icon: <Award size={18} /> },
     { key: 'calon_reseller', label: 'Calon Reseller', icon: <Users size={18} /> },
     { key: 'sliders', label: 'Tampilan', icon: <Eye size={18} />, count: sliders.length },
     { key: 'promo', label: 'Promo', icon: <Settings size={18} /> },
@@ -1754,6 +1756,7 @@ const handleSaveProductLink = async () => {
         {activeTab === 'customers' && (
           <AdminCustomersPanel
             customers={customers}
+            orders={orders}
             loading={loading}
             onEditCustomer={handleEditCustomer}
             onDeleteCustomer={handleDeleteCustomer}
@@ -1762,6 +1765,14 @@ const handleSaveProductLink = async () => {
               setNewCustomerForm({ nama: '', nomor_wa: '', alamat: '' });
               setShowAddCustomerModal(true);
             }}
+          />
+        )}
+
+        {activeTab === 'loyal_customers' && (
+          <AdminLoyalCustomersPanel
+            customers={customers}
+            orders={orders}
+            loading={loading}
           />
         )}
 
