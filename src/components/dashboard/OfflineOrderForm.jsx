@@ -69,7 +69,11 @@ export default function OfflineOrderForm({
         setIsLoadingRate(true);
         const postalCode = selectedArea.postal_code;
         if (postalCode) {
-          const itemsForRate = offlineOrder.items.map(item => ({ qty: item.quantity, berat_produk: 200 }));
+          const itemsForRate = offlineOrder.items.map(item => {
+            const product = products.find(p => p.id === item.product_id);
+            const weight = product?.berat_produk || 200;
+            return { qty: item.quantity, berat_produk: weight };
+          });
           const res = await getBiteshipRates(postalCode, itemsForRate, offlineOrder.courier_name === 'J&T' ? 'jnt' : '');
           if (res.success && res.pricing && res.pricing.length > 0) {
             const rate = res.pricing[0];
