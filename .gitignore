@@ -20,6 +20,8 @@ dist-ssr
 # Migration scripts & SQL schemas (keep offline only)
 migrate-*.js
 *.sql
+*.cjs
+data_backup.json
 DEPLOYMENT_GUIDE.md
 *BLUEPRINT*.txt
 *.md
