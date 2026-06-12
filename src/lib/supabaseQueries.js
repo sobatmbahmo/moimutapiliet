@@ -365,6 +365,7 @@ export const createProduct = async (productData) => {
         berat_produk: productData.berat_produk || 200,
         wholesale_price: productData.wholesale_price || 0,
         variants: productData.variants || [],
+        search_keywords: productData.search_keywords || '',
         is_active: productData.is_active !== false
       }])
       .select()

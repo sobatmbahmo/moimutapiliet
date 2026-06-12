@@ -149,7 +149,8 @@ export default function Dashboard({ user, onLogout }) {
     product_code: '',
     commission_rate: 10,
     default_link: '',
-    sort_order: 0
+    sort_order: 0,
+    search_keywords: ''
   });
 
   const [showReorderModal, setShowReorderModal] = useState(false);
@@ -332,7 +333,8 @@ export default function Dashboard({ user, onLogout }) {
       commission_rate: 10,
       default_link: '',
       sort_order: products.length + 1,
-      is_active: true
+      is_active: true,
+      search_keywords: ''
     });
     setErrorMsg('');
     setShowEditProductModal(true);
@@ -383,7 +385,8 @@ export default function Dashboard({ user, onLogout }) {
       commission_rate: product.commission_rate || 10,
       default_link: product.default_link || '',
       sort_order: product.sort_order || 0,
-      is_active: product.is_active !== false
+      is_active: product.is_active !== false,
+      search_keywords: product.search_keywords || ''
     });
     setShowEditProductModal(true);
   };
@@ -1986,6 +1989,17 @@ const handleSaveProductLink = async () => {
                     onChange={(e) => setEditProductForm({ ...editProductForm, description: e.target.value })}
                     className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white h-24"
                     placeholder="Deskripsi detail produk"
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-[#D4AF37] font-bold text-sm">Kata Kunci Pencarian (Pisahkan dgn Koma)</label>
+                  <p className="text-xs text-gray-400 -mt-1 mb-1">Cth: "cangklong murah, pipa bako, sedotan"</p>
+                  <textarea
+                    value={editProductForm.search_keywords}
+                    onChange={(e) => setEditProductForm({ ...editProductForm, search_keywords: e.target.value })}
+                    className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white h-16"
+                    placeholder="Kata kunci tersembunyi untuk membantu bot"
                   />
                 </div>
 

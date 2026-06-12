@@ -109,7 +109,8 @@ function App() {
           kode_produk: item.product_code,
           image_url: item.image_url,
           link_tiktokshop: item.default_link,
-          berat_produk: item.berat_produk || 200  // ✅ Tambahkan field berat
+          berat_produk: item.berat_produk || 200,
+          search_keywords: item.search_keywords || ''
         })) || [];
         
         setProducts(mappedData);
@@ -312,6 +313,8 @@ function App() {
           products={products} 
           onAddToCart={addToCart} 
           isHidden={isAnyModalOpen} 
+          cartItems={cartItems}
+          setIsCartOpen={setIsCartOpen}
         />
             </>
           </ReferralProvider>

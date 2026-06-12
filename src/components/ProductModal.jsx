@@ -220,6 +220,12 @@ export default function ProductModal({ product, isOpen, onClose, mode, onAddToCa
                 </button>
               )}
             </div>
+
+            {isTikTokMode && (
+              <p className="w-full text-center text-[11px] text-gray-400 mt-3 leading-tight px-2">
+                *Di TikTok Shop, nama produk dan harga akan sedikit berbeda untuk penyesuaian sistem dan biaya layanan marketplace.
+              </p>
+            )}
             </div>
           </div>
         </div>
