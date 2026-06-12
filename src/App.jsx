@@ -313,7 +313,7 @@ function App() {
           products={products} 
           onAddToCart={addToCart} 
           isHidden={isAnyModalOpen} 
-          cartItems={cartItems}
+          cartItems={cart}
           setIsCartOpen={setIsCartOpen}
         />
             </>
