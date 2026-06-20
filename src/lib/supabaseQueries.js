@@ -1004,8 +1004,8 @@ export const getAllDatabaseBackup = async () => {
 export const uploadSettingImage = async (file) => {
   try {
     const fileExt = file.name.split('.').pop();
-    const fileName = "setting_$(Date.now())_$(Math.random().toString(36).substring(2, 9)).$fileExt";
-    const filePath = "$fileName";
+    const fileName = `setting_${Date.now()}_${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+    const filePath = `${fileName}`;
 
     const { data, error } = await supabase.storage
       .from('product-images')
