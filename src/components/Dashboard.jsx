@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   LogOut, BarChart3, Users, Package, Settings, Eye, EyeOff,
   Plus, Edit, Trash, Check, X, DollarSign, TrendingUp, Copy, RefreshCw,
-  Share2, Download, Truck, Calendar, PhoneCall, MapPin, AlertCircle, CheckCircle2, Printer, Send, Award
+  Share2, Download, Truck, Calendar, PhoneCall, MapPin, AlertCircle, CheckCircle2, Printer, Send, Award, Database
 } from 'lucide-react';
 import { supabase } from '../lib/supabaseClient';
 import { 
@@ -34,6 +34,7 @@ import AdminCustomersPanel from './dashboard/AdminCustomersPanel';
 import AdminLoyalCustomersPanel from './dashboard/AdminLoyalCustomersPanel';
 import AdminSlidersPanel from './dashboard/AdminSlidersPanel';
 import AdminPromoPanel from './dashboard/AdminPromoPanel';
+import AdminSystemPanel from './dashboard/AdminSystemPanel';
 import AdminResellerRegistrationsPanel from './dashboard/AdminResellerRegistrationsPanel';
 import AffiliatorDashboard from './dashboard/AffiliatorDashboard';
 import { compressImage } from '../utils/imageCompression';
@@ -1638,6 +1639,7 @@ const handleSaveProductLink = async () => {
     { key: 'calon_reseller', label: 'Calon Reseller', icon: <Users size={18} /> },
     { key: 'sliders', label: 'Tampilan', icon: <Eye size={18} />, count: sliders.length },
     { key: 'promo', label: 'Promo', icon: <Settings size={18} /> },
+    { key: 'system', label: 'Sistem & Backup', icon: <Database size={18} /> },
   ];
 
   return (
@@ -1792,6 +1794,10 @@ const handleSaveProductLink = async () => {
 
         {activeTab === 'promo' && (
           <AdminPromoPanel />
+        )}
+
+        {activeTab === 'system' && (
+          <AdminSystemPanel />
         )}
 
         {activeTab === 'calon_reseller' && (

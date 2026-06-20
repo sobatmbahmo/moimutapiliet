@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, CheckCircle, Package, Truck, MessageCircle } from 'lucide-react';
-import { submitResellerRegistration } from '../lib/supabaseQueries';
+import { submitResellerRegistration, getSetting } from '../lib/supabaseQueries';
 import { supabase } from '../lib/supabaseClient';
 
 export default function KatalogResellerPage() {
@@ -9,6 +9,11 @@ export default function KatalogResellerPage() {
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
+  
+  const [resellerConfig, setResellerConfig] = useState({
+    title: "GABUNG JADI RESELLER KAMI!",
+    description: "Dapatkan harga khusus pengambilan grosir (Min. 5 KG) dengan margin keuntungan yang sangat menarik. Kami melayani negosiasi fleksibel, prioritas stok, dan potensi subsidi ongkir. Pendaftaran 100% Gratis!"
+  });
 
   const [form, setForm] = useState({
     nama_lengkap: '',
@@ -19,7 +24,15 @@ export default function KatalogResellerPage() {
 
   useEffect(() => {
     loadProducts();
+    loadConfig();
   }, []);
+
+  const loadConfig = async () => {
+    const res = await getSetting('reseller_config');
+    if (res.success && res.value) {
+      setResellerConfig(res.value);
+    }
+  };
 
   const loadProducts = async () => {
     setLoading(true);
@@ -92,10 +105,10 @@ export default function KatalogResellerPage() {
         <section className="bg-gradient-to-r from-[#D4AF37]/20 to-[#111111] border border-[#D4AF37]/30 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
           <div className="relative z-10 max-w-2xl">
             <h2 className="text-3xl sm:text-4xl font-black text-[#D4AF37] mb-4 uppercase">
-              Gabung Jadi Reseller Kami!
+              {resellerConfig.title}
             </h2>
-            <p className="text-gray-300 mb-6 text-sm sm:text-base leading-relaxed">
-              Dapatkan harga khusus pengambilan grosir (Min. 5 KG) dengan margin keuntungan yang sangat menarik. Kami melayani negosiasi fleksibel, prioritas stok, dan potensi subsidi ongkir. Pendaftaran 100% Gratis!
+            <p className="text-gray-300 mb-6 text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
+              {resellerConfig.description}
             </p>
             <div className="flex flex-wrap gap-4 text-sm font-medium">
               <span className="flex items-center gap-2 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1.5 rounded-lg">

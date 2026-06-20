@@ -980,3 +980,23 @@ export const bulkUpdateProductOrder = async (updates) => {
     return { success: false, error: error.message };
   }
 };
+
+
+export const getAllDatabaseBackup = async () => {
+  try {
+    const backupData = {};
+    const tables = ['products', 'orders', 'order_items', 'customers', 'affiliators', 'settings', 'sliders', 'reseller_registrations', 'wholesale_catalogs'];
+    
+    for (const table of tables) {
+      const { data, error } = await supabase.from(table).select('*');
+      if (!error) {
+        backupData[table] = data;
+      }
+    }
+    
+    return { success: true, data: backupData };
+  } catch (error) {
+    console.error('Backup error:', error);
+    return { success: false, error: error.message };
+  }
+};
