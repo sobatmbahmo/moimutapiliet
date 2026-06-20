@@ -81,29 +81,6 @@ export default function KatalogResellerPage() {
 
       <main className="max-w-4xl mx-auto p-4 sm:p-6 space-y-10">
         
-        {/* Banner Section */}
-        <section className="bg-gradient-to-r from-[#D4AF37]/20 to-[#111111] border border-[#D4AF37]/30 rounded-2xl p-6 sm:p-8 relative overflow-hidden">
-          <div className="relative z-10 max-w-2xl">
-            <h2 className="text-3xl sm:text-4xl font-black text-[#D4AF37] mb-4 uppercase">
-              {resellerConfig.title}
-            </h2>
-            <p className="text-gray-300 mb-6 text-sm sm:text-base leading-relaxed whitespace-pre-wrap">
-              {resellerConfig.description}
-            </p>
-            <div className="flex flex-wrap gap-4 text-sm font-medium">
-              <span className="flex items-center gap-2 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1.5 rounded-lg">
-                <CheckCircle size={16} /> Harga Spesial
-              </span>
-              <span className="flex items-center gap-2 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1.5 rounded-lg">
-                <Truck size={16} /> Subsidi Ongkir
-              </span>
-              <span className="flex items-center gap-2 bg-[#D4AF37]/10 text-[#D4AF37] px-3 py-1.5 rounded-lg">
-                <MessageCircle size={16} /> Nego via WA
-              </span>
-            </div>
-          </div>
-        </section>
-
         {/* Catalog Section (Image) */}
         <section>
           {resellerConfig.image_url ? (

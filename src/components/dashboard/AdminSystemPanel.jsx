@@ -123,37 +123,17 @@ export default function AdminSystemPanel() {
         </div>
       )}
 
-      <div className="bg-[#022c22] rounded-xl shadow-lg border border-white/10 overflow-hidden">
-        <div className="p-6 border-b border-white/10">
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            Pengaturan Teks Katalog Reseller
-          </h2>
-          <p className="text-sm text-gray-400 mt-1">Sesuaikan teks promosi yang muncul di halaman Grosir & Reseller</p>
-        </div>
-
-        <div className="p-6 space-y-4">
-          <div className="space-y-2">
-            <label className="text-[#D4AF37] font-bold text-sm">Judul Promosi</label>
-            <input
-              type="text"
-              value={resellerConfig.title}
-              onChange={(e) => setResellerConfig({...resellerConfig, title: e.target.value})}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white"
-              placeholder="Contoh: GABUNG JADI RESELLER KAMI!"
-            />
+        <div className="bg-[#1A1A1A] rounded-xl shadow-lg border border-[#D4AF37]/30 overflow-hidden">
+          <div className="p-6 border-b border-white/10">
+            <h2 className="text-xl font-bold text-white flex items-center gap-2">
+              <Settings size={20} className="text-[#D4AF37]" />
+              Pengaturan Katalog Reseller
+            </h2>
+            <p className="text-sm text-gray-400 mt-1">Unggah poster harga yang muncul di halaman Grosir & Reseller</p>
           </div>
 
-          <div className="space-y-2">
-            <label className="text-[#D4AF37] font-bold text-sm">Deskripsi Promosi</label>
-            <textarea
-              value={resellerConfig.description}
-              onChange={(e) => setResellerConfig({...resellerConfig, description: e.target.value})}
-              className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white h-32"
-              placeholder="Tuliskan deskripsi lengkap keuntungan menjadi reseller..."
-            />
-          </div>
-
-          <div className="space-y-2">
+          <div className="p-6 space-y-4">
+            <div className="space-y-2">
             <label className="text-[#D4AF37] font-bold text-sm">Gambar Poster Harga Grosir</label>
             <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
               {resellerConfig.image_url && (
