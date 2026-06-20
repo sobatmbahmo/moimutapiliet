@@ -1668,12 +1668,28 @@ const handleSaveProductLink = async () => {
         </div>
 
         <div className="max-w-7xl mx-auto px-3 sm:px-6">
-          <div className="flex overflow-x-auto scrollbar-hide -mb-px">
+          {/* Mobile Dropdown Menu */}
+          <div className="md:hidden mt-3 mb-2">
+            <select
+              value={activeTab}
+              onChange={(e) => setActiveTab(e.target.value)}
+              className="w-full bg-[#022c22] border border-[#D4AF37]/30 text-white rounded-lg px-4 py-2.5 outline-none focus:border-[#D4AF37] appearance-none"
+            >
+              {adminTabs.map(tab => (
+                <option key={tab.key} value={tab.key}>
+                  {tab.label} {tab.count !== undefined ? `(${tab.count})` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Desktop Wrapped Menu */}
+          <div className="hidden md:flex flex-wrap gap-x-2 gap-y-1 -mb-px mt-2">
             {adminTabs.map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
-                className={`flex items-center gap-1.5 px-3 sm:px-5 py-2.5 text-xs sm:text-sm font-bold whitespace-nowrap border-b-2 transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-2 text-sm font-bold border-b-2 transition-all ${
                   activeTab === tab.key
                     ? 'text-[#D4AF37] border-[#D4AF37] bg-[#D4AF37]/5'
                     : 'text-gray-400 border-transparent hover:text-white hover:border-white/20'

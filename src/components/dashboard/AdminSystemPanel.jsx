@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Database, Download, AlertCircle, CheckCircle } from 'lucide-react';
-import { getSetting, updateSetting, getAllDatabaseBackup } from '../../lib/supabaseQueries';
+import { Save, Database, Download, AlertCircle, CheckCircle, Image as ImageIcon, Upload } from 'lucide-react';
+import { getSetting, updateSetting, getAllDatabaseBackup, uploadSettingImage } from '../../lib/supabaseQueries';
 
 export default function AdminSystemPanel() {
   const [loading, setLoading] = useState(false);
@@ -9,9 +9,11 @@ export default function AdminSystemPanel() {
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   
+  const [uploadingImg, setUploadingImg] = useState(false);
   const [resellerConfig, setResellerConfig] = useState({
     title: "GABUNG JADI RESELLER KAMI!",
-    description: "Dapatkan harga khusus pengambilan grosir (Min. 5 KG) dengan margin keuntungan yang sangat menarik. Kami melayani negosiasi fleksibel, prioritas stok, dan potensi subsidi ongkir. Pendaftaran 100% Gratis!"
+    description: "Dapatkan harga khusus pengambilan grosir (Min. 5 KG) dengan margin keuntungan yang sangat menarik. Kami melayani negosiasi fleksibel, prioritas stok, dan potensi subsidi ongkir. Pendaftaran 100% Gratis!",
+    image_url: ""
   });
 
   useEffect(() => {
@@ -40,6 +42,25 @@ export default function AdminSystemPanel() {
     }
     
     setSaving(false);
+  };
+
+  const handleImageUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingImg(true);
+    setSuccessMsg('');
+    setErrorMsg('');
+
+    const res = await uploadSettingImage(file);
+    if (res.success) {
+      setResellerConfig(prev => ({ ...prev, image_url: res.url }));
+      setSuccessMsg('Gambar berhasil diunggah! Jangan lupa klik Simpan Teks Reseller.');
+    } else {
+      setErrorMsg(res.error || 'Gagal mengunggah gambar');
+    }
+    
+    setUploadingImg(false);
   };
 
   const handleDownloadBackup = async () => {
@@ -130,6 +151,35 @@ export default function AdminSystemPanel() {
               className="w-full px-3 py-2 bg-black/40 border border-white/20 rounded-lg text-white h-32"
               placeholder="Tuliskan deskripsi lengkap keuntungan menjadi reseller..."
             />
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-[#D4AF37] font-bold text-sm">Gambar Poster Harga Grosir</label>
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
+              {resellerConfig.image_url && (
+                <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-white/20 bg-black/50">
+                  <img src={resellerConfig.image_url} alt="Poster Grosir" className="w-full h-full object-contain" />
+                </div>
+              )}
+              <div className="flex-1">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  disabled={uploadingImg}
+                  id="reseller-image-upload"
+                  className="hidden"
+                />
+                <label 
+                  htmlFor="reseller-image-upload"
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg cursor-pointer transition-colors border border-white/20 disabled:opacity-50"
+                >
+                  <Upload size={16} className={uploadingImg ? "animate-bounce" : ""} />
+                  {uploadingImg ? 'Mengunggah...' : 'Pilih Gambar'}
+                </label>
+                <p className="text-xs text-gray-400 mt-2">Format: JPG, PNG. Ukuran disarankan: Potret/A4 agar mudah dibaca di HP.</p>
+              </div>
+            </div>
           </div>
 
           <button

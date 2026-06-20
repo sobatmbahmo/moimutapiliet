@@ -4,15 +4,14 @@ import { submitResellerRegistration, getSetting } from '../lib/supabaseQueries';
 import { supabase } from '../lib/supabaseClient';
 
 export default function KatalogResellerPage() {
-  const [products, setProducts] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [submitSuccess, setSubmitSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   
   const [resellerConfig, setResellerConfig] = useState({
     title: "GABUNG JADI RESELLER KAMI!",
-    description: "Dapatkan harga khusus pengambilan grosir (Min. 5 KG) dengan margin keuntungan yang sangat menarik. Kami melayani negosiasi fleksibel, prioritas stok, dan potensi subsidi ongkir. Pendaftaran 100% Gratis!"
+    description: "Dapatkan harga khusus pengambilan grosir (Min. 5 KG) dengan margin keuntungan yang sangat menarik. Kami melayani negosiasi fleksibel, prioritas stok, dan potensi subsidi ongkir. Pendaftaran 100% Gratis!",
+    image_url: ""
   });
 
   const [form, setForm] = useState({
@@ -23,7 +22,6 @@ export default function KatalogResellerPage() {
   });
 
   useEffect(() => {
-    loadProducts();
     loadConfig();
   }, []);
 
@@ -31,24 +29,6 @@ export default function KatalogResellerPage() {
     const res = await getSetting('reseller_config');
     if (res.success && res.value) {
       setResellerConfig(res.value);
-    }
-  };
-
-  const loadProducts = async () => {
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('products')
-        .select('*')
-        .eq('is_active', true)
-        .order('sort_order', { ascending: true });
-
-      if (error) throw error;
-      setProducts(data || []);
-    } catch (error) {
-      setErrorMsg('Gagal memuat katalog: ' + error.message);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -124,79 +104,19 @@ export default function KatalogResellerPage() {
           </div>
         </section>
 
-        {/* Catalog Section */}
+        {/* Catalog Section (Image) */}
         <section>
-          <div className="flex items-center gap-3 mb-6">
-            <Package className="text-[#D4AF37]" size={28} />
-            <h3 className="text-2xl font-bold">Daftar Harga Produk</h3>
-          </div>
-          
-          {loading ? (
-            <div className="text-center py-10 text-gray-400 animate-pulse">Memuat katalog produk...</div>
-          ) : products.length === 0 ? (
-            <div className="text-center py-10 bg-white/5 rounded-xl border border-white/10 text-gray-400">
-              Belum ada produk yang tersedia saat ini.
+          {resellerConfig.image_url ? (
+            <div className="w-full rounded-2xl overflow-hidden border border-[#D4AF37]/30 shadow-2xl">
+              <img 
+                src={resellerConfig.image_url} 
+                alt="Daftar Harga Grosir" 
+                className="w-full h-auto object-cover"
+              />
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-              {products.map(product => {
-                // Harga per pcs
-                const pricePerPcs = product.price || 0;
-                // Asumsi jika berat_produk tidak diset, gunakan default 200 gram
-                const beratGrams = product.berat_produk || 200;
-                // Hitung faktor ke 1 KG (1000 gram)
-                const factor1KG = 1000 / beratGrams;
-                // Harga Ecer 1 KG
-                const hargaEcer1KG = pricePerPcs * factor1KG;
-                // Harga Grosir
-                const hargaGrosirKG = product.wholesale_price || 0;
-
-                return (
-                  <div key={product.id} className="bg-[#1A1A1A] border border-white/10 rounded-xl overflow-hidden hover:border-[#D4AF37]/50 transition group flex flex-col h-full shadow-lg">
-                    {/* Gambar Produk */}
-                    <div className="w-full h-48 bg-black/40 relative">
-                      {product.image_url ? (
-                        <img 
-                          src={product.image_url} 
-                          alt={product.name} 
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center text-gray-600">
-                          <Package size={48} />
-                        </div>
-                      )}
-                      <div className="absolute top-2 right-2 bg-black/80 text-white text-[10px] px-2 py-1 rounded font-bold uppercase border border-white/10">
-                        {beratGrams} Gram/Pcs
-                      </div>
-                    </div>
-
-                    <div className="p-5 flex-grow flex flex-col">
-                      <h4 className="text-lg font-bold text-white mb-4 leading-tight">
-                        {product.name}
-                      </h4>
-                      
-                      <div className="mt-auto space-y-3">
-                        {/* Harga Ecer 1 KG */}
-                        <div className="p-3 bg-black/30 rounded-lg border border-white/5">
-                          <p className="text-xs text-gray-400 mb-1">Harga untuk order 1kg:</p>
-                          <p className="text-lg font-bold text-gray-200">{formatRupiah(hargaEcer1KG)}</p>
-                        </div>
-                        
-                        {/* Harga Grosir Min 5 KG */}
-                        <div className="p-3 bg-gradient-to-r from-[#D4AF37]/10 to-[#D4AF37]/5 rounded-lg border border-[#D4AF37]/20">
-                          <p className="text-xs text-[#D4AF37] font-medium mb-1 flex items-center gap-1.5">
-                            Harga Grosir <span className="bg-[#D4AF37] text-black px-1.5 py-0.5 rounded text-[9px] font-black uppercase">Min 5KG</span>
-                          </p>
-                          <p className="text-xl font-black text-[#D4AF37]">
-                            {hargaGrosirKG > 0 ? formatRupiah(hargaGrosirKG) : 'Tanya Admin'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
+            <div className="text-center py-10 bg-white/5 rounded-xl border border-white/10 text-gray-400">
+              Poster harga belum diunggah.
             </div>
           )}
         </section>

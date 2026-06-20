@@ -1000,3 +1000,25 @@ export const getAllDatabaseBackup = async () => {
     return { success: false, error: error.message };
   }
 };
+
+export const uploadSettingImage = async (file) => {
+  try {
+    const fileExt = file.name.split('.').pop();
+    const fileName = "setting_$(Date.now())_$(Math.random().toString(36).substring(2, 9)).$fileExt";
+    const filePath = "$fileName";
+
+    const { data, error } = await supabase.storage
+      .from('product-images')
+      .upload(filePath, file);
+
+    if (error) return { success: false, error: error.message };
+
+    const { data: publicUrlData } = supabase.storage
+      .from('product-images')
+      .getPublicUrl(filePath);
+
+    return { success: true, url: publicUrlData.publicUrl };
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
