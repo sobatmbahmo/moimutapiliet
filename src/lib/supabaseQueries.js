@@ -810,7 +810,14 @@ export const getSetting = async (key) => {
       return { success: false, error: error.message };
     }
     
-    return { success: true, value: data?.value || null };
+    let finalValue = data?.value || null;
+    if (typeof finalValue === 'string') {
+      try {
+        finalValue = JSON.parse(finalValue);
+      } catch(e) {}
+    }
+
+    return { success: true, value: finalValue };
   } catch (error) {
     return { success: false, error: error.message };
   }
