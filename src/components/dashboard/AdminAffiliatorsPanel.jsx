@@ -53,6 +53,22 @@ export default function AdminAffiliatorsPanel({
                 </div>
               </div>
 
+              {/* Earnings Info */}
+              <div className="bg-black/50 border border-white/5 rounded-lg p-3 mb-3 text-xs flex justify-between">
+                <div className="text-center flex-1 border-r border-white/10">
+                  <p className="text-gray-500 mb-1">Tertunda</p>
+                  <p className="font-bold text-yellow-500">Rp {(a.total_pending || 0).toLocaleString('id-ID')}</p>
+                </div>
+                <div className="text-center flex-1 border-r border-white/10">
+                  <p className="text-gray-500 mb-1">Bisa Cair</p>
+                  <p className="font-bold text-green-500">Rp {(a.total_cleared || 0).toLocaleString('id-ID')}</p>
+                </div>
+                <div className="text-center flex-1">
+                  <p className="text-gray-500 mb-1">Dibayar</p>
+                  <p className="font-bold text-[#D4AF37]">Rp {(a.total_paid || 0).toLocaleString('id-ID')}</p>
+                </div>
+              </div>
+
               <div className="flex gap-2">
                 <button
                   onClick={() => handleDeleteAffiliator(a.id, a.name)}

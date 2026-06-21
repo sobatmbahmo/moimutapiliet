@@ -221,13 +221,35 @@ export const deleteOrder = async (orderId) => {
  */
 export const getAllAffiliators = async () => {
   try {
-    const { data, error } = await supabase
+    const { data: affiliators, error } = await supabase
       .from('affiliator_profiles')
       .select('*')
       .order('created_at', { ascending: false });
 
     if (error) return { success: false, error: error.message };
-    return { success: true, affiliators: data };
+
+    const { data: commissions } = await supabase
+      .from('affiliate_commissions')
+      .select('affiliator_id, commission_amount, status');
+
+    if (commissions) {
+      affiliators.forEach(aff => {
+        const myComms = commissions.filter(c => c.affiliator_id === aff.id);
+        let pending = 0, cleared = 0, paid = 0;
+        myComms.forEach(c => {
+          const amt = Number(c.commission_amount) || 0;
+          if (c.status === 'pending') pending += amt;
+          if (c.status === 'cleared') cleared += amt;
+          if (c.status === 'paid') paid += amt;
+        });
+        aff.total_pending = pending;
+        aff.total_cleared = cleared;
+        aff.total_paid = paid;
+        aff.total_all_time = cleared + paid;
+      });
+    }
+
+    return { success: true, affiliators };
   } catch (error) {
     return { success: false, error: error.message };
   }
