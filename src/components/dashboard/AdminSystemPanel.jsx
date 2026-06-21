@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Save, Database, Download, AlertCircle, CheckCircle, Image as ImageIcon, Upload } from 'lucide-react';
+import { Save, Database, Download, AlertCircle, CheckCircle, Image as ImageIcon, Upload, Settings } from 'lucide-react';
 import { getSetting, updateSetting, getAllDatabaseBackup, uploadSettingImage } from '../../lib/supabaseQueries';
 
 export default function AdminSystemPanel() {
