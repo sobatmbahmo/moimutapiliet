@@ -345,6 +345,8 @@ export default function AdminOrdersPanel({
               <option value="JNE">JNE</option>
               <option value="TIKI">TIKI</option>
               <option value="POS">POS Indonesia</option>
+              <option value="ID Express">ID Express</option>
+              <option value="Indah Cargo">Indah Cargo</option>
               <option value="Gojek">Gojek</option>
               <option value="Grab">Grab</option>
               <option value="KiriminAja">KiriminAja (COD)</option>
