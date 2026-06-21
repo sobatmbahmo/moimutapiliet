@@ -206,17 +206,17 @@ export default function ProductModal({ product, isOpen, onClose, mode, onAddToCa
               </div>
             )}
 
-            <div className="mt-6 flex gap-2">
-              <button onClick={handleAction} className={`${isTikTokMode ? 'w-full' : 'flex-1'} py-3.5 rounded-xl font-bold text-sm text-black flex items-center justify-center gap-2 transition-all transform active:scale-95 shadow-lg ${isTikTokMode ? 'bg-white text-black hover:bg-gray-200' : 'bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] hover:shadow-[#D4AF37]/40'}`}>
+            <div className="mt-6 flex flex-col gap-3">
+              <button onClick={handleAction} className={`w-full py-3.5 rounded-xl font-bold text-sm text-black flex items-center justify-center gap-2 transition-all transform active:scale-95 shadow-lg ${isTikTokMode ? 'bg-white text-black hover:bg-gray-200' : 'bg-gradient-to-r from-[#D4AF37] to-[#F4D03F] hover:shadow-[#D4AF37]/40'}`}>
                 {isTikTokMode ? (<>Lanjut ke TikTok <ExternalLink size={18} /></>) : (<>+ Keranjang WA <ShoppingCart size={18} strokeWidth={2.5}/></>)}
               </button>
               
-              {!isTikTokMode && (
+              {!isTikTokMode && product.link_tiktokshop && (
                 <button 
                   onClick={() => window.open(product.link_tiktokshop, '_blank')}
-                  className="aspect-square bg-black border border-white/20 rounded-xl flex items-center justify-center hover:bg-white/10 transition-all active:scale-95"
+                  className="w-full py-3.5 bg-black border border-white/20 rounded-xl font-bold text-sm text-white flex items-center justify-center gap-2 hover:bg-white/10 transition-all active:scale-95 shadow-lg"
                 >
-                  <ShoppingBag size={20} className="text-white" />
+                  <ShoppingBag size={18} /> tiktokshop
                 </button>
               )}
             </div>
